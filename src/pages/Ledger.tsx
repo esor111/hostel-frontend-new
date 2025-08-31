@@ -112,6 +112,13 @@ const Ledger = () => {
             <ApiTestComponent />
           </Suspense>
         );
+      case "debug-admin":
+        const DebugAdminCharges = lazy(() => import("@/debug-admin-charges"));
+        return (
+          <Suspense fallback={<SectionLoader sectionName="Debug Admin Charges" />}>
+            <DebugAdminCharges />
+          </Suspense>
+        );
       default:
         return <Dashboard />;
     }

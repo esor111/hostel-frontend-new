@@ -6,7 +6,8 @@ import {
   UpdateAdminChargeDto, 
   AdminChargeStats, 
   AdminChargeFilters,
-  ApplyChargeDto 
+  ApplyChargeDto,
+  AdminChargeType 
 } from '../services/adminChargesApiService';
 import { handleApiError } from '../utils/errorHandler';
 
@@ -68,7 +69,7 @@ export const useAdminCharges = (initialFilters: AdminChargeFilters = {}): UseAdm
         loading: false 
       }));
     }
-  }, [state.filters, state.searchTerm]);
+  }, []);
 
   // Load admin charge statistics
   const loadChargeStats = useCallback(async () => {
@@ -275,8 +276,32 @@ export const useAdminCharges = (initialFilters: AdminChargeFilters = {}): UseAdm
 
   // Load initial data and reload when filters/search change
   useEffect(() => {
-    loadCharges();
-  }, [loadCharges]);
+    const loadData = async () => {
+      try {
+        setState(prev => ({ ...prev, loading: true, error: null }));
+        
+        const charges = await adminChargesApiService.getAdminCharges({
+          ...state.filters,
+          search: state.searchTerm || undefined
+        });
+        
+        setState(prev => ({ 
+          ...prev, 
+          charges, 
+          loading: false 
+        }));
+      } catch (err) {
+        const apiError = handleApiError(err);
+        setState(prev => ({ 
+          ...prev, 
+          error: apiError.message, 
+          loading: false 
+        }));
+      }
+    };
+    
+    loadData();
+  }, [state.filters, state.searchTerm]);
 
   // Load stats on mount
   useEffect(() => {

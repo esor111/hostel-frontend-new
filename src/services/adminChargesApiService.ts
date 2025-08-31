@@ -73,8 +73,11 @@ export interface AdminChargeStats {
   totalCharges: number;
   pendingCharges: number;
   appliedCharges: number;
-  totalAmount: number;
-  studentsAffected: number;
+  cancelledCharges: number;
+  totalPendingAmount: number;
+  totalAppliedAmount: number;
+  totalAmount?: number;
+  studentsAffected?: number;
 }
 
 export interface TodaySummary {
@@ -134,6 +137,9 @@ class AdminChargesApiService {
         totalCharges: 0,
         pendingCharges: 0,
         appliedCharges: 0,
+        cancelledCharges: 0,
+        totalPendingAmount: 0,
+        totalAppliedAmount: 0,
         totalAmount: 0,
         studentsAffected: 0
       };
@@ -318,9 +324,7 @@ class AdminChargesApiService {
     try {
       console.log('🗑️ Bulk deleting charges...', chargeIds);
       
-      await this.apiService.delete('/admin-charges/bulk-delete', {
-        data: { chargeIds }
-      });
+      await this.apiService.delete('/admin-charges/bulk-delete', { chargeIds });
       
       console.log('✅ Charges deleted successfully');
     } catch (error) {
