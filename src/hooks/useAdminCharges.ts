@@ -74,11 +74,25 @@ export const useAdminCharges = (initialFilters: AdminChargeFilters = {}): UseAdm
   // Load admin charge statistics
   const loadChargeStats = useCallback(async () => {
     try {
+      console.log('🔄 Loading admin charge stats...');
       const stats = await adminChargesApiService.getAdminChargeStats();
+      console.log('📊 Stats loaded:', stats);
       setState(prev => ({ ...prev, stats }));
     } catch (err) {
       const apiError = handleApiError(err);
       console.error('Failed to load admin charge stats:', apiError.message);
+      // Set default stats on error
+      const defaultStats = {
+        totalCharges: 0,
+        pendingCharges: 0,
+        appliedCharges: 0,
+        cancelledCharges: 0,
+        totalPendingAmount: 0,
+        totalAppliedAmount: 0,
+        totalAmount: 0,
+        studentsAffected: 0
+      };
+      setState(prev => ({ ...prev, stats: defaultStats }));
     }
   }, []);
 

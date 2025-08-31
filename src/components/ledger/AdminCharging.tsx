@@ -20,6 +20,7 @@ import {
   Clock,
   RefreshCw
 } from 'lucide-react';
+import { DebugApiTest } from '../../debug-api-test';
 
 export const AdminCharging = () => {
   const { toast } = useToast();
@@ -92,16 +93,29 @@ export const AdminCharging = () => {
     setSummaryLoading(true);
     try {
       console.log('🔄 Loading today\'s summary...');
-      const response = await adminChargesApiService.getTodaySummary();
-      console.log('📊 Today\'s summary response:', response);
       
-      // Ensure we have the data
+      // Try direct fetch first to debug
+      const directResponse = await fetch('http://localhost:3001/hostel/api/v1/admin-charges/today-summary');
+      const directData = await directResponse.json();
+      console.log('🧪 Direct fetch result:', directData);
+      
+      // Now try through service
+      const response = await adminChargesApiService.getTodaySummary();
+      console.log('📊 Service response:', response);
+      
+      // Use the service response
       if (response && typeof response === 'object') {
         setTodaySummary(response);
         console.log('✅ Summary state updated:', response);
       } else {
         console.warn('⚠️ Invalid response format:', response);
-        throw new Error('Invalid response format');
+        // Use direct data if service fails
+        if (directData?.data) {
+          setTodaySummary(directData.data);
+          console.log('✅ Using direct data:', directData.data);
+        } else {
+          throw new Error('Invalid response format');
+        }
       }
     } catch (error) {
       console.error('❌ Error loading today\'s summary:', error);
@@ -254,6 +268,9 @@ export const AdminCharging = () => {
 
   return (
     <div className="space-y-6">
+      {/* Debug Component */}
+      <DebugApiTest />
+      
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

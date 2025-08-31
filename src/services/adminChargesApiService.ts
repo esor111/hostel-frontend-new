@@ -104,7 +104,7 @@ class AdminChargesApiService {
   async getAdminCharges(filters: AdminChargeFilters = {}): Promise<AdminCharge[]> {
     try {
       console.log('🏢 Fetching admin charges from API...', filters);
-      
+
       const queryParams = new URLSearchParams();
       if (filters.studentId) queryParams.append('studentId', filters.studentId);
       if (filters.status) queryParams.append('status', filters.status);
@@ -116,7 +116,7 @@ class AdminChargesApiService {
 
       const endpoint = `/admin-charges${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       const response = await this.apiService.get<{ data: AdminCharge[], pagination?: any }>(endpoint);
-      
+
       console.log('✅ Admin charges API response:', response);
       return response?.data || [];
     } catch (error) {
@@ -129,20 +129,18 @@ class AdminChargesApiService {
   async getAdminChargeStats(): Promise<AdminChargeStats> {
     try {
       console.log('📊 Fetching admin charge statistics...');
-      
-      const response = await this.apiService.get<{ data: AdminChargeStats }>('/admin-charges/stats');
-      
-      console.log('✅ Admin charge stats:', response);
-      return response?.data || {
-        totalCharges: 0,
-        pendingCharges: 0,
-        appliedCharges: 0,
-        cancelledCharges: 0,
-        totalPendingAmount: 0,
-        totalAppliedAmount: 0,
-        totalAmount: 0,
-        studentsAffected: 0
-      };
+
+      const response = await this.apiService.get<AdminChargeStats>('/admin-charges/stats');
+
+      console.log('✅ Admin charge stats raw response:', response);
+
+      // The ApiService should already extract the data, so response should be the stats directly
+      if (response && typeof response === 'object') {
+        return response;
+      }
+
+      console.warn('⚠️ Invalid stats response format:', response);
+      throw new Error('Invalid response format from stats API');
     } catch (error) {
       console.error('❌ Failed to fetch admin charge stats:', error);
       throw handleApiError(error);
@@ -153,16 +151,18 @@ class AdminChargesApiService {
   async getTodaySummary(): Promise<TodaySummary> {
     try {
       console.log('📊 Fetching today\'s summary...');
-      
-      const response = await this.apiService.get<{ data: TodaySummary }>('/admin-charges/today-summary');
-      
-      console.log('✅ Today\'s summary:', response);
-      return response?.data || {
-        totalCharges: 0,
-        totalAmount: 0,
-        studentsCharged: 0,
-        pendingCharges: 0
-      };
+
+      const response = await this.apiService.get<TodaySummary>('/admin-charges/today-summary');
+
+      console.log('✅ Today\'s summary raw response:', response);
+
+      // The ApiService should already extract the data, so response should be the summary directly
+      if (response && typeof response === 'object') {
+        return response;
+      }
+
+      console.warn('⚠️ Invalid summary response format:', response);
+      throw new Error('Invalid response format from today-summary API');
     } catch (error) {
       console.error('❌ Failed to fetch today\'s summary:', error);
       throw handleApiError(error);
@@ -173,9 +173,9 @@ class AdminChargesApiService {
   async getOverdueStudents(): Promise<any[]> {
     try {
       console.log('📊 Fetching overdue students...');
-      
+
       const response = await this.apiService.get<{ data: any[] }>('/admin-charges/overdue-students');
-      
+
       console.log('✅ Overdue students:', response);
       return response?.data || [];
     } catch (error) {
@@ -188,9 +188,9 @@ class AdminChargesApiService {
   async getAdminChargeById(id: string): Promise<AdminCharge> {
     try {
       console.log(`🔍 Fetching admin charge ${id}...`);
-      
+
       const response = await this.apiService.get<{ data: AdminCharge }>(`/admin-charges/${id}`);
-      
+
       console.log('✅ Admin charge details:', response);
       return response?.data;
     } catch (error) {
@@ -203,9 +203,9 @@ class AdminChargesApiService {
   async createAdminCharge(chargeData: CreateAdminChargeDto): Promise<AdminCharge> {
     try {
       console.log('➕ Creating new admin charge...', chargeData);
-      
+
       const response = await this.apiService.post<{ data: AdminCharge }>('/admin-charges', chargeData);
-      
+
       console.log('✅ Admin charge created:', response);
       return response?.data;
     } catch (error) {
@@ -218,9 +218,9 @@ class AdminChargesApiService {
   async updateAdminCharge(id: string, updateData: UpdateAdminChargeDto): Promise<AdminCharge> {
     try {
       console.log(`📝 Updating admin charge ${id}...`, updateData);
-      
+
       const response = await this.apiService.patch<{ data: AdminCharge }>(`/admin-charges/${id}`, updateData);
-      
+
       console.log('✅ Admin charge updated:', response);
       return response?.data;
     } catch (error) {
@@ -233,9 +233,9 @@ class AdminChargesApiService {
   async deleteAdminCharge(id: string): Promise<void> {
     try {
       console.log(`🗑️ Deleting admin charge ${id}...`);
-      
+
       await this.apiService.delete(`/admin-charges/${id}`);
-      
+
       console.log('✅ Admin charge deleted successfully');
     } catch (error) {
       console.error(`❌ Failed to delete admin charge ${id}:`, error);
@@ -247,9 +247,9 @@ class AdminChargesApiService {
   async applyCharge(id: string): Promise<AdminCharge> {
     try {
       console.log(`💰 Applying charge ${id}...`);
-      
+
       const response = await this.apiService.post<{ data: AdminCharge }>(`/admin-charges/${id}/apply`);
-      
+
       console.log('✅ Charge applied successfully');
       return response?.data;
     } catch (error) {
@@ -262,9 +262,9 @@ class AdminChargesApiService {
   async cancelCharge(id: string): Promise<AdminCharge> {
     try {
       console.log(`❌ Cancelling charge ${id}...`);
-      
+
       const response = await this.apiService.post<{ data: AdminCharge }>(`/admin-charges/${id}/cancel`);
-      
+
       console.log('✅ Charge cancelled successfully');
       return response?.data;
     } catch (error) {
@@ -277,9 +277,9 @@ class AdminChargesApiService {
   async getStudentCharges(studentId: string): Promise<AdminCharge[]> {
     try {
       console.log(`👤 Fetching charges for student ${studentId}...`);
-      
+
       const response = await this.apiService.get<{ data: AdminCharge[] }>(`/admin-charges/student/${studentId}`);
-      
+
       console.log('✅ Student charges:', response);
       return response?.data || [];
     } catch (error) {
@@ -292,9 +292,9 @@ class AdminChargesApiService {
   async applyChargeToStudents(applyData: ApplyChargeDto): Promise<void> {
     try {
       console.log('💰 Applying charge to students...', applyData);
-      
+
       await this.apiService.post('/admin-charges/apply-to-students', applyData);
-      
+
       console.log('✅ Charge applied to students successfully');
     } catch (error) {
       console.error('❌ Failed to apply charge to students:', error);
@@ -306,12 +306,12 @@ class AdminChargesApiService {
   async bulkUpdateCharges(chargeIds: string[], updateData: UpdateAdminChargeDto): Promise<void> {
     try {
       console.log('📝 Bulk updating charges...', { chargeIds, updateData });
-      
+
       await this.apiService.patch('/admin-charges/bulk-update', {
         chargeIds,
         updateData
       });
-      
+
       console.log('✅ Charges updated successfully');
     } catch (error) {
       console.error('❌ Failed to bulk update charges:', error);
@@ -323,9 +323,9 @@ class AdminChargesApiService {
   async bulkDeleteCharges(chargeIds: string[]): Promise<void> {
     try {
       console.log('🗑️ Bulk deleting charges...', chargeIds);
-      
+
       await this.apiService.delete('/admin-charges/bulk-delete', { chargeIds });
-      
+
       console.log('✅ Charges deleted successfully');
     } catch (error) {
       console.error('❌ Failed to bulk delete charges:', error);
