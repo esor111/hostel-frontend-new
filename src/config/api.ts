@@ -75,4 +75,13 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string) => `/admin/charges/${id}`,
     BY_STUDENT: (studentId: string) => `/admin/charges/student/${studentId}`,
   },
+  DISCOUNTS: {
+    BASE: '/discounts',
+    BY_ID: (id: string) => `/discounts/${id}`,
+    BY_STUDENT: (studentId: string) => `/discounts/student/${studentId}`,
+    STATS: '/discounts/stats',
+    TYPES: '/discounts/types',
+    APPLY: '/discounts/apply',
+    EXPIRE: (id: string) => `/discounts/${id}/expire`,
+  },
 } as const;
