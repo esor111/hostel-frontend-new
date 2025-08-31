@@ -42,31 +42,17 @@ export const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  // Fetch dashboard data from API - NO CACHE
+  // Fetch dashboard data from API
   const fetchDashboardData = async () => {
     try {
       setError(null);
-      console.log('🔄 Fetching dashboard data - NO CACHE');
-
-      // Direct API calls with no-cache headers
-      const API_BASE = 'http://localhost:3001/hostel/api/v1';
-
-      const [statsResponse, activitiesResponse] = await Promise.all([
-        fetch(`${API_BASE}/dashboard/stats`, {
-          headers: { 'Cache-Control': 'no-cache' }
-        }),
-        fetch(`${API_BASE}/dashboard/recent-activity?limit=8`, {
-          headers: { 'Cache-Control': 'no-cache' }
-        })
+      const [stats, activities] = await Promise.all([
+        dashboardApiService.getDashboardStats(),
+        dashboardApiService.getRecentActivities(8)
       ]);
 
-      const stats = await statsResponse.json();
-      const activities = await activitiesResponse.json();
-
-      console.log('📊 Fresh API data received:', { stats, activities });
-
       setDashboardStats(stats);
-      setRecentActivities(activities.data || activities || []);
+      setRecentActivities(activities);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -81,14 +67,14 @@ export const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Use ONLY API data - no AppContext fallbacks
-  const totalStudents = dashboardStats?.totalStudents || 0;
-  const activeStudents = dashboardStats?.totalStudents || 0;
-  const pendingBookings = dashboardStats?.pendingPayments || 0;
-  const totalDues = 0; // Will be calculated from API
-  const monthlyRevenue = dashboardStats?.monthlyRevenue?.amount || 0;
-  const occupancyRate = dashboardStats?.occupancyPercentage?.toString() || "0";
-  const availableRooms = dashboardStats?.availableRooms || 0;
+  // Use API data when available, fallback to AppContext calculations
+  const totalStudents = dashboardStats?.totalStudents ?? state.students.length;
+  const activeStudents = dashboardStats?.totalStudents ?? state.students.filter(s => s.status === 'Active').length;
+  const pendingBookings = bookingStats.pendingBookings;
+  const totalDues = state.students.reduce((sum, s) => sum + (s.currentBalance || 0), 0);
+  const monthlyRevenue = dashboardStats?.monthlyRevenue?.amount ?? 0;
+  const occupancyRate = dashboardStats?.occupancyPercentage?.toString() ?? "0";
+  const availableRooms = dashboardStats?.availableRooms ?? 0;
 
   const stats = [
     {
@@ -124,14 +110,19 @@ export const Dashboard = () => {
     }
   ];
 
-  // Get students with highest dues from API only
-  const studentsWithDues = []; // Will be populated from API
+  // Get students with highest dues
+  const studentsWithDues = state.students
+    .filter(s => s.currentBalance > 0)
+    .sort((a, b) => b.currentBalance - a.currentBalance)
+    .slice(0, 4);
 
   // Use API recent activities instead of bookings hook
   const displayActivities = recentActivities.slice(0, 6);
 
-  // Get checked out students with dues from API only
-  const checkedOutStudentsWithDues = []; // Will be populated from API
+  // Get students who are checked out but still have dues
+  const checkedOutStudentsWithDues = state.students
+    .filter(s => s.isCheckedOut && (s.totalDue - s.totalPaid) > 0)
+    .sort((a, b) => new Date(b.checkoutDate).getTime() - new Date(a.checkoutDate).getTime());
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -226,7 +217,7 @@ export const Dashboard = () => {
                   </Button>
                 </div>
                 <p className="text-green-100 text-lg font-medium">
-                  Last updated: {lastUpdated.toLocaleTimeString()} • Managing {totalStudents} students • Live API Data (No Cache)
+                  Last updated: {lastUpdated.toLocaleTimeString()} • Managing {totalStudents} students across your operations
                 </p>
                 <div className="flex items-center gap-4 mt-3">
                   <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
@@ -306,7 +297,7 @@ export const Dashboard = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Outstanding Dues</h3>
-                  <p className="text-sm text-gray-600">NPR {(dashboardStats?.pendingPayments || 0).toLocaleString()} total pending</p>
+                  <p className="text-sm text-gray-600">Rs {totalDues.toLocaleString()} total pending</p>
                 </div>
               </div>
               <Button
@@ -342,7 +333,7 @@ export const Dashboard = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-red-600 text-xl">
-                          NPR {(student.outstandingDues || 0).toLocaleString()}
+                          NPR {student.currentBalance.toLocaleString()}
                         </p>
                         <Button
                           size="sm"
@@ -549,7 +540,7 @@ export const Dashboard = () => {
                 <span className="font-medium">87%</span>
               </div>
               <Progress value={87} className="h-2" />
-              <p className="text-xs text-gray-600">NPR {monthlyRevenue.toLocaleString()} collected</p>
+              <p className="text-xs text-gray-600">NPR {totalRevenue.toLocaleString()} collected</p>
             </div>
           </CardContent>
         </Card>
