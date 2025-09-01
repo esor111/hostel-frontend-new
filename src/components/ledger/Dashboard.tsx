@@ -4,43 +4,109 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, User, Calendar, CreditCard } from "lucide-react";
-import { studentService } from "@/services/studentService.js";
-import { mockData } from "@/data/mockData.js";
+import { dashboardApiService, DashboardStats, CheckedOutWithDues } from "@/services/dashboardApiService";
 
 
 
 export const Dashboard = memo(() => {
   const navigate = useNavigate();
   
-  // Simple state management
-  const [dashboardStats, setDashboardStats] = useState({
-    totalStudents: 0,
-    totalCollected: 0,
-    totalDues: 0,
-    thisMonthCollection: 0,
-    advanceBalances: 0,
-    overdueInvoices: 0
-  });
-  const [checkedOutWithDues, setCheckedOutWithDues] = useState([]);
+  // State management for real API data
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [checkedOutWithDues, setCheckedOutWithDues] = useState<CheckedOutWithDues[]>([]);
+  const [totalCollected, setTotalCollected] = useState(0);
+  const [totalOutstandingDues, setTotalOutstandingDues] = useState({ amount: 0, invoiceCount: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Refresh function
+  const refreshDashboard = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('🔄 Refreshing dashboard data...');
+      
+      const [
+        stats,
+        checkedOutData,
+        totalCollectedAmount,
+        outstandingDues
+      ] = await Promise.all([
+        dashboardApiService.getDashboardStats(),
+        dashboardApiService.getCheckedOutWithDues(),
+        dashboardApiService.getTotalCollected(),
+        dashboardApiService.getTotalOutstandingDues()
+      ]);
+      
+      setDashboardStats(stats);
+      setCheckedOutWithDues(checkedOutData);
+      setTotalCollected(totalCollectedAmount);
+      setTotalOutstandingDues(outstandingDues);
+      
+      console.log('✅ Dashboard refreshed successfully');
+    } catch (error) {
+      console.error('❌ Error refreshing dashboard:', error);
+      setError(error instanceof Error ? error.message : 'Failed to refresh dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // Load students data (for future use)
-        await studentService.getStudents();
+        console.log('🔄 Loading real dashboard data from API...');
         
-        // Use mock dashboard stats
-        setDashboardStats(mockData.dashboardStats);
+        // Load all dashboard data from real APIs
+        const [
+          stats,
+          checkedOutData,
+          totalCollectedAmount,
+          outstandingDues
+        ] = await Promise.all([
+          dashboardApiService.getDashboardStats(),
+          dashboardApiService.getCheckedOutWithDues(),
+          dashboardApiService.getTotalCollected(),
+          dashboardApiService.getTotalOutstandingDues()
+        ]);
         
-        // Use mock checked out students with dues
-        setCheckedOutWithDues(mockData.checkedOutWithDues);
+        console.log('✅ Dashboard data loaded:', {
+          stats,
+          checkedOutData: checkedOutData.length,
+          totalCollectedAmount,
+          outstandingDues
+        });
+        
+        setDashboardStats(stats);
+        setCheckedOutWithDues(checkedOutData);
+        setTotalCollected(totalCollectedAmount);
+        setTotalOutstandingDues(outstandingDues);
         
       } catch (error) {
-        console.error('Error loading dashboard data:', error);
+        console.error('❌ Error loading dashboard data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+        
+        // Fallback to basic structure to prevent crashes
+        setDashboardStats({
+          totalStudents: 0,
+          availableRooms: 0,
+          totalRooms: 0,
+          activeRooms: 0,
+          totalBeds: 0,
+          occupiedBeds: 0,
+          availableBeds: 0,
+          monthlyRevenue: { value: 'NPR 0', amount: 0 },
+          pendingPayments: 0,
+          occupancyPercentage: 0
+        });
+        setCheckedOutWithDues([]);
+        setTotalCollected(0);
+        setTotalOutstandingDues({ amount: 0, invoiceCount: 0 });
       } finally {
         setLoading(false);
       }
@@ -49,14 +115,47 @@ export const Dashboard = memo(() => {
     loadData();
   }, []);
 
-  // Simple stats calculation
+  // Calculate display stats from real API data
   const stats = {
-    ...dashboardStats,
+    totalStudents: dashboardStats?.totalStudents || 0,
+    totalCollected: totalCollected,
+    totalDues: totalOutstandingDues.amount,
+    overdueInvoices: totalOutstandingDues.invoiceCount,
     checkedOutWithDues: checkedOutWithDues.length,
-    checkedOutDuesAmount: checkedOutWithDues.reduce((sum, student) => sum + (student.outstandingDues || 0), 0)
+    checkedOutDuesAmount: checkedOutWithDues.reduce((sum, student) => sum + (student.outstandingDues || 0), 0),
+    monthlyRevenue: dashboardStats?.monthlyRevenue || { value: 'NPR 0', amount: 0 },
+    occupancyPercentage: dashboardStats?.occupancyPercentage || 0,
+    availableRooms: dashboardStats?.availableRooms || 0,
+    totalBeds: dashboardStats?.totalBeds || 0,
+    occupiedBeds: dashboardStats?.occupiedBeds || 0
   };
 
 
+
+  // Show error state if there's an error
+  if (error && !loading) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 text-red-800 mb-4">
+              <AlertTriangle className="h-6 w-6" />
+              <div>
+                <h3 className="font-semibold text-lg">Dashboard Error</h3>
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Retry Loading
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -65,22 +164,44 @@ export const Dashboard = memo(() => {
         <div className="absolute inset-0 bg-gradient-to-r from-[#07A64F]/5 via-[#1295D0]/5 to-[#07A64F]/5 rounded-3xl blur-xl"></div>
         <div className="relative bg-white/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl shadow-black/5">
           <div className="flex justify-between items-start">
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-2xl flex items-center justify-center shadow-lg shadow-[#07A64F]/30">
-                  <span className="text-2xl">📊</span>
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-[#07A64F] via-[#1295D0] to-[#07A64F] bg-clip-text text-transparent tracking-tight">
-                    Financial Dashboard
-                  </h1>
-                  <p className="text-slate-600 font-medium text-lg">
-                    Real-time Analytics & Insights
-                  </p>
+            <div className="flex justify-between items-start">
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-2xl flex items-center justify-center shadow-lg shadow-[#07A64F]/30">
+                    <span className="text-2xl">📊</span>
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-[#07A64F] via-[#1295D0] to-[#07A64F] bg-clip-text text-transparent tracking-tight">
+                      Financial Dashboard
+                    </h1>
+                    <p className="text-slate-600 font-medium text-lg">
+                      {loading ? 'Loading...' : error ? 'Error Loading Data' : 'Real-time Analytics & Insights'}
+                      {!loading && !error && (
+                        <span className="ml-2 inline-flex items-center gap-1 text-sm">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          Live Data
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
-
-
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={refreshDashboard}
+                  disabled={loading}
+                  variant="outline"
+                  className="bg-white/80 backdrop-blur-sm border-white/20 hover:bg-white/90"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-[#1295D0] border-t-transparent rounded-full animate-spin mr-2" />
+                  ) : (
+                    <span className="mr-2">🔄</span>
+                  )}
+                  {loading ? 'Refreshing...' : 'Refresh'}
+                </Button>
+              </div>
             </div>
 
 
@@ -108,7 +229,9 @@ export const Dashboard = memo(() => {
               </CardTitle>
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-4xl font-bold text-slate-800 mb-2">{stats.totalStudents || 0}</div>
+              <div className="text-4xl font-bold text-slate-800 mb-2">
+                {loading ? '...' : stats.totalStudents}
+              </div>
               <p className="text-slate-600 text-sm font-medium">Correct active students</p>
               <div className="mt-4 flex items-center gap-2">
                 <div className="w-2 h-2 bg-[#1295D0] rounded-full animate-pulse"></div>
@@ -137,7 +260,9 @@ export const Dashboard = memo(() => {
               </CardTitle>
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-4xl font-bold text-slate-800 mb-2">NPR {(stats.totalCollected || 0).toLocaleString()}</div>
+              <div className="text-4xl font-bold text-slate-800 mb-2">
+                {loading ? 'Loading...' : `NPR ${stats.totalCollected.toLocaleString()}`}
+              </div>
               <p className="text-slate-600 text-sm font-medium">All time revenue collection (sum of all payments)</p>
               <div className="mt-4 flex items-center gap-2">
                 <div className="w-2 h-2 bg-[#07A64F] rounded-full animate-pulse"></div>
@@ -166,8 +291,12 @@ export const Dashboard = memo(() => {
               </CardTitle>
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-4xl font-bold text-slate-800 mb-2">NPR {(stats.totalDues || 0).toLocaleString()}</div>
-              <p className="text-slate-600 text-sm font-medium">Payments that need to be collected from {stats.overdueInvoices || 0} invoices</p>
+              <div className="text-4xl font-bold text-slate-800 mb-2">
+                {loading ? 'Loading...' : `NPR ${stats.totalDues.toLocaleString()}`}
+              </div>
+              <p className="text-slate-600 text-sm font-medium">
+                {loading ? 'Loading payment data...' : `Payments that need to be collected from ${stats.overdueInvoices} students`}
+              </p>
               <div className="mt-4 flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                 <span className="text-xs text-slate-500">Needs attention</span>
@@ -223,7 +352,7 @@ export const Dashboard = memo(() => {
               </div>
               <div className="text-right">
                 <div className="text-xl font-bold text-red-600">
-                  NPR {(checkedOutWithDues || []).reduce((sum, student) => sum + (student.outstandingDues || 0), 0).toLocaleString()}
+                  {loading ? 'Loading...' : `NPR ${stats.checkedOutDuesAmount.toLocaleString()}`}
                 </div>
                 <div className="text-xs text-slate-500">Total Outstanding</div>
               </div>

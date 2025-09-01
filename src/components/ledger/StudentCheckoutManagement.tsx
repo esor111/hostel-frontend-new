@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Search, User, Bed, DollarSign, Calendar, CreditCard, LogOut, CheckCircle } from "lucide-react";
 import { monthlyInvoiceService } from "@/services/monthlyInvoiceService.js";
 import { useLedger } from "@/hooks/useLedger";
-import { checkoutService } from "@/services/checkoutService.js";
+import { checkoutApiService } from "@/services/checkoutApiService";
 import { useStudents } from "@/hooks/useStudents";
 import { Student as ApiStudent } from "@/types/api";
 
@@ -168,7 +168,7 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                 return;
             }
 
-            // 1. Add partial month billing to ledger (always add current month's billing)
+            // 1. Add partial month billing to ledger if needed
             if (currentMonthBilling && currentMonthBilling.amount > 0) {
                 try {
                     await createAdjustment({
@@ -183,71 +183,38 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                 }
             }
 
-            // 2. Process checkout through checkout service
-            const checkoutData = {
-                studentId: student.id,
+            // 2. Process checkout through REAL API
+            const checkoutRequest = {
                 checkoutDate: checkoutDate,
-                reason: "Student checkout",
-                notes: `Checkout processed with ${hasDues ? 'outstanding dues' : 'cleared dues'}`,
-                duesCleared: !hasDues,
-                hadOutstandingDues: hasDues,
-                outstandingAmount: totalDueAmount,
-                hitLedger: true,
+                clearRoom: true,
+                refundAmount: totalDueAmount < 0 ? Math.abs(totalDueAmount) : 0,
+                deductionAmount: 0,
+                notes: `Checkout processed with ${hasDues ? 'outstanding dues' : 'cleared dues'}. Partial month billing: NPR ${currentMonthBilling?.amount || 0}`,
                 processedBy: "Admin"
             };
 
-            // Use checkout service to handle bed freeing and invoice stopping
-            const checkoutResult = await checkoutService.processCheckout(checkoutData);
-            console.log('✅ Checkout processed:', checkoutResult);
+            console.log('🚪 Processing checkout via API:', checkoutRequest);
+            const checkoutResult = await checkoutApiService.processCheckout(student.id, checkoutRequest);
+            console.log('✅ Checkout API response:', checkoutResult);
 
-            // 3. Update student status and track for dashboard if has dues
-            const updatedStudentData = {
-                isCheckedOut: true,
-                checkoutDate: checkoutDate,
-                status: hasDues ? 'Checked out with dues' : 'Checked out',
-                finalBalance: totalDueAmount,
-                bedFreed: true,
-                invoicesStopped: true
-            };
-
-            // 4. If student has dues, add to dashboard tracking
-            if (hasDues) {
-                const checkedOutWithDues = {
-                    studentId: student.id,
-                    studentName: student.name,
-                    roomNumber: student.roomNumber,
-                    checkoutDate: checkoutDate,
-                    outstandingDues: totalDueAmount,
-                    lastUpdated: new Date().toISOString(),
-                    status: 'pending_payment'
-                };
-
-                // Store in localStorage for dashboard display (in real app, this would be database)
-                const existingData = JSON.parse(localStorage.getItem('checkedOutWithDues') || '[]');
-                existingData.push(checkedOutWithDues);
-                localStorage.setItem('checkedOutWithDues', JSON.stringify(existingData));
-                console.log('✅ Student added to dashboard tracking for outstanding dues');
-            }
-
-            // 5. Complete checkout
+            // 3. Complete checkout
             onCheckoutComplete(student.id);
             onClose();
 
-            // 6. Show appropriate success message
+            // 4. Show success message
             if (hasDues) {
                 toast.warning(
                     `⚠️ Student checked out with dues of NPR ${totalDueAmount.toLocaleString()}. 
-                    • Dues added to ledger
-                    • Bed ${student.roomNumber} freed
-                    • Monthly invoices stopped
-                    • Student will appear on dashboard until dues are cleared`,
+                    • Final settlement: NPR ${checkoutResult.netSettlement}
+                    • Room cleared and made available
+                    • Student status updated to inactive`,
                     { duration: 8000 }
                 );
             } else {
                 toast.success(
                     `✅ Student checked out successfully! 
-                    • All dues cleared
-                    • Bed ${student.roomNumber} freed
+                    • Final settlement: NPR ${checkoutResult.netSettlement}
+                    • Room cleared and made available
                     • Monthly invoices stopped`,
                     { duration: 6000 }
                 );

@@ -1,10 +1,15 @@
-import { apiService } from './apiService';
+import { ApiService } from './apiService';
 import { API_ENDPOINTS } from '../config/api';
 
 // Dashboard Types
 export interface DashboardStats {
   totalStudents: number;
   availableRooms: number;
+  totalRooms: number;
+  activeRooms: number;
+  totalBeds: number;
+  occupiedBeds: number;
+  availableBeds: number;
   monthlyRevenue: {
     value: string;
     amount: number;
@@ -15,7 +20,7 @@ export interface DashboardStats {
 
 export interface RecentActivity {
   id: string;
-  type: 'booking' | 'payment' | 'checkin' | 'checkout' | 'maintenance';
+  type: 'booking' | 'payment' | 'checkin' | 'checkout' | 'maintenance' | 'overdue';
   message: string;
   time: string;
   timestamp: string;
@@ -23,15 +28,36 @@ export interface RecentActivity {
   color: string;
 }
 
+export interface CheckedOutWithDues {
+  studentId: string;
+  studentName: string;
+  roomNumber: string;
+  phone: string;
+  email: string;
+  outstandingDues: number;
+  checkoutDate: string;
+  status: string;
+}
+
 export interface MonthlyRevenueData {
   month: string;
-  revenue: number;
-  collections: number;
-  pending: number;
+  amount: number;
+}
+
+export interface DashboardSummary {
+  stats: DashboardStats;
+  recentActivity: RecentActivity[];
+  checkedOutWithDues: CheckedOutWithDues[];
+  monthlyRevenue: MonthlyRevenueData[];
+  overdueInvoices: any[];
 }
 
 export class DashboardApiService {
-  private apiService = apiService;
+  private apiService: ApiService;
+
+  constructor() {
+    this.apiService = ApiService.getInstance();
+  }
 
   /**
    * Get dashboard statistics
@@ -51,38 +77,52 @@ export class DashboardApiService {
   async getRecentActivities(limit: number = 10): Promise<RecentActivity[]> {
     console.log('📋 DashboardApiService.getRecentActivities called with limit:', limit);
     
-    const queryParams = limit ? { limit } : {};
+    const queryParams = limit ? { limit: limit.toString() } : {};
     const result = await this.apiService.get<RecentActivity[]>('/dashboard/recent-activity', queryParams);
     
-    console.log('📋 Recent activities result:', result.length, 'activities found');
-    return result;
+    console.log('📋 Recent activities result:', result?.length || 0, 'activities found');
+    return result || [];
+  }
+
+  /**
+   * Get students with outstanding dues after checkout
+   */
+  async getCheckedOutWithDues(): Promise<CheckedOutWithDues[]> {
+    console.log('👥 DashboardApiService.getCheckedOutWithDues called');
+    
+    const response = await this.apiService.get<any>('/dashboard/checked-out-dues');
+    const result = response.data || response;
+    
+    console.log('👥 Checked out with dues result:', result?.length || 0, 'students found');
+    return result || [];
   }
 
   /**
    * Get monthly revenue data
    */
-  async getMonthlyRevenue(year: number, month: number): Promise<MonthlyRevenueData> {
-    console.log('💰 DashboardApiService.getMonthlyRevenue called for:', { year, month });
+  async getMonthlyRevenue(months: number = 12): Promise<MonthlyRevenueData[]> {
+    console.log('💰 DashboardApiService.getMonthlyRevenue called for months:', months);
     
-    const result = await this.apiService.get<{ data: MonthlyRevenueData }>('/dashboard/monthly-revenue', {
-      year,
-      month
+    const response = await this.apiService.get<any>('/dashboard/monthly-revenue', {
+      months: months.toString()
     });
     
-    console.log('💰 Monthly revenue result:', result);
+    const result = response.data || response;
+    console.log('💰 Monthly revenue result:', result?.length || 0, 'months found');
+    return result || [];
+  }
+
+  /**
+   * Get comprehensive dashboard summary
+   */
+  async getDashboardSummary(): Promise<DashboardSummary> {
+    console.log('🏠 DashboardApiService.getDashboardSummary called');
     
-    // Handle the nested data structure
-    if (result.data) {
-      return result.data;
-    }
+    const response = await this.apiService.get<any>('/dashboard/summary');
+    const result = response.data || response;
     
-    // Fallback for empty data
-    return {
-      month: `${year}-${month.toString().padStart(2, '0')}`,
-      revenue: 0,
-      collections: 0,
-      pending: 0
-    };
+    console.log('🏠 Dashboard summary result:', result);
+    return result;
   }
 
   /**
@@ -91,18 +131,21 @@ export class DashboardApiService {
   async getDashboardOverview(): Promise<{
     stats: DashboardStats;
     recentActivities: RecentActivity[];
+    checkedOutWithDues: CheckedOutWithDues[];
   }> {
     console.log('🏠 DashboardApiService.getDashboardOverview called');
     
     try {
-      const [stats, recentActivities] = await Promise.all([
+      const [stats, recentActivities, checkedOutWithDues] = await Promise.all([
         this.getDashboardStats(),
-        this.getRecentActivities(8)
+        this.getRecentActivities(8),
+        this.getCheckedOutWithDues()
       ]);
 
       return {
         stats,
-        recentActivities
+        recentActivities,
+        checkedOutWithDues
       };
     } catch (error) {
       console.error('❌ Error fetching dashboard overview:', error);
@@ -111,21 +154,35 @@ export class DashboardApiService {
   }
 
   /**
-   * Refresh dashboard data (for real-time updates)
+   * Calculate total collected amount from payments
    */
-  async refreshDashboard(): Promise<{
-    stats: DashboardStats;
-    recentActivities: RecentActivity[];
-    timestamp: number;
-  }> {
-    console.log('🔄 DashboardApiService.refreshDashboard called');
-    
-    const overview = await this.getDashboardOverview();
-    
-    return {
-      ...overview,
-      timestamp: Date.now()
-    };
+  async getTotalCollected(): Promise<number> {
+    try {
+      // This would ideally be a separate endpoint, but we can calculate from monthly revenue
+      const monthlyData = await this.getMonthlyRevenue(24); // Get 2 years of data
+      return monthlyData.reduce((total, month) => total + month.amount, 0);
+    } catch (error) {
+      console.error('❌ Error calculating total collected:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Calculate total outstanding dues
+   */
+  async getTotalOutstandingDues(): Promise<{ amount: number; invoiceCount: number }> {
+    try {
+      const checkedOutWithDues = await this.getCheckedOutWithDues();
+      const totalAmount = checkedOutWithDues.reduce((total, student) => total + student.outstandingDues, 0);
+      
+      return {
+        amount: totalAmount,
+        invoiceCount: checkedOutWithDues.length
+      };
+    } catch (error) {
+      console.error('❌ Error calculating outstanding dues:', error);
+      return { amount: 0, invoiceCount: 0 };
+    }
   }
 }
 

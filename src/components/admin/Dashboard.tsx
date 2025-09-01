@@ -38,6 +38,8 @@ export const Dashboard = () => {
   // Dashboard API state
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [performanceMetrics, setPerformanceMetrics] = useState<any>(null);
+  const [checkedOutWithDues, setCheckedOutWithDues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -51,22 +53,32 @@ export const Dashboard = () => {
       // Direct API calls with no-cache headers
       const API_BASE = 'http://localhost:3001/hostel/api/v1';
 
-      const [statsResponse, activitiesResponse] = await Promise.all([
+      const [statsResponse, activitiesResponse, performanceResponse, checkedOutResponse] = await Promise.all([
         fetch(`${API_BASE}/dashboard/stats`, {
           headers: { 'Cache-Control': 'no-cache' }
         }),
         fetch(`${API_BASE}/dashboard/recent-activity?limit=8`, {
+          headers: { 'Cache-Control': 'no-cache' }
+        }),
+        fetch(`${API_BASE}/analytics/performance-metrics`, {
+          headers: { 'Cache-Control': 'no-cache' }
+        }),
+        fetch(`${API_BASE}/dashboard/checked-out-dues`, {
           headers: { 'Cache-Control': 'no-cache' }
         })
       ]);
 
       const stats = await statsResponse.json();
       const activities = await activitiesResponse.json();
+      const performance = await performanceResponse.json();
+      const checkedOut = await checkedOutResponse.json();
 
-      console.log('📊 Fresh API data received:', { stats, activities });
+      console.log('📊 Fresh API data received:', { stats, activities, performance, checkedOut });
 
       setDashboardStats(stats);
       setRecentActivities(activities.data || activities || []);
+      setPerformanceMetrics(performance.data || performance);
+      setCheckedOutWithDues(checkedOut.data || checkedOut || []);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -124,14 +136,15 @@ export const Dashboard = () => {
     }
   ];
 
-  // Get students with highest dues from API only
-  const studentsWithDues = []; // Will be populated from API
+  // Get students with highest dues from API - use checked out students with dues
+  const studentsWithDues = checkedOutWithDues.filter(student => student.outstandingDues > 0);
 
   // Use API recent activities instead of bookings hook
   const displayActivities = recentActivities.slice(0, 6);
 
-  // Get checked out students with dues from API only
-  const checkedOutStudentsWithDues = []; // Will be populated from API
+  // Performance metrics from API
+  const collectionRate = performanceMetrics?.collectionRate || 0;
+  const averageStayDuration = performanceMetrics?.averageStayDuration || 0;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -305,8 +318,8 @@ export const Dashboard = () => {
                   <AlertCircle className="h-5 w-5 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Outstanding Dues</h3>
-                  <p className="text-sm text-gray-600">NPR {(dashboardStats?.pendingPayments || 0).toLocaleString()} total pending</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Students with Overdue Payments ({studentsWithDues.length})</h3>
+                  <p className="text-sm text-gray-600">NPR {studentsWithDues.reduce((total, student) => total + (student.outstandingDues || 0), 0).toLocaleString()} total outstanding</p>
                 </div>
               </div>
               <Button
@@ -403,6 +416,7 @@ export const Dashboard = () => {
                       case 'booking': return Calendar;
                       case 'payment': return DollarSign;
                       case 'checkin': return Users;
+                      case 'checkout': return ArrowUpRight;
                       default: return Activity;
                     }
                   };
@@ -412,6 +426,7 @@ export const Dashboard = () => {
                       case 'booking': return 'from-purple-500 to-purple-600';
                       case 'payment': return 'from-green-500 to-green-600';
                       case 'checkin': return 'from-blue-500 to-blue-600';
+                      case 'checkout': return 'from-orange-500 to-orange-600';
                       default: return 'from-gray-500 to-gray-600';
                     }
                   };
@@ -428,7 +443,7 @@ export const Dashboard = () => {
                           <p className="font-medium text-gray-900">{activity.message}</p>
                           <p className="text-sm text-gray-600">{activity.time}</p>
                         </div>
-                        <Badge className={`${activity.type === 'payment' ? 'bg-green-100 text-green-700' : activity.type === 'booking' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'} font-medium px-2 py-1 rounded-full text-xs`}>
+                        <Badge className={`${activity.type === 'payment' ? 'bg-green-100 text-green-700' : activity.type === 'booking' ? 'bg-purple-100 text-purple-700' : activity.type === 'checkout' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} font-medium px-2 py-1 rounded-full text-xs`}>
                           {activity.type}
                         </Badge>
                       </div>
@@ -540,15 +555,15 @@ export const Dashboard = () => {
               <div className="p-3 bg-green-100 rounded-xl">
                 <TrendingUp className="h-6 w-6 text-green-600" />
               </div>
-              <Badge className="bg-green-100 text-green-700 px-3 py-1">+12%</Badge>
+              <Badge className="bg-green-100 text-green-700 px-3 py-1">Real Data</Badge>
             </div>
             <h3 className="font-semibold text-gray-900 mb-2">Collection Rate</h3>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">This Month</span>
-                <span className="font-medium">87%</span>
+                <span className="text-gray-600">Current Rate</span>
+                <span className="font-medium">{collectionRate}%</span>
               </div>
-              <Progress value={87} className="h-2" />
+              <Progress value={collectionRate} className="h-2" />
               <p className="text-xs text-gray-600">NPR {monthlyRevenue.toLocaleString()} collected</p>
             </div>
           </CardContent>
@@ -578,18 +593,18 @@ export const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-purple-100 rounded-xl">
-                <Activity className="h-6 w-6 text-purple-600" />
+                <Clock className="h-6 w-6 text-purple-600" />
               </div>
-              <Badge className="bg-purple-100 text-purple-700 px-3 py-1">Live</Badge>
+              <Badge className="bg-purple-100 text-purple-700 px-3 py-1">Real Data</Badge>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">System Health</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Average Stay Duration</h3>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Status</span>
-                <span className="font-medium text-green-600">Excellent</span>
+                <span className="text-gray-600">Current Average</span>
+                <span className="font-medium">{averageStayDuration} days</span>
               </div>
-              <Progress value={98} className="h-2" />
-              <p className="text-xs text-gray-600">Analytics tracking active</p>
+              <Progress value={Math.min((averageStayDuration / 365) * 100, 100)} className="h-2" />
+              <p className="text-xs text-gray-600">Based on {totalStudents} students</p>
             </div>
           </CardContent>
         </Card>
