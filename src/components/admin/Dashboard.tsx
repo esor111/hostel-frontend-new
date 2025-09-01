@@ -14,7 +14,8 @@ import {
   Zap,
   Target,
   Activity,
-  RefreshCw
+  RefreshCw,
+  Calculator
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -493,6 +494,13 @@ export const Dashboard = () => {
                 description: "Generate monthly bills",
                 color: "from-green-500 to-green-600",
                 onClick: () => window.location.href = '/admin/monthly-billing'
+              },
+              {
+                icon: Calculator,
+                label: "Billing Dashboard",
+                description: "Automated billing control",
+                color: "from-emerald-500 to-emerald-600",
+                onClick: () => window.location.href = '/admin/billing-dashboard'
               },
               {
                 icon: Zap,

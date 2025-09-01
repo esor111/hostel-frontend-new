@@ -122,3 +122,13 @@ why this student ladger is not updateing the
 
 ----
 how this occupany rate were calculated
+
+when we are able to manage student after configure ||| ?
+when room assignment happens?
+
+while creating room also add the amenities section like user also can add the ameniites while creting room
+
+
+even after checkout showing the option to checckout 
+
+why this kind of data  -> NPR 8000.002000.008000.00  (why this kind of data ???)

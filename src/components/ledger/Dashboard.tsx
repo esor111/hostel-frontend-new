@@ -174,15 +174,15 @@ export const Dashboard = memo(() => {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-[#07A64F] via-[#1295D0] to-[#07A64F] bg-clip-text text-transparent tracking-tight">
                       Financial Dashboard
                     </h1>
-                    <p className="text-slate-600 font-medium text-lg">
+                    <div className="text-slate-600 font-medium text-lg">
                       {loading ? 'Loading...' : error ? 'Error Loading Data' : 'Real-time Analytics & Insights'}
                       {!loading && !error && (
                         <span className="ml-2 inline-flex items-center gap-1 text-sm">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse inline-block"></span>
                           Live Data
                         </span>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
               </div>
