@@ -26,9 +26,7 @@ interface Student {
     laundryFee: number;
     foodFee: number;
     joinDate: string;
-    status: string;
-    isCheckedOut: boolean;
-    checkoutDate: string | null;
+    status: 'Active' | 'Inactive' | 'Suspended' | 'Graduated';
     currentBalance: number;
     totalPaid: number;
     totalDue: number;
@@ -521,13 +519,17 @@ export const StudentCheckoutManagement = () => {
     // Transform API students to local Student format and filter active students
     const transformedStudents: Student[] = useMemo(() => {
         console.log('🔍 Raw API Students:', apiStudents.length, 'students');
-        console.log('🔍 Students with isCheckedOut=true:', apiStudents.filter(s => s.isCheckedOut).length);
-        console.log('🔍 Students with isCheckedOut=false:', apiStudents.filter(s => !s.isCheckedOut).length);
+        console.log('🔍 Students with status=Active:', apiStudents.filter(s => s.status === 'Active').length);
+        console.log('🔍 Students with status=Inactive:', apiStudents.filter(s => s.status === 'Inactive').length);
+        console.log('🔍 Students with status=Suspended:', apiStudents.filter(s => s.status === 'Suspended').length);
+        console.log('🔍 Students with status=Graduated:', apiStudents.filter(s => s.status === 'Graduated').length);
 
         return apiStudents
             .filter(student => {
-                const isActive = !student.isCheckedOut;
-                console.log(`🔍 Student ${student.name} (${student.id}): isCheckedOut=${student.isCheckedOut}, showing=${isActive}`);
+                // Only show students with 'Active' status - these are the ones available for checkout
+                const isActive = student.status === 'Active';
+
+                console.log(`🔍 Student ${student.name} (${student.id}): status=${student.status}, showing=${isActive}`);
                 return isActive;
             }) // Only active students
             .map((student, index) => ({
@@ -543,10 +545,8 @@ export const StudentCheckoutManagement = () => {
                 baseMonthlyFee: student.baseMonthlyFee || 0,
                 laundryFee: student.laundryFee || 0,
                 foodFee: student.foodFee || 0,
-                joinDate: student.joinDate || new Date().toISOString().split('T')[0],
+                joinDate: student.joinDate || student.enrollmentDate || new Date().toISOString().split('T')[0],
                 status: student.status || 'Active',
-                isCheckedOut: student.isCheckedOut || false,
-                checkoutDate: student.checkoutDate || null,
                 // Additional local properties for checkout
                 currentBalance: student.balance || 0,
                 totalPaid: 0,
@@ -596,10 +596,10 @@ export const StudentCheckoutManagement = () => {
                 console.log(`🔄 Refreshing data from API (attempt ${attempt}/${maxAttempts})...`);
                 await refreshData();
 
-                // Verify the student is actually marked as checked out
-                const updatedStudents = apiStudents.find(s => s.id === studentId);
-                if (updatedStudents && !updatedStudents.isCheckedOut) {
-                    console.warn(`⚠️ Student ${studentId} still shows as active after checkout. Retrying...`);
+                // Verify the student status is changed to Inactive after checkout
+                const updatedStudent = apiStudents.find(s => s.id === studentId);
+                if (updatedStudent && updatedStudent.status === 'Active') {
+                    console.warn(`⚠️ Student ${studentId} still shows status as Active after checkout. Retrying...`);
                     if (attempt < maxAttempts) {
                         // Wait a bit longer and try again
                         setTimeout(() => refreshWithRetry(attempt + 1, maxAttempts), 2000);
@@ -622,167 +622,189 @@ export const StudentCheckoutManagement = () => {
         setTimeout(() => refreshWithRetry(), 500);
     };
 
-    if (studentsLoading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-center space-y-4">
-                    <div className="relative">
-                        <svg width="32" height="48" viewBox="0 0 55 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-pulse mx-auto">
-                            <g clipPath="url(#clip0_319_901)">
-                                <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F" />
-                                <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F" />
-                                <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20" />
-                                <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#1295D0" />
-                                <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white" />
-                                <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20" />
-                            </g>
-                            <defs>
-                                <clipPath id="clip0_319_901">
-                                    <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)" />
-                                </clipPath>
-                            </defs>
-                        </svg>
-                        <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#07A64F] border-r-[#1295D0]"></div>
-                    </div>
-                    <p className="text-gray-600">Loading students...</p>
-                </div>
-            </div>
-        );
-    }
+    const handleCheckoutComplete = async (studentId: string) => {
+        console.log(`✅ Student ${studentId} checkout completed - refreshing data from API`);
 
-    if (studentsError) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-center space-y-4">
-                    <div className="text-red-500">
-                        <User className="h-12 w-12 mx-auto mb-3" />
-                        <p className="font-medium">Error loading students</p>
-                        <p className="text-sm text-gray-500">{studentsError}</p>
-                    </div>
-                    <Button onClick={refreshData} variant="outline">
-                        Try Again
-                    </Button>
-                </div>
-            </div>
-        );
-    }
+        // Immediately remove the student from local state to provide instant feedback
+        setFilteredStudents(prev => {
+            const updated = prev.filter(student => student.id !== studentId);
+            console.log(`🔄 Removed student ${studentId} from local state. Remaining: ${updated.length} students`);
+            return updated;
+        });
+        setSelectedStudent(null);
 
-    return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Student Checkout Management</h2>
-                    <p className="text-gray-600">Process student checkouts and manage departures</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-blue-600">
-                        {filteredStudents.length} Active Students
-                    </Badge>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                            console.log('🔄 Manual refresh triggered');
-                            refreshData();
-                        }}
-                        disabled={studentsLoading}
-                        className="flex items-center gap-2"
-                    >
-                        <svg
-                            className={`h-4 w-4 ${studentsLoading ? 'animate-spin' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Refresh
-                    </Button>
-                </div>
-            </div>
+        // Show immediate success message
+        toast.success('Student checkout completed successfully!');
 
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                    placeholder="Search by name, ID, or room number..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                />
-            </div>
+        // Refresh data from API with multiple attempts to ensure consistency
+        const refreshWithRetry = async (attempt = 1, maxAttempts = 3) => {
+            try {
+                console.log(`🔄 Refreshing data from API (attempt ${attempt}/${maxAttempts})...`);
+                await refreshData();
 
-            {/* Students Grid */}
-            {filteredStudents.length === 0 ? (
-                <div className="text-center py-12">
-                    <User className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Students Found</h3>
-                    <p className="text-gray-500">
-                        {searchTerm ? 'No students match your search criteria.' : 'All students have been checked out.'}
-                    </p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredStudents.map((student) => (
-                        <Card key={student.id} className="hover:shadow-lg transition-shadow">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-full flex items-center justify-center text-white font-bold">
-                                        {student.name.charAt(0)}
-                                    </div>
-                                    <div className="flex-1">
-                                        <CardTitle className="text-lg">{student.name}</CardTitle>
-                                        <p className="text-sm text-gray-500">ID: {student.id}</p>
-                                    </div>
+
+
+                if (studentsLoading) {
+                    return (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="text-center space-y-4">
+                                <div className="relative">
+                                    <svg width="32" height="48" viewBox="0 0 55 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-pulse mx-auto">
+                                        <g clipPath="url(#clip0_319_901)">
+                                            <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F" />
+                                            <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F" />
+                                            <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20" />
+                                            <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#1295D0" />
+                                            <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white" />
+                                            <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20" />
+                                        </g>
+                                        <defs>
+                                            <clipPath id="clip0_319_901">
+                                                <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)" />
+                                            </clipPath>
+                                        </defs>
+                                    </svg>
+                                    <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#07A64F] border-r-[#1295D0]"></div>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Bed className="h-4 w-4 text-gray-400" />
-                                    <span>Room {student.roomNumber}</span>
+                                <p className="text-gray-600">Loading students...</p>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (studentsError) {
+                    return (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="text-center space-y-4">
+                                <div className="text-red-500">
+                                    <User className="h-12 w-12 mx-auto mb-3" />
+                                    <p className="font-medium">Error loading students</p>
+                                    <p className="text-sm text-gray-500">{studentsError}</p>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <User className="h-4 w-4 text-gray-400" />
-                                    <span>{student.course}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <DollarSign className="h-4 w-4 text-gray-400" />
-                                    <span>NPR {(student.baseMonthlyFee + student.laundryFee + student.foodFee).toLocaleString()}/month</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Calendar className="h-4 w-4 text-gray-400" />
-                                    <span>Joined: {new Date(student.joinDate).toLocaleDateString()}</span>
-                                </div>
-                                <div className="pt-3 border-t">
-                                    <Button
-                                        onClick={() => handleCheckoutClick(student)}
-                                        className="w-full bg-[#1295D0] hover:bg-[#1295D0]/90"
+                                <Button onClick={refreshData} variant="outline">
+                                    Try Again
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="space-y-6">
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">Student Checkout Management</h2>
+                                <p className="text-gray-600">Process student checkouts and manage departures</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Badge variant="outline" className="text-blue-600">
+                                    {filteredStudents.length} Active Students
+                                </Badge>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        console.log('🔄 Manual refresh triggered');
+                                        refreshData();
+                                    }}
+                                    disabled={studentsLoading}
+                                    className="flex items-center gap-2"
+                                >
+                                    <svg
+                                        className={`h-4 w-4 ${studentsLoading ? 'animate-spin' : ''}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
                                     >
-                                        <LogOut className="h-4 w-4 mr-2" />
-                                        Process Checkout
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            )}
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Refresh
+                                </Button>
+                            </div>
+                        </div>
 
-            {/* Checkout Dialog */}
-            {selectedStudent && (
-                <Dialog open={showCheckoutDialog} onOpenChange={setShowCheckoutDialog}>
-                    <CheckoutDialog
-                        student={selectedStudent}
-                        isOpen={showCheckoutDialog}
-                        onClose={() => {
-                            setShowCheckoutDialog(false);
-                            setSelectedStudent(null);
-                        }}
-                        onCheckoutComplete={handleCheckoutComplete}
-                    />
-                </Dialog>
-            )}
-        </div>
-    );
-};
+                        {/* Search */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <Input
+                                placeholder="Search by name, ID, or room number..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10"
+                            />
+                        </div>
+
+                        {/* Students Grid */}
+                        {filteredStudents.length === 0 ? (
+                            <div className="text-center py-12">
+                                <User className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Students Found</h3>
+                                <p className="text-gray-500">
+                                    {searchTerm ? 'No students match your search criteria.' : 'All students have been checked out.'}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredStudents.map((student) => (
+                                    <Card key={student.id} className="hover:shadow-lg transition-shadow">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-full flex items-center justify-center text-white font-bold">
+                                                    {student.name.charAt(0)}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <CardTitle className="text-lg">{student.name}</CardTitle>
+                                                    <p className="text-sm text-gray-500">ID: {student.id}</p>
+                                                </div>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <Bed className="h-4 w-4 text-gray-400" />
+                                                <span>Room {student.roomNumber}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <User className="h-4 w-4 text-gray-400" />
+                                                <span>{student.course}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <DollarSign className="h-4 w-4 text-gray-400" />
+                                                <span>NPR {(student.baseMonthlyFee + student.laundryFee + student.foodFee).toLocaleString()}/month</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <Calendar className="h-4 w-4 text-gray-400" />
+                                                <span>Joined: {new Date(student.joinDate).toLocaleDateString()}</span>
+                                            </div>
+                                            <div className="pt-3 border-t">
+                                                <Button
+                                                    onClick={() => handleCheckoutClick(student)}
+                                                    className="w-full bg-[#1295D0] hover:bg-[#1295D0]/90"
+                                                >
+                                                    <LogOut className="h-4 w-4 mr-2" />
+                                                    Process Checkout
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Checkout Dialog */}
+                        {selectedStudent && (
+                            <Dialog open={showCheckoutDialog} onOpenChange={setShowCheckoutDialog}>
+                                <CheckoutDialog
+                                    student={selectedStudent}
+                                    isOpen={showCheckoutDialog}
+                                    onClose={() => {
+                                        setShowCheckoutDialog(false);
+                                        setSelectedStudent(null);
+                                    }}
+                                    onCheckoutComplete={handleCheckoutComplete}
+                                />
+                            </Dialog>
+                        )}
+                    </div>
+                );
+            };
