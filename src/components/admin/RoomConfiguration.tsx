@@ -224,15 +224,28 @@ export const RoomConfiguration = () => {
       try {
         console.log('💾 Saving room layout:', layout);
         
+        // Analyze what we're trying to save
+        const hasElements = layout.elements && layout.elements.length > 0;
+        const hasTheme = layout.theme && Object.keys(layout.theme).length > 0;
+        const hasDimensions = layout.dimensions && Object.keys(layout.dimensions).length > 0;
+        
+        console.log(`📊 Layout analysis: ${hasElements ? layout.elements.length : 0} elements, ${hasTheme ? 'has theme' : 'no theme'}, ${hasDimensions ? 'has dimensions' : 'no dimensions'}`);
+        
+        // Warn user about backend limitations before saving
+        if (hasElements || hasTheme) {
+          console.warn('⚠️ Backend will only save dimensions, ignoring elements and theme');
+        }
+        
         // Send layout as object (backend expects object, not string)
         const layoutData = {
-          layout: layout // Send as object directly
+          layout: layout // Send complete object, even though backend ignores most of it
         };
         
         await updateRoom(selectedRoomForDesign, layoutData);
         setShowRoomDesigner(false);
         setSelectedRoomForDesign(null);
-        toast.success("Room layout saved successfully!");
+        
+        // The success message is now handled in the updateRoom hook with appropriate warnings
       } catch (error) {
         console.error('Error saving room layout:', error);
         toast.error("Failed to save room layout. Please try again.");
@@ -248,31 +261,25 @@ export const RoomConfiguration = () => {
   const handleViewLayout = (roomId: string) => {
     const room = rooms.find(r => r.id === roomId);
     
-    // Check if room has a valid layout with required properties
-    const hasValidLayout = room?.layout && 
-                          room.layout.dimensions && 
-                          room.layout.elements && 
-                          Array.isArray(room.layout.elements);
+    // Check if room has at least dimensions (minimum requirement for viewing)
+    const hasDimensions = room?.layout && room.layout.dimensions;
     
-    if (hasValidLayout) {
+    if (hasDimensions) {
       console.log('📐 Viewing room layout:', room.layout);
+      
+      // Log if elements are missing due to backend limitations
+      if (!room.layout.elements || room.layout.elements.length === 0) {
+        console.warn('⚠️ Layout elements missing - showing room with dimensions only due to backend limitations');
+      }
+      
       setSelectedRoomForView(roomId);
       setShowLayoutViewer(true);
     } else {
-      console.log('❌ No valid layout found for room:', room?.layout);
-      
-      // Check if we have dimensions but missing elements (backend issue)
-      if (room?.layout?.dimensions && !room?.layout?.elements) {
-        toast.error("Layout data is incomplete due to backend limitations", {
-          description: "The backend is only saving room dimensions. Elements and theme are not being saved properly.",
-          duration: 6000,
-        });
-      } else {
-        toast.info("Please configure the room layout first using the Layout Designer", {
-          description: "Click the Layout button to design your room",
-          duration: 4000,
-        });
-      }
+      console.log('❌ No layout dimensions found for room:', room?.layout);
+      toast.info("Please configure the room layout first using the Layout Designer", {
+        description: "Click the Layout button to design your room",
+        duration: 4000,
+      });
     }
   };
 
@@ -484,14 +491,18 @@ export const RoomConfiguration = () => {
                       <Badge 
                         variant="secondary" 
                         className={
-                          room.layout.dimensions && room.layout.elements 
+                          room.layout.dimensions && room.layout.elements && room.layout.elements.length > 0
                             ? "bg-green-100 text-green-700" 
-                            : "bg-yellow-100 text-yellow-700"
+                            : room.layout.dimensions 
+                              ? "bg-blue-100 text-blue-700" 
+                              : "bg-gray-100 text-gray-700"
                         }
                       >
-                        {room.layout.dimensions && room.layout.elements 
-                          ? "Layout Ready" 
-                          : "Layout Incomplete"
+                        {room.layout.dimensions && room.layout.elements && room.layout.elements.length > 0
+                          ? "Layout Complete" 
+                          : room.layout.dimensions 
+                            ? "Dimensions Only" 
+                            : "No Layout"
                         }
                       </Badge>
                     )}

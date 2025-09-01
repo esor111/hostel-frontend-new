@@ -99,11 +99,33 @@ export const roomsApiService = {
     try {
       console.log(`🏠 Updating room ${id} via API...`);
       console.log('📤 Update data:', updates);
+      
+      // Handle layout updates with backend limitations
+      if (updates.layout) {
+        console.log('⚠️ Layout update detected - Backend only saves dimensions');
+        console.log('📤 Full layout data being sent:', updates.layout);
+        console.log('⚠️ Note: Backend will ignore elements, theme, and other layout properties');
+      }
+      
       const response = await apiRequest(`/rooms/${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
       });
+      
       console.log('✅ Room updated successfully');
+      console.log('📥 Backend response:', response);
+      
+      // Warn if layout was incomplete in response
+      if (updates.layout && response.updatedRoom?.layout) {
+        const sentElements = updates.layout.elements?.length || 0;
+        const receivedElements = response.updatedRoom.layout.elements?.length || 0;
+        
+        if (sentElements > 0 && receivedElements === 0) {
+          console.warn('⚠️ Backend limitation: Layout elements were not saved');
+          console.warn(`📤 Sent ${sentElements} elements, 📥 received ${receivedElements} elements`);
+        }
+      }
+      
       return response.updatedRoom || response; // API returns { status, updatedRoom }
     } catch (error) {
       console.error('❌ Error updating room:', error);

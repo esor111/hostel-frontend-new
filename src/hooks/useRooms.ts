@@ -202,6 +202,24 @@ export const useRooms = () => {
   const updateRoom = async (roomId: string, updates: UpdateRoomData) => {
     try {
       console.log(`🏠 Updating room ${roomId}...`);
+      
+      // Handle layout updates with backend limitations
+      if (updates.layout) {
+        const hasElements = updates.layout.elements && updates.layout.elements.length > 0;
+        const hasTheme = updates.layout.theme && Object.keys(updates.layout.theme).length > 0;
+        
+        if (hasElements || hasTheme) {
+          console.warn('⚠️ Backend Limitation: Layout elements and theme will not be saved');
+          console.warn('📤 Sending complete layout data, but backend only saves dimensions');
+          
+          // Show user warning about backend limitations
+          toast.warning('Layout saved with limitations', {
+            description: 'Only room dimensions are saved. Elements and theme are ignored by the backend.',
+            duration: 5000,
+          });
+        }
+      }
+      
       const updatedRoom = await roomsApiService.updateRoom(roomId, updates);
       console.log('✅ Room updated:', updatedRoom);
       
@@ -209,7 +227,15 @@ export const useRooms = () => {
       await fetchRooms();
       await fetchRoomStats();
       
-      toast.success('Room updated successfully!');
+      // Show appropriate success message based on update type
+      if (updates.layout) {
+        toast.success('Room dimensions saved successfully!', {
+          description: 'Note: Backend limitations prevent saving layout elements and theme.',
+        });
+      } else {
+        toast.success('Room updated successfully!');
+      }
+      
       return updatedRoom;
     } catch (error: any) {
       console.error('❌ Error updating room:', error);
