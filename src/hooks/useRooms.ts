@@ -92,11 +92,28 @@ export const useRooms = () => {
               // If it's a string, try to parse it as JSON
               parsedLayout = JSON.parse(room.layout);
             } else if (typeof room.layout === 'object' && room.layout !== null) {
-              // If it's already an object, use it directly
-              parsedLayout = room.layout;
+              // Backend returns layout as layoutData field, extract it
+              parsedLayout = room.layout.layoutData || room.layout;
+              
+              // If layoutData doesn't exist, reconstruct from separate fields
+              if (!room.layout.layoutData && (room.layout.dimensions || room.layout.bedPositions || room.layout.furnitureLayout)) {
+                parsedLayout = {
+                  dimensions: room.layout.dimensions,
+                  elements: [
+                    ...(room.layout.bedPositions || []),
+                    ...(room.layout.furnitureLayout || [])
+                  ],
+                  theme: {
+                    name: room.layout.layoutType || 'Default',
+                    wallColor: '#e5e7eb',
+                    floorColor: '#f8f9fa'
+                  },
+                  createdAt: room.layout.createdAt || new Date().toISOString()
+                };
+              }
               
               // Handle nested string objects (PowerShell format issue)
-              if (parsedLayout.dimensions && typeof parsedLayout.dimensions === 'string') {
+              if (parsedLayout && parsedLayout.dimensions && typeof parsedLayout.dimensions === 'string') {
                 try {
                   // Parse dimensions if they're in string format like "@{width=8; height=3; length=10}"
                   const dimensionsStr = parsedLayout.dimensions.replace(/@{|}/g, '');
@@ -203,23 +220,6 @@ export const useRooms = () => {
     try {
       console.log(`🏠 Updating room ${roomId}...`);
       
-      // Handle layout updates with backend limitations
-      if (updates.layout) {
-        const hasElements = updates.layout.elements && updates.layout.elements.length > 0;
-        const hasTheme = updates.layout.theme && Object.keys(updates.layout.theme).length > 0;
-        
-        if (hasElements || hasTheme) {
-          console.warn('⚠️ Backend Limitation: Layout elements and theme will not be saved');
-          console.warn('📤 Sending complete layout data, but backend only saves dimensions');
-          
-          // Show user warning about backend limitations
-          toast.warning('Layout saved with limitations', {
-            description: 'Only room dimensions are saved. Elements and theme are ignored by the backend.',
-            duration: 5000,
-          });
-        }
-      }
-      
       const updatedRoom = await roomsApiService.updateRoom(roomId, updates);
       console.log('✅ Room updated:', updatedRoom);
       
@@ -229,8 +229,8 @@ export const useRooms = () => {
       
       // Show appropriate success message based on update type
       if (updates.layout) {
-        toast.success('Room dimensions saved successfully!', {
-          description: 'Note: Backend limitations prevent saving layout elements and theme.',
+        toast.success('Room layout saved successfully!', {
+          description: 'Complete layout with elements and theme has been saved.',
         });
       } else {
         toast.success('Room updated successfully!');

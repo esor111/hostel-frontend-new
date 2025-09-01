@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Bed, Plus, Edit, Trash2, Users, Settings, Layout, Eye, Loader2 } from "lucide-react";
+import { Bed, Plus, Edit, Trash2, Users, Layout, Eye, Loader2 } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "sonner";
 import { RoomDesigner } from "./RoomDesigner";
@@ -231,21 +231,15 @@ export const RoomConfiguration = () => {
         
         console.log(`📊 Layout analysis: ${hasElements ? layout.elements.length : 0} elements, ${hasTheme ? 'has theme' : 'no theme'}, ${hasDimensions ? 'has dimensions' : 'no dimensions'}`);
         
-        // Warn user about backend limitations before saving
-        if (hasElements || hasTheme) {
-          console.warn('⚠️ Backend will only save dimensions, ignoring elements and theme');
-        }
-        
-        // Send layout as object (backend expects object, not string)
+        // Send complete layout data to backend
         const layoutData = {
-          layout: layout // Send complete object, even though backend ignores most of it
+          layout: layout // Send complete layout object
         };
         
         await updateRoom(selectedRoomForDesign, layoutData);
         setShowRoomDesigner(false);
         setSelectedRoomForDesign(null);
         
-        // The success message is now handled in the updateRoom hook with appropriate warnings
       } catch (error) {
         console.error('Error saving room layout:', error);
         toast.error("Failed to save room layout. Please try again.");
@@ -261,21 +255,15 @@ export const RoomConfiguration = () => {
   const handleViewLayout = (roomId: string) => {
     const room = rooms.find(r => r.id === roomId);
     
-    // Check if room has at least dimensions (minimum requirement for viewing)
-    const hasDimensions = room?.layout && room.layout.dimensions;
+    // Check if room has layout data
+    const hasLayout = room?.layout && (room.layout.dimensions || room.layout.elements);
     
-    if (hasDimensions) {
+    if (hasLayout) {
       console.log('📐 Viewing room layout:', room.layout);
-      
-      // Log if elements are missing due to backend limitations
-      if (!room.layout.elements || room.layout.elements.length === 0) {
-        console.warn('⚠️ Layout elements missing - showing room with dimensions only due to backend limitations');
-      }
-      
       setSelectedRoomForView(roomId);
       setShowLayoutViewer(true);
     } else {
-      console.log('❌ No layout dimensions found for room:', room?.layout);
+      console.log('❌ No layout found for room:', room?.layout);
       toast.info("Please configure the room layout first using the Layout Designer", {
         description: "Click the Layout button to design your room",
         duration: 4000,
@@ -283,10 +271,7 @@ export const RoomConfiguration = () => {
     }
   };
 
-  const closeLayoutViewer = () => {
-    setShowLayoutViewer(false);
-    setSelectedRoomForView(null);
-  };
+
 
   // Show room designer if selected
   if (showRoomDesigner && selectedRoomForDesign) {

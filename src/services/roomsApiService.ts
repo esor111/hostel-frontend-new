@@ -56,10 +56,10 @@ export const roomsApiService = {
       console.log(`🏠 Fetching room ${id} from API...`);
       const response = await apiRequest(`/rooms/${id}`);
       console.log('✅ Room fetched successfully:', response);
-      
+
       // Handle different API response formats
       const roomData = response.room || response.result || response;
-      
+
       // Parse layout if it exists and is a string
       if (roomData.layout && typeof roomData.layout === 'string') {
         try {
@@ -69,7 +69,7 @@ export const roomsApiService = {
           roomData.layout = null;
         }
       }
-      
+
       return roomData;
     } catch (error) {
       console.error('❌ Error fetching room by ID:', error);
@@ -82,6 +82,42 @@ export const roomsApiService = {
     try {
       console.log('🏠 Creating new room via API...');
       console.log('📤 Room data:', roomData);
+
+      // Transform layout data if present
+      if (roomData.layout) {
+        console.log('🎨 Layout data detected - Transforming for backend');
+        const transformedLayout = {
+          layoutData: roomData.layout, // Store complete layout as layoutData
+          dimensions: roomData.layout.dimensions,
+          bedPositions: roomData.layout.elements?.filter(e =>
+            e.type === 'single-bed' || e.type === 'bunk-bed'
+          ).map(bed => ({
+            id: bed.id,
+            type: bed.type,
+            x: bed.x,
+            y: bed.y,
+            width: bed.width,
+            height: bed.height,
+            rotation: bed.rotation,
+            properties: bed.properties
+          })),
+          furnitureLayout: roomData.layout.elements?.filter(e =>
+            e.type !== 'single-bed' && e.type !== 'bunk-bed'
+          ).map(furniture => ({
+            id: furniture.id,
+            type: furniture.type,
+            x: furniture.x,
+            y: furniture.y,
+            width: furniture.width,
+            height: furniture.height,
+            rotation: furniture.rotation
+          })),
+          layoutType: roomData.layout.theme?.name || 'standard'
+        };
+
+        roomData.layout = transformedLayout;
+      }
+
       const response = await apiRequest('/rooms', {
         method: 'POST',
         body: JSON.stringify(roomData),
@@ -99,33 +135,54 @@ export const roomsApiService = {
     try {
       console.log(`🏠 Updating room ${id} via API...`);
       console.log('📤 Update data:', updates);
-      
-      // Handle layout updates with backend limitations
+
+      // Transform layout data to match backend expectations
       if (updates.layout) {
-        console.log('⚠️ Layout update detected - Backend only saves dimensions');
-        console.log('📤 Full layout data being sent:', updates.layout);
-        console.log('⚠️ Note: Backend will ignore elements, theme, and other layout properties');
+        console.log('🎨 Layout update detected - Transforming data for backend');
+        console.log('📤 Original layout data:', updates.layout);
+
+        // Transform frontend layout format to backend format
+        const transformedLayout = {
+          layoutData: updates.layout, // Store complete layout as layoutData
+          dimensions: updates.layout.dimensions,
+          bedPositions: updates.layout.elements?.filter(e =>
+            e.type === 'single-bed' || e.type === 'bunk-bed'
+          ).map(bed => ({
+            id: bed.id,
+            type: bed.type,
+            x: bed.x,
+            y: bed.y,
+            width: bed.width,
+            height: bed.height,
+            rotation: bed.rotation,
+            properties: bed.properties
+          })),
+          furnitureLayout: updates.layout.elements?.filter(e =>
+            e.type !== 'single-bed' && e.type !== 'bunk-bed'
+          ).map(furniture => ({
+            id: furniture.id,
+            type: furniture.type,
+            x: furniture.x,
+            y: furniture.y,
+            width: furniture.width,
+            height: furniture.height,
+            rotation: furniture.rotation
+          })),
+          layoutType: updates.layout.theme?.name || 'standard'
+        };
+
+        console.log('🔄 Transformed layout for backend:', transformedLayout);
+        updates.layout = transformedLayout;
       }
-      
+
       const response = await apiRequest(`/rooms/${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
       });
-      
+
       console.log('✅ Room updated successfully');
       console.log('📥 Backend response:', response);
-      
-      // Warn if layout was incomplete in response
-      if (updates.layout && response.updatedRoom?.layout) {
-        const sentElements = updates.layout.elements?.length || 0;
-        const receivedElements = response.updatedRoom.layout.elements?.length || 0;
-        
-        if (sentElements > 0 && receivedElements === 0) {
-          console.warn('⚠️ Backend limitation: Layout elements were not saved');
-          console.warn(`📤 Sent ${sentElements} elements, 📥 received ${receivedElements} elements`);
-        }
-      }
-      
+
       return response.updatedRoom || response; // API returns { status, updatedRoom }
     } catch (error) {
       console.error('❌ Error updating room:', error);
