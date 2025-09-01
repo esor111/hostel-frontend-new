@@ -722,7 +722,7 @@ export const StudentCheckoutManagement = () => {
                                             <DollarSign className="h-4 w-4 text-green-500" />
                                             <div>
                                                 <p className="font-bold text-green-600">
-                                                    NPR {(student.baseMonthlyFee + student.laundryFee + student.foodFee).toLocaleString()}
+                                                    NPR {(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0)).toLocaleString()}
                                                 </p>
                                                 <p className="text-xs text-gray-500">Monthly Fee</p>
                                             </div>
@@ -746,13 +746,25 @@ export const StudentCheckoutManagement = () => {
 
                                     {/* Checkout Button */}
                                     <div className="lg:col-span-2">
-                                        <Button
-                                            onClick={() => handleCheckoutClick(student)}
-                                            className="w-full bg-[#1295D0] hover:bg-[#1295D0]/90"
-                                        >
-                                            <LogOut className="h-4 w-4 mr-2" />
-                                            Checkout
-                                        </Button>
+                                        {student.isCheckedOut ? (
+                                            <div className="w-full p-3 bg-gray-100 rounded-lg text-center">
+                                                <CheckCircle className="h-4 w-4 mx-auto mb-1 text-green-600" />
+                                                <span className="text-sm text-gray-600">Already Checked Out</span>
+                                                {student.checkoutDate && (
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        {new Date(student.checkoutDate).toLocaleDateString()}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <Button
+                                                onClick={() => handleCheckoutClick(student)}
+                                                className="w-full bg-[#1295D0] hover:bg-[#1295D0]/90"
+                                            >
+                                                <LogOut className="h-4 w-4 mr-2" />
+                                                Checkout
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>

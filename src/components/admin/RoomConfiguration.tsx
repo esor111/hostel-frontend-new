@@ -388,6 +388,42 @@ export const RoomConfiguration = () => {
                 />
               </div>
             </div>
+            
+            {/* Amenities Section */}
+            <div className="space-y-3 mt-4">
+              <Label>Room Amenities</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {availableAmenities.map((amenity) => (
+                  <div key={amenity} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`amenity-${amenity}`}
+                      checked={newRoom.amenities.includes(amenity)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setNewRoom({ ...newRoom, amenities: [...newRoom.amenities, amenity] });
+                        } else {
+                          setNewRoom({ ...newRoom, amenities: newRoom.amenities.filter(a => a !== amenity) });
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <Label htmlFor={`amenity-${amenity}`} className="text-sm font-normal cursor-pointer">
+                      {amenity}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {newRoom.amenities.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {newRoom.amenities.map((amenity) => (
+                    <Badge key={amenity} variant="secondary" className="text-xs">
+                      {amenity}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="flex gap-2 mt-4">
               <Button onClick={editingRoom ? handleUpdateRoom : handleAddRoom}>
                 {editingRoom ? 'Update Room' : 'Add Room'}

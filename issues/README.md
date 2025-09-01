@@ -6,7 +6,8 @@ This directory contains detailed documentation of all known issues in the Kaha H
 ## Current Issues
 
 ### High Priority Issues
-- 🔴 **[PAYMENT_API_500_ERROR.md](./PAYMENT_API_500_ERROR.md)** - Payment creation fails with 500 Internal Server Error
+- ✅ **[PAYMENT_API_500_ERROR.md](./PAYMENT_API_500_ERROR.md)** - Frontend syntax errors fixed, payment API needs backend investigation
+- ✅ **[COMPREHENSIVE_FIXES.md](./COMPREHENSIVE_FIXES.md)** - Multiple UI/UX issues resolved
 
 ### Medium Priority Issues
 - None currently
@@ -120,15 +121,32 @@ why this student ladger is not updateing the
 
 
 
-----
-how this occupany rate were calculated
+## Recently Fixed Issues ✅
 
-when we are able to manage student after configure ||| ?
-when room assignment happens?
+### UI/UX Fixes Completed
+- ✅ **Number concatenation issue fixed** - NPR 8000.002000.008000.00 now displays correctly
+- ✅ **Checkout button hidden for checked out students** - No more checkout option after checkout
+- ✅ **Amenities section added to room creation** - Users can now select amenities when creating rooms
+- ✅ **Student ledger filtering** - Only configured students appear in ledger view
+- ✅ **TypeScript compilation errors resolved** - Application builds successfully
 
-while creating room also add the amenities section like user also can add the ameniites while creting room
+### Outstanding Questions for Backend Team
 
+#### Dashboard Analytics
+- How are recent activities configured in the backend? What actions trigger recent activity entries?
+- Collection Rate and Avg Occupancy calculations - are these correct?
+- Student Status Distribution - is this real API data or mock data?
+- Performance Metrics (Average Stay Duration: 180 days, Payment Collection Rate: 67%) - what's the calculation logic?
 
-even after checkout showing the option to checckout 
+#### Data Integrity Issues
+- Students with Overdue Payments shows (0) - when will this update?
+- Are these valid discount IDs: DSC1756643907540, DSC1756636493190001?
+- Why is student ledger not updating properly?
+- How is occupancy rate calculated?
+- Students with Outstanding Dues not changing after payment recording - ledger should update
 
-why this kind of data  -> NPR 8000.002000.008000.00  (why this kind of data ???)
+#### Workflow Questions
+- When should room assignment happen in the student management workflow?
+- What's the proper sequence: Student Creation → Configuration → Room Assignment → Billing?
+
+See [COMPREHENSIVE_FIXES.md](./COMPREHENSIVE_FIXES.md) for detailed technical fixes appli 

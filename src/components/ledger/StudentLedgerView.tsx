@@ -40,8 +40,8 @@ export const StudentLedgerView = () => {
   const location = useLocation();
   const [selectedStudent, setSelectedStudent] = useState("");
 
-  // Transform API students to local format
-  const students = (apiStudents || []).map(student => ({
+  // Transform API students to local format and filter configured students only
+  const allStudents = (apiStudents || []).map(student => ({
     ...student,
     // Ensure id is always a string
     id: String(student.id || ''),
@@ -70,6 +70,12 @@ export const StudentLedgerView = () => {
     configurationDate: String(student.createdAt || new Date().toISOString()),
     additionalCharges: []
   }));
+
+  // Filter only configured students (students with baseMonthlyFee > 0 or configurationDate)
+  const students = allStudents.filter(student => {
+    const isConfigured = student.baseMonthlyFee > 0 || student.configurationDate;
+    return isConfigured && student.status === 'Active';
+  });
 
   // Handle URL parameters to auto-select student
   useEffect(() => {
