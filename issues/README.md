@@ -129,6 +129,9 @@ why this student ladger is not updateing the
 - ✅ **Amenities section added to room creation** - Users can now select amenities when creating rooms
 - ✅ **Student ledger filtering** - Only configured students appear in ledger view
 - ✅ **TypeScript compilation errors resolved** - Application builds successfully
+- ✅ **Auto-refresh after payment recording** - UI updates immediately after payment
+- ✅ **Invalid Date issue fixed** - Checkout dates display properly or show "Recently checked out"
+- ✅ **Better zero outstanding dues messaging** - Improved UX when no dues exist
 
 ### Outstanding Questions for Backend Team
 

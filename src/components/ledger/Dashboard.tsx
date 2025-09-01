@@ -334,7 +334,7 @@ export const Dashboard = memo(() => {
             </div>
           </CardContent>
         </Card>
-      ) : checkedOutWithDues && checkedOutWithDues.length > 0 ? (
+      ) : checkedOutWithDues && checkedOutWithDues.length > 0 && stats.checkedOutDuesAmount > 0 ? (
         <Card className="border-orange-200/50 bg-gradient-to-br from-orange-50/30 to-red-50/30 shadow-lg">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
@@ -378,7 +378,10 @@ export const Dashboard = memo(() => {
                           {student.roomNumber}
                         </span>
                         <span>
-                          Checkout: {new Date(student.checkoutDate).toLocaleDateString()}
+                          Checkout: {student.checkoutDate && student.checkoutDate !== 'Invalid Date' ? 
+                            new Date(student.checkoutDate).toLocaleDateString() : 
+                            'Recently checked out'
+                          }
                         </span>
                       </div>
                     </div>

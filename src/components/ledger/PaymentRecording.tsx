@@ -124,9 +124,12 @@ export const PaymentRecording = () => {
 
       await recordPayment(paymentData);
       
+      // Refresh data after successful payment
+      await loadPayments();
+      
       toast({
         title: "Payment Recorded",
-        description: `Payment of NPR ${Number(paymentAmount).toLocaleString()} recorded successfully.`,
+        description: `Payment of NPR ${Number(paymentAmount).toLocaleString()} recorded successfully. Data refreshed.`,
       });
 
       // Reset form and close modal
