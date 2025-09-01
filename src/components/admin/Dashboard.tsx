@@ -557,25 +557,7 @@ export const Dashboard = () => {
 
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-green-100 rounded-xl">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
-              <Badge className="bg-green-100 text-green-700 px-3 py-1">Real Data</Badge>
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Collection Rate</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Current Rate</span>
-                <span className="font-medium">{collectionRate}%</span>
-              </div>
-              <Progress value={collectionRate} className="h-2" />
-              <p className="text-xs text-gray-600">NPR {monthlyRevenue.toLocaleString()} collected</p>
-            </div>
-          </CardContent>
-        </Card>
+
 
         <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50">
           <CardContent className="p-6">

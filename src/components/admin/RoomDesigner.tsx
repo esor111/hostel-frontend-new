@@ -198,25 +198,45 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
         const effectiveWidth = isRotated ? el.height : el.width;
         const effectiveHeight = isRotated ? el.width : el.height;
         
-        // 🔧 FIXED: PERFECT boundary constraints (NO MORE BOUNCING!) 🔧
+        // 🔧 FIXED: PERFECT boundary constraints with wall-snapping for windows/doors 🔧
         // Calculate maximum positions with ultra-high precision
         const maxX = Math.max(0, dimensions.length - effectiveWidth);
         const maxY = Math.max(0, dimensions.width - effectiveHeight);
         
-        // Apply boundary constraints with NO bouncing
+        // Apply boundary constraints with wall-snapping for openings
         let constrainedX = newX;
         let constrainedY = newY;
         
-        if (constrainedX < 0) {
-          constrainedX = 0;
-        } else if (constrainedX > maxX) {
-          constrainedX = maxX;
-        }
+        // Special handling for windows and doors - allow wall positioning
+        const isOpening = el.type === 'window' || el.type === 'door';
         
-        if (constrainedY < 0) {
-          constrainedY = 0;
-        } else if (constrainedY > maxY) {
-          constrainedY = maxY;
+        if (isOpening) {
+          // For openings, allow positioning at exact boundaries (walls)
+          if (constrainedX < 0) {
+            constrainedX = 0; // Left wall
+          } else if (constrainedX > dimensions.length - effectiveWidth) {
+            constrainedX = dimensions.length - effectiveWidth; // Right wall
+          }
+          
+          if (constrainedY < 0) {
+            constrainedY = 0; // Top wall
+          } else if (constrainedY > dimensions.width - effectiveHeight) {
+            constrainedY = dimensions.width - effectiveHeight; // Bottom wall
+          }
+        } else {
+          // For furniture, maintain small margin from walls
+          const margin = 0.1;
+          if (constrainedX < margin) {
+            constrainedX = margin;
+          } else if (constrainedX > maxX - margin) {
+            constrainedX = maxX - margin;
+          }
+          
+          if (constrainedY < margin) {
+            constrainedY = margin;
+          } else if (constrainedY > maxY - margin) {
+            constrainedY = maxY - margin;
+          }
         }
         
         // Return element with butter-smooth positioning

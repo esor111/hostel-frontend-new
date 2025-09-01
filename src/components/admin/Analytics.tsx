@@ -113,20 +113,7 @@ export const Analytics = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-violet-50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Collection Rate</p>
-                <p className="text-2xl font-bold text-gray-900">{collectionStats.collectionRate || 0}%</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Rs {collectionStats.totalCollected?.toLocaleString() || '0'} collected
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
 
       {/* Charts Section */}

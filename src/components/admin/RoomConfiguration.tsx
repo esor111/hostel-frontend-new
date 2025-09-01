@@ -501,7 +501,7 @@ export const RoomConfiguration = () => {
                     className="text-green-600 hover:text-green-700"
                     title={room.layout ? "View saved room layout" : "Configure room layout first"}
                   >
-                    <Eye className="h-4 w-4" />
+                    View
                   </Button>
                   <Button 
                     size="sm" 
@@ -509,7 +509,7 @@ export const RoomConfiguration = () => {
                     onClick={() => openRoomDesigner(room.id)}
                     className="text-purple-600 hover:text-purple-700"
                   >
-                    <Layout className="h-4 w-4" />
+                    Layout
                   </Button>
                   <Button 
                     size="sm" 
@@ -517,7 +517,7 @@ export const RoomConfiguration = () => {
                     onClick={() => handleEditRoom(room)}
                     className="text-blue-600 hover:text-blue-700"
                   >
-                    <Edit className="h-4 w-4" />
+                    Edit
                   </Button>
                   <Button 
                     size="sm" 
