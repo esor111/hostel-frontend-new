@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Search, Filter, Eye, CheckCircle, XCircle, Clock, Users, Calendar, Phone, Mail } from 'lucide-react';
+import { Search, Filter, Eye, CheckCircle, XCircle, Clock, Users, Calendar, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useBookings } from '@/hooks/useBookings';
 import { BookingStatus } from '@/types/api';
 import { toast } from "sonner";
@@ -32,6 +32,10 @@ const BookingRequests = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [bookingsPerPage] = useState(6); // 6 bookings per page
 
   // Filter bookings based on search and status
   useEffect(() => {
@@ -51,7 +55,14 @@ const BookingRequests = () => {
     }
     
     setFilteredBookings(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [bookings, searchTerm, statusFilter]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
+  const startIndex = (currentPage - 1) * bookingsPerPage;
+  const endIndex = startIndex + bookingsPerPage;
+  const currentBookings = filteredBookings.slice(startIndex, endIndex);
 
   const handleApprove = async (bookingId) => {
     try {
@@ -153,13 +164,23 @@ const BookingRequests = () => {
             <h2 className="text-3xl font-bold text-gray-900">📝 Booking Requests</h2>
             <p className="text-gray-600 mt-1">Manage student admission requests and approvals</p>
           </div>
-          <Button 
-            onClick={refreshData}
-            variant="outline"
-            className="border-blue-600 text-blue-600 hover:bg-blue-50"
-          >
-            🔄 Refresh Data
-          </Button>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-blue-600">
+              {filteredBookings.length} Total Requests
+            </Badge>
+            {totalPages > 1 && (
+              <Badge variant="outline" className="text-green-600">
+                Page {currentPage} of {totalPages}
+              </Badge>
+            )}
+            <Button 
+              onClick={refreshData}
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              🔄 Refresh Data
+            </Button>
+          </div>
         </div>
 
         {/* Booking Analytics */}
@@ -247,7 +268,14 @@ const BookingRequests = () => {
         {/* Requests Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Booking Requests ({filteredBookings.length})</CardTitle>
+            <CardTitle>
+              Booking Requests ({filteredBookings.length})
+              {totalPages > 1 && (
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  - Showing {startIndex + 1} to {Math.min(endIndex, filteredBookings.length)} of {filteredBookings.length}
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -264,14 +292,14 @@ const BookingRequests = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredBookings.length === 0 ? (
+                  {currentBookings.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-gray-500">
                         {searchTerm || statusFilter !== 'all' ? 'No bookings match your filters' : 'No booking requests found'}
                       </td>
                     </tr>
                   ) : (
-                    filteredBookings.map((booking) => (
+                    currentBookings.map((booking) => (
                       <tr key={booking.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-4 font-medium text-blue-600">{booking.id}</td>
                         <td className="py-3 px-4">
@@ -350,6 +378,50 @@ const BookingRequests = () => {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <div className="text-sm text-gray-500">
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredBookings.length)} of {filteredBookings.length} booking requests
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

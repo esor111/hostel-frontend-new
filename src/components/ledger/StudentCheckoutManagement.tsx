@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, User, Bed, DollarSign, Calendar, CreditCard, LogOut, CheckCircle } from "lucide-react";
+import { Search, User, Bed, DollarSign, Calendar, CreditCard, LogOut, CheckCircle, Edit, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { monthlyInvoiceService } from "@/services/monthlyInvoiceService.js";
 import { useLedger } from "@/hooks/useLedger";
 import { checkoutApiService } from "@/services/checkoutApiService";
@@ -283,11 +283,17 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                         <CardTitle className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-5 w-5" />
-                                Existing Ledger
+                                Student Ledger View
                             </div>
-                            <Badge variant="outline" className="text-blue-600">
-                                {ledgerEntries.length} Entries
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-blue-600">
+                                    {ledgerEntries.length} Entries
+                                </Badge>
+                                <Button variant="outline" size="sm">
+                                    <Search className="h-4 w-4 mr-2" />
+                                    Search Ledger
+                                </Button>
+                            </div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -516,6 +522,14 @@ export const StudentCheckoutManagement = () => {
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [showCheckoutDialog, setShowCheckoutDialog] = useState(false);
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [studentsPerPage] = useState(6); // 2x3 grid for better pagination visibility
+
+    // Filter state
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [roomFilter, setRoomFilter] = useState("");
+
     // Transform API students to local Student format and filter active students
     const transformedStudents: Student[] = useMemo(() => {
         console.log('🔍 Raw API Students:', apiStudents.length, 'students');
@@ -557,19 +571,46 @@ export const StudentCheckoutManagement = () => {
             }));
     }, [apiStudents]);
 
-    // Update filtered students when transformed students change
+    // Update filtered students when search term, filters, or transformed students change
     useEffect(() => {
-        if (!searchTerm) {
-            setFilteredStudents(transformedStudents);
-        } else {
-            const filtered = transformedStudents.filter(student =>
+        let filtered = transformedStudents;
+
+        // Apply search filter
+        if (searchTerm) {
+            filtered = filtered.filter(student =>
                 student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())
+                student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                student.course.toLowerCase().includes(searchTerm.toLowerCase())
             );
-            setFilteredStudents(filtered);
         }
-    }, [searchTerm, transformedStudents]);
+
+        // Apply status filter
+        if (statusFilter !== "all") {
+            filtered = filtered.filter(student => student.status === statusFilter);
+        }
+
+        // Apply room filter
+        if (roomFilter) {
+            filtered = filtered.filter(student =>
+                student.roomNumber.toLowerCase().includes(roomFilter.toLowerCase())
+            );
+        }
+
+        setFilteredStudents(filtered);
+        setCurrentPage(1); // Reset to first page when filters change
+    }, [searchTerm, statusFilter, roomFilter, transformedStudents]);
+
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+    const startIndex = (currentPage - 1) * studentsPerPage;
+    const endIndex = startIndex + studentsPerPage;
+    const currentStudents = filteredStudents.slice(startIndex, endIndex);
+
+    // Format currency properly
+    const formatCurrency = (amount: number) => {
+        return `NPR ${amount.toLocaleString('en-NP', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
     const handleCheckoutClick = (student: Student) => {
         setSelectedStudent(student);
@@ -679,6 +720,9 @@ export const StudentCheckoutManagement = () => {
                     <Badge variant="outline" className="text-blue-600">
                         {filteredStudents.length} Active Students
                     </Badge>
+                    <Badge variant="outline" className="text-green-600">
+                        Page {currentPage} of {totalPages}
+                    </Badge>
                     <Button
                         variant="outline"
                         size="sm"
@@ -702,71 +746,164 @@ export const StudentCheckoutManagement = () => {
                 </div>
             </div>
 
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                    placeholder="Search by name, ID, or room number..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                />
+            {/* Search and Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                        placeholder="Search by name, ID, room, or course..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
+                <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Suspended">Suspended</option>
+                        <option value="Graduated">Graduated</option>
+                    </select>
+                </div>
+                <div className="relative">
+                    <Bed className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                        placeholder="Filter by room number..."
+                        value={roomFilter}
+                        onChange={(e) => setRoomFilter(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
             </div>
 
             {/* Students Grid */}
             {filteredStudents.length === 0 ? (
                 <div className="text-center py-12">
                     <User className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Students Found</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Students Found</h3>
                     <p className="text-gray-500">
-                        {searchTerm ? 'No students match your search criteria.' : 'All students have been checked out.'}
+                        {searchTerm || statusFilter !== "all" || roomFilter ? 'No students match your search criteria.' : 'All students have been checked out.'}
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredStudents.map((student) => (
-                        <Card key={student.id} className="hover:shadow-lg transition-shadow">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-full flex items-center justify-center text-white font-bold">
-                                        {student.name.charAt(0)}
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {currentStudents.map((student) => (
+                            <Card key={student.id} className="hover:shadow-lg transition-shadow">
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-full flex items-center justify-center text-white font-bold">
+                                            {student.name.charAt(0)}
+                                        </div>
+                                        <div className="flex-1">
+                                            <CardTitle className="text-lg">{student.name}</CardTitle>
+                                            <p className="text-sm text-gray-500">ID: {student.id}</p>
+                                        </div>
+                                        <Badge
+                                            variant={student.status === 'Active' ? 'default' : 'secondary'}
+                                            className="text-xs"
+                                        >
+                                            {student.status}
+                                        </Badge>
                                     </div>
-                                    <div className="flex-1">
-                                        <CardTitle className="text-lg">{student.name}</CardTitle>
-                                        <p className="text-sm text-gray-500">ID: {student.id}</p>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Bed className="h-4 w-4 text-gray-400" />
+                                        <span>Room {student.roomNumber}</span>
                                     </div>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <User className="h-4 w-4 text-gray-400" />
+                                        <span>{student.course}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <DollarSign className="h-4 w-4 text-gray-400" />
+                                        <span className="font-medium text-green-600">
+                                            {formatCurrency(student.baseMonthlyFee + student.laundryFee + student.foodFee)}/month
+                                        </span>
+                                    </div>
+                                    <div className="text-xs text-gray-500 space-y-1">
+                                        <div>Base: {formatCurrency(student.baseMonthlyFee)}</div>
+                                        <div>Laundry: {formatCurrency(student.laundryFee)}</div>
+                                        <div>Food: {formatCurrency(student.foodFee)}</div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Calendar className="h-4 w-4 text-gray-400" />
+                                        <span>Joined: {new Date(student.joinDate).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="pt-3 border-t flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                        >
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleCheckoutClick(student)}
+                                            className="flex-1 bg-[#1295D0] hover:bg-[#1295D0]/90"
+                                            size="sm"
+                                        >
+                                            <LogOut className="h-4 w-4 mr-2" />
+                                            Checkout
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">
+                                Showing {startIndex + 1} to {Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length} students
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Previous
+                                </Button>
+
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <Button
+                                            key={page}
+                                            variant={currentPage === page ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => setCurrentPage(page)}
+                                            className="w-8 h-8 p-0"
+                                        >
+                                            {page}
+                                        </Button>
+                                    ))}
                                 </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Bed className="h-4 w-4 text-gray-400" />
-                                    <span>Room {student.roomNumber}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <User className="h-4 w-4 text-gray-400" />
-                                    <span>{student.course}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <DollarSign className="h-4 w-4 text-gray-400" />
-                                    <span>NPR {(student.baseMonthlyFee + student.laundryFee + student.foodFee).toLocaleString()}/month</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Calendar className="h-4 w-4 text-gray-400" />
-                                    <span>Joined: {new Date(student.joinDate).toLocaleDateString()}</span>
-                                </div>
-                                <div className="pt-3 border-t">
-                                    <Button
-                                        onClick={() => handleCheckoutClick(student)}
-                                        className="w-full bg-[#1295D0] hover:bg-[#1295D0]/90"
-                                    >
-                                        <LogOut className="h-4 w-4 mr-2" />
-                                        Process Checkout
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Next
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Checkout Dialog */}
@@ -783,6 +920,61 @@ export const StudentCheckoutManagement = () => {
                     />
                 </Dialog>
             )}
+
+            {/* Financial Summary Footer */}
+            <Card className="mt-8 bg-gradient-to-r from-blue-50 to-green-50">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <DollarSign className="h-5 w-5 text-[#1295D0]" />
+                        Financial Dashboard Summary
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-[#07A64F]">
+                                {filteredStudents.length}
+                            </div>
+                            <div className="text-sm text-gray-600">Active Students</div>
+                        </div>
+                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-[#1295D0]">
+                                {formatCurrency(
+                                    filteredStudents.reduce((sum, student) =>
+                                        sum + student.baseMonthlyFee + student.laundryFee + student.foodFee, 0
+                                    )
+                                )}
+                            </div>
+                            <div className="text-sm text-gray-600">Total Monthly Revenue</div>
+                        </div>
+                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-orange-600">
+                                {filteredStudents.filter(s => s.currentBalance > 0).length}
+                            </div>
+                            <div className="text-sm text-gray-600">Students with Dues</div>
+                        </div>
+                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-red-600">
+                                {formatCurrency(
+                                    filteredStudents.reduce((sum, student) => sum + Math.max(0, student.currentBalance), 0)
+                                )}
+                            </div>
+                            <div className="text-sm text-gray-600">Outstanding Dues</div>
+                        </div>
+                    </div>
+
+                    {/* Checkout without payment notice */}
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-center gap-2 text-yellow-800">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="text-sm font-medium">
+                                Checkout without payment is enabled for students with outstanding dues.
+                                These amounts will be tracked in the financial records.
+                            </span>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 };

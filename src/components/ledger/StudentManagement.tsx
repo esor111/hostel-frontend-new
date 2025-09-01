@@ -357,6 +357,11 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
 };
 
 export const StudentManagement = () => {
+  // Add safety check for React context
+  if (typeof useState !== 'function') {
+    return <div>Loading React context...</div>;
+  }
+
   const {
     students,
     loading,

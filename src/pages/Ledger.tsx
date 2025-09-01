@@ -3,9 +3,15 @@ import { useState, useEffect, Suspense, lazy } from "react";
 import { Sidebar } from "@/components/ledger/Sidebar";
 import { Dashboard } from "@/components/ledger/Dashboard";
 import { PerformanceMonitor } from "@/components/common/PerformanceMonitor.tsx";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 // Lazy load heavy components for better performance
-const StudentManagement = lazy(() => import("@/components/ledger/StudentManagement"));
+const StudentManagement = lazy(() => 
+  import("@/components/ledger/StudentManagement").catch(err => {
+    console.error('Failed to load StudentManagement:', err);
+    return { default: () => <div>Error loading Student Management</div> };
+  })
+);
 const PaymentRecording = lazy(() => import("@/components/ledger/PaymentRecording").then(module => ({ default: module.PaymentRecording })));
 const StudentLedgerView = lazy(() => import("@/components/ledger/StudentLedgerView").then(module => ({ default: module.StudentLedgerView })));
 const DiscountManagement = lazy(() => import("@/components/ledger/DiscountManagement").then(module => ({ default: module.DiscountManagement })));
@@ -66,9 +72,11 @@ const Ledger = () => {
         return <Dashboard />;
       case "students":
         return (
-          <Suspense fallback={<SectionLoader sectionName="Student Management" />}>
-            <StudentManagement />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<SectionLoader sectionName="Student Management" />}>
+              <StudentManagement />
+            </Suspense>
+          </ErrorBoundary>
         );
       case "payments":
         return (
