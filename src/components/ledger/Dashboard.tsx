@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, User, Calendar, CreditCard } from "lucide-react";
 import { studentService } from "@/services/studentService.js";
 import { mockData } from "@/data/mockData.js";
+import { CheckoutWithoutPayment } from "./CheckoutWithoutPayment";
 
 
 
@@ -317,6 +318,9 @@ export const Dashboard = memo(() => {
           </CardContent>
         </Card>
       )}
+
+      {/* Checkout Without Payment Section */}
+      <CheckoutWithoutPayment />
     </div>
   );
 });

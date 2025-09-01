@@ -153,10 +153,11 @@ export const StudentLedgerView = () => {
         <div className="flex space-x-2">
           <Button variant="outline">🖨️ Print Ledger</Button>
           <Button variant="outline">📄 Download PDF</Button>
+          <Button variant="outline">📊 Export Data</Button>
         </div>
       </div>
 
-      {/* Student Selection */}
+      {/* Student Selection with Enhanced Search */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -168,19 +169,42 @@ export const StudentLedgerView = () => {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-            <SelectTrigger className="max-w-md">
-              <SelectValue placeholder="Choose student to view ledger" />
-            </SelectTrigger>
-            <SelectContent>
-              {students.map((student) => (
-                <SelectItem key={student.id} value={student.id}>
-                  {student.name} - Room {student.roomNumber}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Search & Select Student</label>
+              <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose student to view ledger" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name} - Room {student.roomNumber} - {student.phone}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Quick Filters</label>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  const studentWithDues = students.find(s => s.currentBalance > 0);
+                  if (studentWithDues) setSelectedStudent(studentWithDues.id);
+                }}>
+                  🔴 With Dues
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const paidStudent = students.find(s => s.currentBalance <= 0);
+                  if (paidStudent) setSelectedStudent(paidStudent.id);
+                }}>
+                  🟢 Paid Up
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -291,7 +315,7 @@ export const StudentLedgerView = () => {
                 </TableHeader>
                 <TableBody>
                   {ledgerEntries.map((entry) => (
-                    <TableRow key={entry.id}>
+                    <TableRow key={entry.id} className={entry.type === 'discount' ? 'bg-blue-50' : ''}>
                       <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
@@ -299,7 +323,14 @@ export const StudentLedgerView = () => {
                           {getTypeBadge(entry.type)}
                         </div>
                       </TableCell>
-                      <TableCell>{entry.description}</TableCell>
+                      <TableCell>
+                        {entry.description}
+                        {entry.type === 'discount' && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            Note: Discount records are view-only
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <span className="text-xs bg-gray-100 px-2 py-1 rounded">
                           {entry.reference}

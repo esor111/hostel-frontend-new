@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, User, Phone, Mail, CreditCard, Home, Settings, Edit, Bed, Users, CheckCircle, Plus, Trash2, DollarSign, AlertTriangle, Calendar } from "lucide-react";
+import { Search, User, Phone, Mail, CreditCard, Home, Settings, Edit, Bed, Users, CheckCircle, Plus, Trash2, DollarSign, AlertTriangle, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -888,6 +888,10 @@ export const StudentManagement = () => {
   const [showChargeConfigDialog, setShowChargeConfigDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   // Separate students into pending configuration and configured
   const pendingStudents = students.filter(student => !student.isConfigured);
   const configuredStudents = students.filter(student => student.isConfigured);
@@ -980,6 +984,17 @@ export const StudentManagement = () => {
     student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.phone.includes(searchTerm)
   );
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // Edit student
   const editStudent = (student: Student) => {
@@ -1259,10 +1274,18 @@ export const StudentManagement = () => {
           {/* Students Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Student List ({filteredStudents.length} students)</CardTitle>
+              <CardTitle>
+                Student List ({filteredStudents.length} students)
+                {totalPages > 1 && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    - Page {currentPage} of {totalPages}
+                  </span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {filteredStudents.length > 0 ? (
+                <>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1276,7 +1299,7 @@ export const StudentManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredStudents.map((student) => (
+                    {paginatedStudents.map((student) => (
                       <TableRow key={student.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -1312,28 +1335,33 @@ export const StudentManagement = () => {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="text-sm">Base: NPR {student.baseMonthlyFee.toLocaleString()}</div>
+                            <div className="text-sm">Base: ₹{student.baseMonthlyFee.toFixed(2)}</div>
                             {student.laundryFee > 0 && (
-                              <div className="text-xs text-gray-500">Laundry: NPR {student.laundryFee.toLocaleString()}</div>
+                              <div className="text-xs text-gray-500">Laundry: ₹{student.laundryFee.toFixed(2)}</div>
                             )}
                             {student.foodFee > 0 && (
-                              <div className="text-xs text-gray-500">Food: NPR {student.foodFee.toLocaleString()}</div>
+                              <div className="text-xs text-gray-500">Food: ₹{student.foodFee.toFixed(2)}</div>
                             )}
                             <div className="font-medium text-[#1295D0] border-t pt-1">
-                              Total: NPR {(student.baseMonthlyFee + student.laundryFee + student.foodFee).toLocaleString()}
+                              Total Monthly: ₹{(student.baseMonthlyFee + student.laundryFee + student.foodFee).toFixed(2)}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          {student.currentBalance > 0 ? (
-                            <div className="text-red-600 font-medium">
-                              Due: NPR {student.currentBalance.toLocaleString()}
+                          <div className="space-y-1">
+                            {student.currentBalance > 0 ? (
+                              <div className="text-red-600 font-medium">
+                                Due: ₹{student.currentBalance.toFixed(2)}
+                              </div>
+                            ) : (
+                              <div className="text-green-600 font-medium">
+                                Up to date
+                              </div>
+                            )}
+                            <div className="text-xs text-gray-500">
+                              Payment Status: {student.currentBalance > 0 ? 'Outstanding' : 'Paid'}
                             </div>
-                          ) : (
-                            <div className="text-green-600 font-medium">
-                              Up to date
-                            </div>
-                          )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant={student.status === 'active' ? 'default' : 'secondary'}>
@@ -1368,6 +1396,85 @@ export const StudentManagement = () => {
                     ))}
                   </TableBody>
                 </Table>
+                
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 px-4 py-3 border-t">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">
+                        Showing {startIndex + 1} to {Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length} students
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Items per page:</span>
+                        <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+                          setItemsPerPage(Number(value));
+                          setCurrentPage(1);
+                        }}>
+                          <SelectTrigger className="w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5</SelectItem>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+                            
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={currentPage === pageNum ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentPage(pageNum)}
+                                className="w-8 h-8 p-0"
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                          disabled={currentPage === totalPages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                </>
               ) : (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 mx-auto text-gray-300 mb-4" />
@@ -1623,6 +1730,52 @@ export const StudentManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Footer Section */}
+      <Card className="mt-8 bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#07A64F] to-[#1295D0] flex items-center justify-center">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Student Management System</h3>
+                <p className="text-sm text-gray-600">
+                  Manage student records, configure charges, and track payments efficiently
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-[#07A64F]">{students.length}</div>
+              <div className="text-sm text-gray-600">Total Students</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {students.filter(s => s.isConfigured).length} Configured • {students.filter(s => !s.isConfigured).length} Pending
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-blue-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-gray-600">Active Students: </span>
+                <span className="font-medium">{students.filter(s => s.status === 'active').length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-red-600" />
+                <span className="text-gray-600">With Outstanding Dues: </span>
+                <span className="font-medium">{students.filter(s => s.currentBalance > 0).length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <span className="text-gray-600">Last Updated: </span>
+                <span className="font-medium">{new Date().toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
