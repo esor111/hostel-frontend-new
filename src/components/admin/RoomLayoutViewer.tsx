@@ -96,7 +96,7 @@ export const RoomLayoutViewer = ({ layout, roomName }: RoomLayoutViewerProps) =>
     }
   };
 
-  const bedElements = layout.elements.filter(e => e.type === 'single-bed' || e.type === 'bunk-bed');
+  const bedElements = (layout.elements || []).filter(e => e.type === 'single-bed' || e.type === 'bunk-bed');
   const totalBeds = bedElements.reduce((count, element) => {
     if (element.type === 'bunk-bed') {
       return count + (element.properties?.bunkLevels || 2);
@@ -111,28 +111,54 @@ export const RoomLayoutViewer = ({ layout, roomName }: RoomLayoutViewerProps) =>
     return count + (element.properties?.status === 'occupied' ? 1 : 0);
   }, 0);
 
-  if (!layout) {
+  // Handle missing or invalid layout
+  if (!layout || !layout.dimensions) {
     return (
       <div className="flex flex-col items-center justify-center h-96 space-y-4">
-        <div className="relative">
-          <svg width="48" height="72" viewBox="0 0 55 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-pulse mx-auto">
-            <g clipPath="url(#clip0_319_901)">
-              <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F"/>
-              <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F"/>
-              <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20"/>
-              <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#8b5cf6"/>
-              <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white"/>
-              <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20"/>
-            </g>
-            <defs>
-              <clipPath id="clip0_319_901">
-                <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)"/>
-              </clipPath>
-            </defs>
-          </svg>
-          <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#07A64F] border-r-purple-500"></div>
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Room Layout Found</h3>
+          <p className="text-gray-600 mb-4">
+            This room doesn't have a configured layout yet.
+          </p>
+          <p className="text-sm text-gray-500">
+            Use the Layout Designer to create a room layout first.
+          </p>
         </div>
-        <p className="text-gray-600">Loading room layout...</p>
+      </div>
+    );
+  }
+
+  // Handle case where we have dimensions but no elements (backend limitation)
+  if (!layout.elements || !Array.isArray(layout.elements)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-yellow-900 mb-2">Incomplete Layout Data</h3>
+          <p className="text-yellow-700 mb-4">
+            Room dimensions are saved ({layout.dimensions.length}m × {layout.dimensions.width}m × {layout.dimensions.height}m)
+            <br />
+            but room elements are missing due to backend limitations.
+          </p>
+          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 max-w-md">
+            <h4 className="font-medium text-yellow-800 mb-2">Backend Issue Detected</h4>
+            <p className="text-sm text-yellow-700 mb-3">
+              The backend API is only saving room dimensions but ignoring elements and theme data.
+            </p>
+            <p className="text-sm text-yellow-600">
+              Please contact the backend team to fix the room layout saving functionality.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -197,7 +223,7 @@ export const RoomLayoutViewer = ({ layout, roomName }: RoomLayoutViewerProps) =>
             <div className="text-sm text-gray-600">Occupied</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">{layout.elements.length}</div>
+            <div className="text-2xl font-bold text-orange-600">{(layout.elements || []).length}</div>
             <div className="text-sm text-gray-600">Elements</div>
           </div>
           <div className="text-center">
@@ -253,7 +279,7 @@ export const RoomLayoutViewer = ({ layout, roomName }: RoomLayoutViewerProps) =>
             />
 
             {/* Elements */}
-            {layout.elements.map((element) => {
+            {(layout.elements || []).map((element) => {
               const x = element.x * scale;
               const y = element.y * scale;
               const width = element.width * scale;

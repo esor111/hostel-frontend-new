@@ -80,15 +80,55 @@ export const useRooms = () => {
       const roomsData = await roomsApiService.getRooms(filters);
       console.log('✅ Rooms fetched:', roomsData);
       
-      // Parse numeric fields (API returns strings)
-      const parsedRooms = roomsData.map((room: any) => ({
-        ...room,
-        monthlyRate: parseFloat(room.monthlyRate) || 0,
-        dailyRate: parseFloat(room.dailyRate) || 0,
-        bedCount: parseInt(room.bedCount) || 0,
-        occupancy: parseInt(room.occupancy) || 0,
-        availableBeds: parseInt(room.availableBeds) || 0,
-      }));
+      // Parse numeric fields and layout (API returns strings)
+      const parsedRooms = roomsData.map((room: any) => {
+        let parsedLayout = null;
+        
+        // Parse layout if it exists
+        if (room.layout) {
+          try {
+            // Handle different layout formats from backend
+            if (typeof room.layout === 'string') {
+              // If it's a string, try to parse it as JSON
+              parsedLayout = JSON.parse(room.layout);
+            } else if (typeof room.layout === 'object' && room.layout !== null) {
+              // If it's already an object, use it directly
+              parsedLayout = room.layout;
+              
+              // Handle nested string objects (PowerShell format issue)
+              if (parsedLayout.dimensions && typeof parsedLayout.dimensions === 'string') {
+                try {
+                  // Parse dimensions if they're in string format like "@{width=8; height=3; length=10}"
+                  const dimensionsStr = parsedLayout.dimensions.replace(/@{|}/g, '');
+                  const dimensionsPairs = dimensionsStr.split(';').map(pair => pair.trim().split('='));
+                  const dimensionsObj = {};
+                  dimensionsPairs.forEach(([key, value]) => {
+                    if (key && value) {
+                      dimensionsObj[key.trim()] = parseInt(value.trim()) || 0;
+                    }
+                  });
+                  parsedLayout.dimensions = dimensionsObj;
+                } catch (error) {
+                  console.warn('Failed to parse dimensions string:', error);
+                }
+              }
+            }
+          } catch (error) {
+            console.warn(`Failed to parse layout for room ${room.id}:`, error);
+            parsedLayout = null;
+          }
+        }
+        
+        return {
+          ...room,
+          monthlyRate: parseFloat(room.monthlyRate) || 0,
+          dailyRate: parseFloat(room.dailyRate) || 0,
+          bedCount: parseInt(room.bedCount) || 0,
+          occupancy: parseInt(room.occupancy) || 0,
+          availableBeds: parseInt(room.availableBeds) || 0,
+          layout: parsedLayout, // Properly parsed layout object
+        };
+      });
       
       setRooms(parsedRooms);
     } catch (error: any) {

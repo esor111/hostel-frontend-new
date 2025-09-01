@@ -222,7 +222,14 @@ export const RoomConfiguration = () => {
   const handleSaveLayout = async (layout: any) => {
     if (selectedRoomForDesign) {
       try {
-        await updateRoom(selectedRoomForDesign, { layout });
+        console.log('💾 Saving room layout:', layout);
+        
+        // Send layout as object (backend expects object, not string)
+        const layoutData = {
+          layout: layout // Send as object directly
+        };
+        
+        await updateRoom(selectedRoomForDesign, layoutData);
         setShowRoomDesigner(false);
         setSelectedRoomForDesign(null);
         toast.success("Room layout saved successfully!");
@@ -240,14 +247,32 @@ export const RoomConfiguration = () => {
 
   const handleViewLayout = (roomId: string) => {
     const room = rooms.find(r => r.id === roomId);
-    if (room?.layout) {
+    
+    // Check if room has a valid layout with required properties
+    const hasValidLayout = room?.layout && 
+                          room.layout.dimensions && 
+                          room.layout.elements && 
+                          Array.isArray(room.layout.elements);
+    
+    if (hasValidLayout) {
+      console.log('📐 Viewing room layout:', room.layout);
       setSelectedRoomForView(roomId);
       setShowLayoutViewer(true);
     } else {
-      toast.info("Please configure the room layout first using the Layout Designer", {
-        description: "Click the Layout button to design your room",
-        duration: 4000,
-      });
+      console.log('❌ No valid layout found for room:', room?.layout);
+      
+      // Check if we have dimensions but missing elements (backend issue)
+      if (room?.layout?.dimensions && !room?.layout?.elements) {
+        toast.error("Layout data is incomplete due to backend limitations", {
+          description: "The backend is only saving room dimensions. Elements and theme are not being saved properly.",
+          duration: 6000,
+        });
+      } else {
+        toast.info("Please configure the room layout first using the Layout Designer", {
+          description: "Click the Layout button to design your room",
+          duration: 4000,
+        });
+      }
     }
   };
 
@@ -263,7 +288,7 @@ export const RoomConfiguration = () => {
       <RoomDesigner
         onSave={handleSaveLayout}
         onClose={closeRoomDesigner}
-        roomData={roomData?.layout}
+        roomData={roomData?.layout} // This is now properly parsed layout object
       />
     );
   }
@@ -456,8 +481,18 @@ export const RoomConfiguration = () => {
                       {room.status}
                     </Badge>
                     {room.layout && (
-                      <Badge variant="secondary" className="bg-green-100 text-green-700">
-                        Layout Designed
+                      <Badge 
+                        variant="secondary" 
+                        className={
+                          room.layout.dimensions && room.layout.elements 
+                            ? "bg-green-100 text-green-700" 
+                            : "bg-yellow-100 text-yellow-700"
+                        }
+                      >
+                        {room.layout.dimensions && room.layout.elements 
+                          ? "Layout Ready" 
+                          : "Layout Incomplete"
+                        }
                       </Badge>
                     )}
                   </div>

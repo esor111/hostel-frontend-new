@@ -55,8 +55,22 @@ export const roomsApiService = {
     try {
       console.log(`🏠 Fetching room ${id} from API...`);
       const response = await apiRequest(`/rooms/${id}`);
-      console.log('✅ Room fetched successfully');
-      return response.room || response; // API returns { status, room }
+      console.log('✅ Room fetched successfully:', response);
+      
+      // Handle different API response formats
+      const roomData = response.room || response.result || response;
+      
+      // Parse layout if it exists and is a string
+      if (roomData.layout && typeof roomData.layout === 'string') {
+        try {
+          roomData.layout = JSON.parse(roomData.layout);
+        } catch (error) {
+          console.warn('Failed to parse room layout:', error);
+          roomData.layout = null;
+        }
+      }
+      
+      return roomData;
     } catch (error) {
       console.error('❌ Error fetching room by ID:', error);
       throw error;
