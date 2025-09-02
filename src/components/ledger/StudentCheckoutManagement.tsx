@@ -96,7 +96,7 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
 
             // Calculate current month's partial billing
             const today = new Date().toISOString().split('T')[0];
-            const monthlyFee = student.baseMonthlyFee + student.laundryFee + student.foodFee;
+            const monthlyFee = Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0);
 
             const currentMonthProration = monthlyInvoiceService.calculateCheckoutProration(monthlyFee, today);
             setCurrentMonthBilling(currentMonthProration);
@@ -714,7 +714,6 @@ export const StudentCheckoutManagement = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Student Checkout Management</h2>
-                    <p className="text-gray-600">Process student checkouts and manage departures</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Badge variant="outline" className="text-blue-600">
@@ -825,7 +824,7 @@ export const StudentCheckoutManagement = () => {
                                     <div className="flex items-center gap-2 text-sm">
                                         <DollarSign className="h-4 w-4 text-gray-400" />
                                         <span className="font-medium text-green-600">
-                                            {formatCurrency(student.baseMonthlyFee + student.laundryFee + student.foodFee)}/month
+                                            {formatCurrency(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0))}/month
                                         </span>
                                     </div>
                                     <div className="text-xs text-gray-500 space-y-1">
@@ -921,60 +920,7 @@ export const StudentCheckoutManagement = () => {
                 </Dialog>
             )}
 
-            {/* Financial Summary Footer */}
-            <Card className="mt-8 bg-gradient-to-r from-blue-50 to-green-50">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-[#1295D0]" />
-                        Financial Dashboard Summary
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-[#07A64F]">
-                                {filteredStudents.length}
-                            </div>
-                            <div className="text-sm text-gray-600">Active Students</div>
-                        </div>
-                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-[#1295D0]">
-                                {formatCurrency(
-                                    filteredStudents.reduce((sum, student) =>
-                                        sum + student.baseMonthlyFee + student.laundryFee + student.foodFee, 0
-                                    )
-                                )}
-                            </div>
-                            <div className="text-sm text-gray-600">Total Monthly Revenue</div>
-                        </div>
-                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-orange-600">
-                                {filteredStudents.filter(s => s.currentBalance > 0).length}
-                            </div>
-                            <div className="text-sm text-gray-600">Students with Dues</div>
-                        </div>
-                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-red-600">
-                                {formatCurrency(
-                                    filteredStudents.reduce((sum, student) => sum + Math.max(0, student.currentBalance), 0)
-                                )}
-                            </div>
-                            <div className="text-sm text-gray-600">Outstanding Dues</div>
-                        </div>
-                    </div>
 
-                    {/* Checkout without payment notice */}
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-center gap-2 text-yellow-800">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="text-sm font-medium">
-                                Checkout without payment is enabled for students with outstanding dues.
-                                These amounts will be tracked in the financial records.
-                            </span>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
         </div>
     );
 };

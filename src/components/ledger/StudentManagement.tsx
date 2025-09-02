@@ -368,6 +368,7 @@ export const StudentManagement = () => {
     error,
     searchTerm,
     configureStudent,
+    updateStudent,
     searchStudents,
     refreshData
   } = useStudents();
@@ -376,6 +377,18 @@ export const StudentManagement = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showChargeConfigDialog, setShowChargeConfigDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    roomNumber: '',
+    address: '',
+    status: 'Active' as 'Active' | 'Inactive' | 'Suspended' | 'Graduated'
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Separate students into pending configuration and configured
   const pendingStudents = students?.filter(student => !student.isConfigured) || [];
@@ -411,6 +424,41 @@ export const StudentManagement = () => {
     } catch (error) {
       console.error('Error in charge configuration:', error);
       toast.error('Failed to complete charge configuration. Please try again.');
+    }
+  };
+
+  // Handle student update
+  const handleUpdateStudent = async () => {
+    if (!selectedStudent) return;
+
+    // Validate required fields
+    if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.email.trim()) {
+      toast.error('Please fill in all required fields (Name, Phone, Email)');
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      await updateStudent(selectedStudent.id, {
+        name: editForm.name.trim(),
+        phone: editForm.phone.trim(),
+        email: editForm.email.trim(),
+        roomNumber: editForm.roomNumber.trim() || undefined,
+        address: editForm.address.trim() || undefined,
+        status: editForm.status
+      });
+
+      toast.success('Student details updated successfully!');
+      
+      setShowEditDialog(false);
+      setSelectedStudent(null);
+      
+    } catch (error) {
+      console.error('Error updating student:', error);
+      toast.error('Failed to update student details. Please try again.');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -652,15 +700,15 @@ export const StudentManagement = () => {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="text-sm">Base: ₹{(student.baseMonthlyFee || 0).toLocaleString()}</div>
-                            {(student.laundryFee || 0) > 0 && (
-                              <div className="text-xs text-gray-500">Laundry: ₹{(student.laundryFee || 0).toLocaleString()}</div>
+                            <div className="text-sm">Base: ₹{Number(student.baseMonthlyFee || 0).toLocaleString()}</div>
+                            {Number(student.laundryFee || 0) > 0 && (
+                              <div className="text-xs text-gray-500">Laundry: ₹{Number(student.laundryFee || 0).toLocaleString()}</div>
                             )}
-                            {(student.foodFee || 0) > 0 && (
-                              <div className="text-xs text-gray-500">Food: ₹{(student.foodFee || 0).toLocaleString()}</div>
+                            {Number(student.foodFee || 0) > 0 && (
+                              <div className="text-xs text-gray-500">Food: ₹{Number(student.foodFee || 0).toLocaleString()}</div>
                             )}
                             <div className="font-medium text-[#1295D0] border-t pt-1">
-                              Total: ₹{((student.baseMonthlyFee || 0) + (student.laundryFee || 0) + (student.foodFee || 0)).toLocaleString()}
+                              Total: ₹{(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0)).toLocaleString()}
                             </div>
                           </div>
                         </TableCell>
@@ -692,6 +740,27 @@ export const StudentManagement = () => {
                             >
                               <User className="h-3 w-3 mr-1" />
                               View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedStudent(student);
+                                // Populate edit form with current student data
+                                setEditForm({
+                                  name: student.name || '',
+                                  phone: student.phone || '',
+                                  email: student.email || '',
+                                  roomNumber: student.roomNumber || '',
+                                  address: student.address || '',
+                                  status: student.status || 'Active'
+                                });
+                                setShowEditDialog(true);
+                              }}
+                              className="text-[#07A64F] border-[#07A64F]/30 hover:bg-[#07A64F]/10"
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit Details
                             </Button>
                           </div>
                         </TableCell>
@@ -859,7 +928,7 @@ export const StudentManagement = () => {
                       )}
                       <div className="flex justify-between border-t pt-2">
                         <span className="font-medium">Total Monthly:</span>
-                        <span className="font-bold text-[#1295D0]">₹{((selectedStudent.baseMonthlyFee || 0) + (selectedStudent.laundryFee || 0) + (selectedStudent.foodFee || 0)).toLocaleString()}</span>
+                        <span className="font-bold text-[#1295D0]">₹{(Number(selectedStudent.baseMonthlyFee || 0) + Number(selectedStudent.laundryFee || 0) + Number(selectedStudent.foodFee || 0)).toLocaleString()}</span>
                       </div>
                     </div>
 
@@ -878,6 +947,146 @@ export const StudentManagement = () => {
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Student Dialog */}
+      {selectedStudent && (
+        <Dialog open={showEditDialog} onOpenChange={(open) => {
+          if (!open) {
+            setSelectedStudent(null);
+            setShowEditDialog(false);
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5 text-[#07A64F]" />
+                Edit Student Details - {selectedStudent.name}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-name">Full Name *</Label>
+                      <Input
+                        id="edit-name"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Enter full name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-phone">Phone Number *</Label>
+                      <Input
+                        id="edit-phone"
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-email">Email Address *</Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-address">Address</Label>
+                    <Textarea
+                      id="edit-address"
+                      value={editForm.address}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                      placeholder="Enter full address"
+                      rows={3}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Room & Status Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Room & Status</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-room">Room Number</Label>
+                      <Input
+                        id="edit-room"
+                        value={editForm.roomNumber}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, roomNumber: e.target.value }))}
+                        placeholder="Enter room number"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-status">Status</Label>
+                      <Select 
+                        value={editForm.status} 
+                        onValueChange={(value: 'Active' | 'Inactive' | 'Suspended' | 'Graduated') => 
+                          setEditForm(prev => ({ ...prev, status: value }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Inactive">Inactive</SelectItem>
+                          <SelectItem value="Suspended">Suspended</SelectItem>
+                          <SelectItem value="Graduated">Graduated</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-4 border-t">
+                <Button
+                  onClick={handleUpdateStudent}
+                  disabled={isUpdating || !editForm.name.trim() || !editForm.phone.trim() || !editForm.email.trim()}
+                  className="bg-[#07A64F] hover:bg-[#07A64F]/90 flex-1"
+                >
+                  {isUpdating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Update Student
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditDialog(false)}
+                  disabled={isUpdating}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
           </DialogContent>
