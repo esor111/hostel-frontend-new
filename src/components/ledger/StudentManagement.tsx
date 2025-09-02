@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, User, Phone, Mail, CreditCard, Home, Settings, Edit, Bed, Users, CheckCircle, Plus, Trash2, DollarSign, AlertTriangle, Calendar } from "lucide-react";
+import { Search, User, Phone, Mail, CreditCard, Home, Settings, Edit, Bed, Users, CheckCircle, Plus, Trash2, DollarSign, AlertTriangle, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -390,6 +390,10 @@ export const StudentManagement = () => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Pagination state for Student List & Management
+  const [currentPage, setCurrentPage] = useState(1);
+  const [studentsPerPage] = useState(6); // 6 students per page for better visibility
+
   // Separate students into pending configuration and configured
   const pendingStudents = students?.filter(student => !student.isConfigured) || [];
   const configuredStudents = students?.filter(student => student.isConfigured) || [];
@@ -401,6 +405,17 @@ export const StudentManagement = () => {
     (student.roomNumber && student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
     student.phone.includes(searchTerm)
   );
+
+  // Pagination calculations for Student List & Management
+  const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+  const startIndex = (currentPage - 1) * studentsPerPage;
+  const endIndex = startIndex + studentsPerPage;
+  const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // Configure charges
   const configureCharges = (student: Student) => {
@@ -647,127 +662,186 @@ export const StudentManagement = () => {
           {/* Students Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Student List ({filteredStudents.length} students)</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Student List ({filteredStudents.length} students)</CardTitle>
+                {filteredStudents.length > studentsPerPage && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    Showing {startIndex + 1}-{Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length}
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {filteredStudents.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student Details</TableHead>
-                      <TableHead>Room & Bed</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Monthly Fees</TableHead>
-                      <TableHead>Balance</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredStudents.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#07A64F] to-[#1295D0] flex items-center justify-center text-white font-bold">
-                              {student.name.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-medium">{student.name}</p>
-                              <p className="text-sm text-gray-500 flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {student.phone}
-                              </p>
-                              <p className="text-xs text-gray-400">{student.id}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Bed className="h-4 w-4 text-[#1295D0]" />
-                            <div>
-                              <p className="font-medium">{student.roomNumber || 'Not assigned'}</p>
-                              {student.bedNumber && (
-                                <p className="text-sm text-gray-500">{student.bedNumber}</p>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{student.course || 'Not specified'}</p>
-                            <p className="text-sm text-gray-500">{student.institution || ''}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="text-sm">Base: ₹{Number(student.baseMonthlyFee || 0).toLocaleString()}</div>
-                            {Number(student.laundryFee || 0) > 0 && (
-                              <div className="text-xs text-gray-500">Laundry: ₹{Number(student.laundryFee || 0).toLocaleString()}</div>
-                            )}
-                            {Number(student.foodFee || 0) > 0 && (
-                              <div className="text-xs text-gray-500">Food: ₹{Number(student.foodFee || 0).toLocaleString()}</div>
-                            )}
-                            <div className="font-medium text-[#1295D0] border-t pt-1">
-                              Total: ₹{(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0)).toLocaleString()}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {(student.currentBalance || 0) > 0 ? (
-                            <div className="text-red-600 font-medium">
-                              Due: ₹{(student.currentBalance || 0).toLocaleString()}
-                            </div>
-                          ) : (
-                            <div className="text-green-600 font-medium">
-                              Up to date
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={student.status === 'Active' ? 'default' : 'secondary'}>
-                            {student.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedStudent(student);
-                                setShowDetailsDialog(true);
-                              }}
-                            >
-                              <User className="h-3 w-3 mr-1" />
-                              View Details
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedStudent(student);
-                                // Populate edit form with current student data
-                                setEditForm({
-                                  name: student.name || '',
-                                  phone: student.phone || '',
-                                  email: student.email || '',
-                                  roomNumber: student.roomNumber || '',
-                                  address: student.address || '',
-                                  status: student.status || 'Active'
-                                });
-                                setShowEditDialog(true);
-                              }}
-                              className="text-[#07A64F] border-[#07A64F]/30 hover:bg-[#07A64F]/10"
-                            >
-                              <Edit className="h-3 w-3 mr-1" />
-                              Edit Details
-                            </Button>
-                          </div>
-                        </TableCell>
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student Details</TableHead>
+                        <TableHead>Room & Bed</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Monthly Fees</TableHead>
+                        <TableHead>Balance</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedStudents.map((student) => (
+                        <TableRow key={student.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#07A64F] to-[#1295D0] flex items-center justify-center text-white font-bold">
+                                {student.name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="font-medium">{student.name}</p>
+                                <p className="text-sm text-gray-500 flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />
+                                  {student.phone}
+                                </p>
+                                <p className="text-xs text-gray-400">{student.id}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Bed className="h-4 w-4 text-[#1295D0]" />
+                              <div>
+                                <p className="font-medium">{student.roomNumber || 'Not assigned'}</p>
+                                {student.bedNumber && (
+                                  <p className="text-sm text-gray-500">{student.bedNumber}</p>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{student.course || 'Not specified'}</p>
+                              <p className="text-sm text-gray-500">{student.institution || ''}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="text-sm">Base: ₹{Number(student.baseMonthlyFee || 0).toLocaleString()}</div>
+                              {Number(student.laundryFee || 0) > 0 && (
+                                <div className="text-xs text-gray-500">Laundry: ₹{Number(student.laundryFee || 0).toLocaleString()}</div>
+                              )}
+                              {Number(student.foodFee || 0) > 0 && (
+                                <div className="text-xs text-gray-500">Food: ₹{Number(student.foodFee || 0).toLocaleString()}</div>
+                              )}
+                              <div className="font-medium text-[#1295D0] border-t pt-1">
+                                Total: ₹{(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0)).toLocaleString()}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {(student.currentBalance || 0) > 0 ? (
+                              <div className="text-red-600 font-medium">
+                                Due: ₹{(student.currentBalance || 0).toLocaleString()}
+                              </div>
+                            ) : (
+                              <div className="text-green-600 font-medium">
+                                Up to date
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={student.status === 'Active' ? 'default' : 'secondary'}>
+                              {student.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2 flex-wrap">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedStudent(student);
+                                  setShowDetailsDialog(true);
+                                }}
+                              >
+                                <User className="h-3 w-3 mr-1" />
+                                View Details
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedStudent(student);
+                                  // Populate edit form with current student data
+                                  setEditForm({
+                                    name: student.name || '',
+                                    phone: student.phone || '',
+                                    email: student.email || '',
+                                    roomNumber: student.roomNumber || '',
+                                    address: student.address || '',
+                                    status: student.status || 'Active'
+                                  });
+                                  setShowEditDialog(true);
+                                }}
+                                className="text-[#07A64F] border-[#07A64F]/30 hover:bg-[#07A64F]/10"
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit Details
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pagination Controls */}
+                  {filteredStudents.length > studentsPerPage && (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                      <div className="text-sm text-gray-600">
+                        Showing {startIndex + 1}-{Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length} students
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <Button
+                              key={page}
+                              variant={currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 p-0 ${
+                                currentPage === page 
+                                  ? "bg-[#1295D0] hover:bg-[#1295D0]/90" 
+                                  : "hover:bg-gray-100"
+                              }`}
+                            >
+                              {page}
+                            </Button>
+                          ))}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1"
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 mx-auto text-gray-300 mb-4" />

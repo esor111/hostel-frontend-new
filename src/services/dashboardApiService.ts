@@ -184,6 +184,30 @@ export class DashboardApiService {
       return { amount: 0, invoiceCount: 0 };
     }
   }
+
+  /**
+   * Refresh dashboard data (combines overview with timestamp)
+   */
+  async refreshDashboard(): Promise<{
+    stats: DashboardStats;
+    recentActivities: RecentActivity[];
+    checkedOutWithDues: CheckedOutWithDues[];
+    timestamp: number;
+  }> {
+    console.log('🔄 DashboardApiService.refreshDashboard called');
+    
+    try {
+      const overview = await this.getDashboardOverview();
+      
+      return {
+        ...overview,
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      console.error('❌ Error refreshing dashboard:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
