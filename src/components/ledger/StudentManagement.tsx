@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, User, Phone, Mail, CreditCard, Home, Settings, Edit, Bed, Users, CheckCircle, Plus, Trash2, DollarSign, AlertTriangle, Calendar } from "lucide-react";
+import { Search, User, Phone, Mail, CreditCard, Home, Settings, Edit, Bed, Users, CheckCircle, Plus, Trash2, DollarSign, AlertTriangle, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -368,6 +368,7 @@ export const StudentManagement = () => {
     error,
     searchTerm,
     configureStudent,
+    updateStudent,
     searchStudents,
     refreshData
   } = useStudents();
@@ -376,6 +377,22 @@ export const StudentManagement = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showChargeConfigDialog, setShowChargeConfigDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    roomNumber: '',
+    address: '',
+    status: 'Active' as 'Active' | 'Inactive' | 'Suspended' | 'Graduated'
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Pagination state for Student List & Management
+  const [currentPage, setCurrentPage] = useState(1);
+  const [studentsPerPage] = useState(6); // 6 students per page for better visibility
 
   // Separate students into pending configuration and configured
   const pendingStudents = students?.filter(student => !student.isConfigured) || [];
@@ -388,6 +405,17 @@ export const StudentManagement = () => {
     (student.roomNumber && student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
     student.phone.includes(searchTerm)
   );
+
+  // Pagination calculations for Student List & Management
+  const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+  const startIndex = (currentPage - 1) * studentsPerPage;
+  const endIndex = startIndex + studentsPerPage;
+  const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // Configure charges
   const configureCharges = (student: Student) => {
@@ -411,6 +439,41 @@ export const StudentManagement = () => {
     } catch (error) {
       console.error('Error in charge configuration:', error);
       toast.error('Failed to complete charge configuration. Please try again.');
+    }
+  };
+
+  // Handle student update
+  const handleUpdateStudent = async () => {
+    if (!selectedStudent) return;
+
+    // Validate required fields
+    if (!editForm.name.trim() || !editForm.phone.trim() || !editForm.email.trim()) {
+      toast.error('Please fill in all required fields (Name, Phone, Email)');
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      await updateStudent(selectedStudent.id, {
+        name: editForm.name.trim(),
+        phone: editForm.phone.trim(),
+        email: editForm.email.trim(),
+        roomNumber: editForm.roomNumber.trim() || undefined,
+        address: editForm.address.trim() || undefined,
+        status: editForm.status
+      });
+
+      toast.success('Student details updated successfully!');
+      
+      setShowEditDialog(false);
+      setSelectedStudent(null);
+      
+    } catch (error) {
+      console.error('Error updating student:', error);
+      toast.error('Failed to update student details. Please try again.');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -599,106 +662,186 @@ export const StudentManagement = () => {
           {/* Students Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Student List ({filteredStudents.length} students)</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Student List ({filteredStudents.length} students)</CardTitle>
+                {filteredStudents.length > studentsPerPage && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    Showing {startIndex + 1}-{Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length}
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {filteredStudents.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student Details</TableHead>
-                      <TableHead>Room & Bed</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Monthly Fees</TableHead>
-                      <TableHead>Balance</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredStudents.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#07A64F] to-[#1295D0] flex items-center justify-center text-white font-bold">
-                              {student.name.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-medium">{student.name}</p>
-                              <p className="text-sm text-gray-500 flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {student.phone}
-                              </p>
-                              <p className="text-xs text-gray-400">{student.id}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Bed className="h-4 w-4 text-[#1295D0]" />
-                            <div>
-                              <p className="font-medium">{student.roomNumber || 'Not assigned'}</p>
-                              {student.bedNumber && (
-                                <p className="text-sm text-gray-500">{student.bedNumber}</p>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{student.course || 'Not specified'}</p>
-                            <p className="text-sm text-gray-500">{student.institution || ''}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="text-sm">Base: ₹{(student.baseMonthlyFee || 0).toLocaleString()}</div>
-                            {(student.laundryFee || 0) > 0 && (
-                              <div className="text-xs text-gray-500">Laundry: ₹{(student.laundryFee || 0).toLocaleString()}</div>
-                            )}
-                            {(student.foodFee || 0) > 0 && (
-                              <div className="text-xs text-gray-500">Food: ₹{(student.foodFee || 0).toLocaleString()}</div>
-                            )}
-                            <div className="font-medium text-[#1295D0] border-t pt-1">
-                              Total: ₹{((student.baseMonthlyFee || 0) + (student.laundryFee || 0) + (student.foodFee || 0)).toLocaleString()}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {(student.currentBalance || 0) > 0 ? (
-                            <div className="text-red-600 font-medium">
-                              Due: ₹{(student.currentBalance || 0).toLocaleString()}
-                            </div>
-                          ) : (
-                            <div className="text-green-600 font-medium">
-                              Up to date
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={student.status === 'Active' ? 'default' : 'secondary'}>
-                            {student.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedStudent(student);
-                                setShowDetailsDialog(true);
-                              }}
-                            >
-                              <User className="h-3 w-3 mr-1" />
-                              View Details
-                            </Button>
-                          </div>
-                        </TableCell>
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student Details</TableHead>
+                        <TableHead>Room & Bed</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Monthly Fees</TableHead>
+                        <TableHead>Balance</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedStudents.map((student) => (
+                        <TableRow key={student.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#07A64F] to-[#1295D0] flex items-center justify-center text-white font-bold">
+                                {student.name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="font-medium">{student.name}</p>
+                                <p className="text-sm text-gray-500 flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />
+                                  {student.phone}
+                                </p>
+                                <p className="text-xs text-gray-400">{student.id}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Bed className="h-4 w-4 text-[#1295D0]" />
+                              <div>
+                                <p className="font-medium">{student.roomNumber || 'Not assigned'}</p>
+                                {student.bedNumber && (
+                                  <p className="text-sm text-gray-500">{student.bedNumber}</p>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{student.course || 'Not specified'}</p>
+                              <p className="text-sm text-gray-500">{student.institution || ''}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="text-sm">Base: ₹{Number(student.baseMonthlyFee || 0).toLocaleString()}</div>
+                              {Number(student.laundryFee || 0) > 0 && (
+                                <div className="text-xs text-gray-500">Laundry: ₹{Number(student.laundryFee || 0).toLocaleString()}</div>
+                              )}
+                              {Number(student.foodFee || 0) > 0 && (
+                                <div className="text-xs text-gray-500">Food: ₹{Number(student.foodFee || 0).toLocaleString()}</div>
+                              )}
+                              <div className="font-medium text-[#1295D0] border-t pt-1">
+                                Total: ₹{(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0)).toLocaleString()}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {(student.currentBalance || 0) > 0 ? (
+                              <div className="text-red-600 font-medium">
+                                Due: ₹{(student.currentBalance || 0).toLocaleString()}
+                              </div>
+                            ) : (
+                              <div className="text-green-600 font-medium">
+                                Up to date
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={student.status === 'Active' ? 'default' : 'secondary'}>
+                              {student.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2 flex-wrap">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedStudent(student);
+                                  setShowDetailsDialog(true);
+                                }}
+                              >
+                                <User className="h-3 w-3 mr-1" />
+                                View Details
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedStudent(student);
+                                  // Populate edit form with current student data
+                                  setEditForm({
+                                    name: student.name || '',
+                                    phone: student.phone || '',
+                                    email: student.email || '',
+                                    roomNumber: student.roomNumber || '',
+                                    address: student.address || '',
+                                    status: student.status || 'Active'
+                                  });
+                                  setShowEditDialog(true);
+                                }}
+                                className="text-[#07A64F] border-[#07A64F]/30 hover:bg-[#07A64F]/10"
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit Details
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pagination Controls */}
+                  {filteredStudents.length > studentsPerPage && (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                      <div className="text-sm text-gray-600">
+                        Showing {startIndex + 1}-{Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length} students
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <Button
+                              key={page}
+                              variant={currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 p-0 ${
+                                currentPage === page 
+                                  ? "bg-[#1295D0] hover:bg-[#1295D0]/90" 
+                                  : "hover:bg-gray-100"
+                              }`}
+                            >
+                              {page}
+                            </Button>
+                          ))}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1"
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 mx-auto text-gray-300 mb-4" />
@@ -859,7 +1002,7 @@ export const StudentManagement = () => {
                       )}
                       <div className="flex justify-between border-t pt-2">
                         <span className="font-medium">Total Monthly:</span>
-                        <span className="font-bold text-[#1295D0]">₹{((selectedStudent.baseMonthlyFee || 0) + (selectedStudent.laundryFee || 0) + (selectedStudent.foodFee || 0)).toLocaleString()}</span>
+                        <span className="font-bold text-[#1295D0]">₹{(Number(selectedStudent.baseMonthlyFee || 0) + Number(selectedStudent.laundryFee || 0) + Number(selectedStudent.foodFee || 0)).toLocaleString()}</span>
                       </div>
                     </div>
 
@@ -878,6 +1021,146 @@ export const StudentManagement = () => {
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Student Dialog */}
+      {selectedStudent && (
+        <Dialog open={showEditDialog} onOpenChange={(open) => {
+          if (!open) {
+            setSelectedStudent(null);
+            setShowEditDialog(false);
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5 text-[#07A64F]" />
+                Edit Student Details - {selectedStudent.name}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-name">Full Name *</Label>
+                      <Input
+                        id="edit-name"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Enter full name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-phone">Phone Number *</Label>
+                      <Input
+                        id="edit-phone"
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-email">Email Address *</Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-address">Address</Label>
+                    <Textarea
+                      id="edit-address"
+                      value={editForm.address}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                      placeholder="Enter full address"
+                      rows={3}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Room & Status Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Room & Status</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-room">Room Number</Label>
+                      <Input
+                        id="edit-room"
+                        value={editForm.roomNumber}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, roomNumber: e.target.value }))}
+                        placeholder="Enter room number"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-status">Status</Label>
+                      <Select 
+                        value={editForm.status} 
+                        onValueChange={(value: 'Active' | 'Inactive' | 'Suspended' | 'Graduated') => 
+                          setEditForm(prev => ({ ...prev, status: value }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Inactive">Inactive</SelectItem>
+                          <SelectItem value="Suspended">Suspended</SelectItem>
+                          <SelectItem value="Graduated">Graduated</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-4 border-t">
+                <Button
+                  onClick={handleUpdateStudent}
+                  disabled={isUpdating || !editForm.name.trim() || !editForm.phone.trim() || !editForm.email.trim()}
+                  className="bg-[#07A64F] hover:bg-[#07A64F]/90 flex-1"
+                >
+                  {isUpdating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Update Student
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditDialog(false)}
+                  disabled={isUpdating}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
           </DialogContent>

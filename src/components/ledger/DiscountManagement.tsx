@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useStudents } from "@/hooks/useStudents";
 import { useDiscounts } from "../../hooks/useDiscounts";
-import { CheckCircle, History, Gift, RefreshCw, Eye, X } from "lucide-react";
+import { CheckCircle, History, Gift, RefreshCw, X } from "lucide-react";
 import { DiscountStatus } from "../../types/discount";
 
 export const DiscountManagement = () => {
@@ -222,14 +222,12 @@ export const DiscountManagement = () => {
                 <TableHead>Reason</TableHead>
                 <TableHead>Applied To</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {discountsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4">
+                  <TableCell colSpan={6} className="text-center py-4">
                     <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
                     Loading discounts...
                   </TableCell>
@@ -250,32 +248,11 @@ export const DiscountManagement = () => {
                     <TableCell>{discount.reason}</TableCell>
                     <TableCell>Ledger</TableCell>
                     <TableCell>{new Date(discount.appliedDate).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge variant={discount.status === DiscountStatus.ACTIVE ? 'default' : 'secondary'}>
-                        {discount.status === DiscountStatus.ACTIVE ? '✅ Active' : '⏰ Expired'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-1">
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                        {discount.status === DiscountStatus.ACTIVE && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => expireDiscount(discount.id)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-4 text-gray-500">
                     No discount history found
                   </TableCell>
                 </TableRow>

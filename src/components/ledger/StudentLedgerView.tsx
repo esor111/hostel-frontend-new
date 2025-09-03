@@ -2,9 +2,11 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Search } from "lucide-react";
 import { useStudents } from "@/hooks/useStudents";
 import { useLedger } from "@/hooks/useLedger";
 import { Student as ApiStudent, LedgerEntry } from "@/types/api";
@@ -39,6 +41,7 @@ export const StudentLedgerView = () => {
   
   const location = useLocation();
   const [selectedStudent, setSelectedStudent] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Transform API students to local format and filter configured students only
   const allStudents = (apiStudents || []).map(student => ({
@@ -72,9 +75,20 @@ export const StudentLedgerView = () => {
   }));
 
   // Filter only configured students (students with baseMonthlyFee > 0 or configurationDate)
-  const students = allStudents.filter(student => {
+  const allConfiguredStudents = allStudents.filter(student => {
     const isConfigured = student.baseMonthlyFee > 0 || student.configurationDate;
     return isConfigured && student.status === 'Active';
+  });
+
+  // Apply search filter
+  const students = allConfiguredStudents.filter(student => {
+    if (!searchTerm) return true;
+    return (
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.course.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   });
 
   // Handle URL parameters to auto-select student
@@ -215,7 +229,19 @@ export const StudentLedgerView = () => {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Search Students */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search by name, ID, room number, or course..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 max-w-md"
+            />
+          </div>
+          
+          {/* Student Dropdown */}
           <Select value={selectedStudent} onValueChange={setSelectedStudent}>
             <SelectTrigger className="max-w-md">
               <SelectValue placeholder="Choose student to view ledger" />
@@ -226,10 +252,18 @@ export const StudentLedgerView = () => {
                   {String(student.name)} - Room {String(student.roomNumber || 'N/A')}
                 </SelectItem>
               )) : (
-                <SelectItem value="" disabled>No students available</SelectItem>
+                <SelectItem value="" disabled>
+                  {searchTerm ? 'No students match your search' : 'No students available'}
+                </SelectItem>
               )}
             </SelectContent>
           </Select>
+          
+          {searchTerm && (
+            <div className="text-sm text-gray-500">
+              {students.length} student{students.length !== 1 ? 's' : ''} found
+            </div>
+          )}
         </CardContent>
       </Card>
 
