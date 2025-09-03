@@ -57,6 +57,22 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
     { id: '3', description: '', amount: 0 }
   ]);
 
+  // Guardian information state
+  const [guardianInfo, setGuardianInfo] = useState({
+    name: student.guardian?.name || student.guardianName || '',
+    phone: student.guardian?.phone || student.guardianPhone || '',
+    relation: student.guardian?.relation || ''
+  });
+
+  // Academic information state
+  const [academicInfo, setAcademicInfo] = useState({
+    course: student.course || '',
+    institution: student.institution || ''
+  });
+
+  // Form validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
   const handleBaseChargeChange = (field: string, value: number) => {
     setBaseCharges(prev => ({
       ...prev,
@@ -70,6 +86,62 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
         ? { ...charge, [field]: value }
         : charge
     ));
+  };
+
+  const handleGuardianInfoChange = (field: keyof typeof guardianInfo, value: string) => {
+    setGuardianInfo(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Clear validation error when user starts typing
+    if (validationErrors[`guardian.${field}`]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [`guardian.${field}`]: ''
+      }));
+    }
+  };
+
+  const handleAcademicInfoChange = (field: keyof typeof academicInfo, value: string) => {
+    setAcademicInfo(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Clear validation error when user starts typing
+    if (validationErrors[`academic.${field}`]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [`academic.${field}`]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    // Validate guardian information
+    if (!guardianInfo.name.trim()) {
+      errors['guardian.name'] = 'Guardian name is required';
+    }
+    if (!guardianInfo.phone.trim()) {
+      errors['guardian.phone'] = 'Guardian phone number is required';
+    } else if (!/^\d{10}$/.test(guardianInfo.phone.replace(/\D/g, ''))) {
+      errors['guardian.phone'] = 'Please enter a valid 10-digit phone number';
+    }
+    if (!guardianInfo.relation.trim()) {
+      errors['guardian.relation'] = 'Guardian relation is required';
+    }
+
+    // Validate academic information
+    if (!academicInfo.course.trim()) {
+      errors['academic.course'] = 'Course is required';
+    }
+    if (!academicInfo.institution.trim()) {
+      errors['academic.institution'] = 'Institution is required';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const addNewChargeField = () => {
@@ -91,6 +163,12 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
   };
 
   const handleComplete = () => {
+    // Validate form first
+    if (!validateForm()) {
+      toast.error("Please fill in all required fields correctly");
+      return;
+    }
+
     const totalMonthlyFee = calculateTotalMonthlyFee();
 
     if (totalMonthlyFee === 0) {
@@ -106,7 +184,14 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
     const chargeData = {
       ...baseCharges,
       additionalCharges: validAdditionalCharges,
-      totalMonthlyFee
+      totalMonthlyFee,
+      guardian: {
+        name: guardianInfo.name.trim(),
+        phone: guardianInfo.phone.trim(),
+        relation: guardianInfo.relation.trim()
+      },
+      course: academicInfo.course.trim(),
+      institution: academicInfo.institution.trim()
     };
 
     onComplete(student.id, chargeData);
@@ -122,10 +207,119 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
           </div>
           <div>
             <h3 className="font-bold">{student.name}</h3>
-            <p className="text-sm text-gray-600">{student.roomNumber} • {student.course}</p>
+            <p className="text-sm text-gray-600">
+              {student.roomNumber && `${student.roomNumber} • `}
+              {student.phone}
+            </p>
           </div>
         </div>
       </div>
+
+      {/* Guardian Information Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Guardian Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="guardianName">Guardian Name *</Label>
+              <Input
+                id="guardianName"
+                placeholder="Enter guardian's full name"
+                value={guardianInfo.name}
+                onChange={(e) => handleGuardianInfoChange('name', e.target.value)}
+                className={validationErrors['guardian.name'] ? 'border-red-500' : ''}
+              />
+              {validationErrors['guardian.name'] && (
+                <p className="text-sm text-red-500">{validationErrors['guardian.name']}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="guardianPhone">Guardian Phone Number *</Label>
+              <Input
+                id="guardianPhone"
+                placeholder="Enter 10-digit phone number"
+                value={guardianInfo.phone}
+                onChange={(e) => handleGuardianInfoChange('phone', e.target.value)}
+                className={validationErrors['guardian.phone'] ? 'border-red-500' : ''}
+              />
+              {validationErrors['guardian.phone'] && (
+                <p className="text-sm text-red-500">{validationErrors['guardian.phone']}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="guardianRelation">Relation *</Label>
+              <Select
+                value={guardianInfo.relation}
+                onValueChange={(value) => handleGuardianInfoChange('relation', value)}
+              >
+                <SelectTrigger className={validationErrors['guardian.relation'] ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Select relation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Father">Father</SelectItem>
+                  <SelectItem value="Mother">Mother</SelectItem>
+                  <SelectItem value="Brother">Brother</SelectItem>
+                  <SelectItem value="Sister">Sister</SelectItem>
+                  <SelectItem value="Uncle">Uncle</SelectItem>
+                  <SelectItem value="Aunt">Aunt</SelectItem>
+                  <SelectItem value="Grandfather">Grandfather</SelectItem>
+                  <SelectItem value="Grandmother">Grandmother</SelectItem>
+                  <SelectItem value="Cousin">Cousin</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              {validationErrors['guardian.relation'] && (
+                <p className="text-sm text-red-500">{validationErrors['guardian.relation']}</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Academic Information Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Academic Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="course">Course *</Label>
+              <Input
+                id="course"
+                placeholder="e.g., B.Tech Computer Science, MBA, etc."
+                value={academicInfo.course}
+                onChange={(e) => handleAcademicInfoChange('course', e.target.value)}
+                className={validationErrors['academic.course'] ? 'border-red-500' : ''}
+              />
+              {validationErrors['academic.course'] && (
+                <p className="text-sm text-red-500">{validationErrors['academic.course']}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="institution">Institution *</Label>
+              <Input
+                id="institution"
+                placeholder="e.g., ABC University, XYZ College, etc."
+                value={academicInfo.institution}
+                onChange={(e) => handleAcademicInfoChange('institution', e.target.value)}
+                className={validationErrors['academic.institution'] ? 'border-red-500' : ''}
+              />
+              {validationErrors['academic.institution'] && (
+                <p className="text-sm text-red-500">{validationErrors['academic.institution']}</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Base Charges */}
       <Card>
@@ -386,7 +580,14 @@ export const StudentManagement = () => {
     email: '',
     roomNumber: '',
     address: '',
-    status: 'Active' as 'Active' | 'Inactive' | 'Suspended' | 'Graduated'
+    status: 'Active' as 'Active' | 'Inactive' | 'Suspended' | 'Graduated',
+    guardian: {
+      name: '',
+      phone: '',
+      relation: ''
+    },
+    course: '',
+    institution: ''
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -401,9 +602,11 @@ export const StudentManagement = () => {
   // Filter configured students based on search
   const filteredStudents = configuredStudents.filter(student =>
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (student.roomNumber && student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    student.phone.includes(searchTerm)
+    student.phone.includes(searchTerm) ||
+    (student.course && student.course.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (student.institution && student.institution.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Pagination calculations for Student List & Management
@@ -461,7 +664,14 @@ export const StudentManagement = () => {
         email: editForm.email.trim(),
         roomNumber: editForm.roomNumber.trim() || undefined,
         address: editForm.address.trim() || undefined,
-        status: editForm.status
+        status: editForm.status,
+        guardian: {
+          name: editForm.guardian.name.trim(),
+          phone: editForm.guardian.phone.trim(),
+          relation: editForm.guardian.relation.trim()
+        },
+        course: editForm.course.trim(),
+        institution: editForm.institution.trim()
       });
 
       toast.success('Student details updated successfully!');
@@ -566,8 +776,8 @@ export const StudentManagement = () => {
                               </div>
                               <div>
                                 <h3 className="font-semibold text-[#231F20]">{student.name}</h3>
-                                <p className="text-sm text-gray-600">{student.id}</p>
-                                <p className="text-xs text-gray-500">{student.phone}</p>
+                                <p className="text-sm text-gray-600">{student.phone}</p>
+                                <p className="text-xs text-gray-500">{student.email}</p>
                               </div>
                             </div>
                           </div>
@@ -629,7 +839,7 @@ export const StudentManagement = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search by name, ID, room, or phone..."
+                    placeholder="Search by name, email, room, phone, course, or institution..."
                     value={searchTerm}
                     onChange={(e) => searchStudents(e.target.value)}
                     className="pl-10"
@@ -700,7 +910,7 @@ export const StudentManagement = () => {
                                   <Phone className="h-3 w-3" />
                                   {student.phone}
                                 </p>
-                                <p className="text-xs text-gray-400">{student.id}</p>
+                                <p className="text-xs text-gray-400">{student.email}</p>
                               </div>
                             </div>
                           </TableCell>
@@ -776,7 +986,14 @@ export const StudentManagement = () => {
                                     email: student.email || '',
                                     roomNumber: student.roomNumber || '',
                                     address: student.address || '',
-                                    status: student.status || 'Active'
+                                    status: student.status || 'Active',
+                                    guardian: {
+                                      name: student.guardian?.name || student.guardianName || '',
+                                      phone: student.guardian?.phone || student.guardianPhone || '',
+                                      relation: student.guardian?.relation || ''
+                                    },
+                                    course: student.course || '',
+                                    institution: student.institution || ''
                                   });
                                   setShowEditDialog(true);
                                 }}
@@ -885,7 +1102,7 @@ export const StudentManagement = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold">{selectedStudent.name}</h3>
-                  <p className="text-gray-600">ID: {selectedStudent.id}</p>
+                  <p className="text-gray-600">{selectedStudent.email}</p>
                   <Badge variant={selectedStudent.status === 'Active' ? 'default' : 'secondary'}>
                     {selectedStudent.status}
                   </Badge>
@@ -959,12 +1176,16 @@ export const StudentManagement = () => {
                   <CardContent className="space-y-3">
                     <div>
                       <span className="text-sm text-gray-600">Name:</span>
-                      <p className="font-medium">{selectedStudent.guardianName || 'Not provided'}</p>
+                      <p className="font-medium">{selectedStudent.guardian?.name || selectedStudent.guardianName || 'Not provided'}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-gray-500" />
                       <span className="text-sm text-gray-600">Phone:</span>
-                      <span>{selectedStudent.guardianPhone || 'Not provided'}</span>
+                      <span>{selectedStudent.guardian?.phone || selectedStudent.guardianPhone || 'Not provided'}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Relation:</span>
+                      <p className="font-medium">{selectedStudent.guardian?.relation || 'Not specified'}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-gray-500" />
@@ -1129,6 +1350,98 @@ export const StudentManagement = () => {
                           <SelectItem value="Graduated">Graduated</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Guardian Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Guardian Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-guardian-name">Guardian Name</Label>
+                      <Input
+                        id="edit-guardian-name"
+                        value={editForm.guardian.name}
+                        onChange={(e) => setEditForm(prev => ({ 
+                          ...prev, 
+                          guardian: { ...prev.guardian, name: e.target.value }
+                        }))}
+                        placeholder="Enter guardian's name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-guardian-phone">Guardian Phone</Label>
+                      <Input
+                        id="edit-guardian-phone"
+                        value={editForm.guardian.phone}
+                        onChange={(e) => setEditForm(prev => ({ 
+                          ...prev, 
+                          guardian: { ...prev.guardian, phone: e.target.value }
+                        }))}
+                        placeholder="Enter guardian's phone"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-guardian-relation">Relation</Label>
+                      <Select 
+                        value={editForm.guardian.relation} 
+                        onValueChange={(value) => 
+                          setEditForm(prev => ({ 
+                            ...prev, 
+                            guardian: { ...prev.guardian, relation: value }
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select relation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Father">Father</SelectItem>
+                          <SelectItem value="Mother">Mother</SelectItem>
+                          <SelectItem value="Brother">Brother</SelectItem>
+                          <SelectItem value="Sister">Sister</SelectItem>
+                          <SelectItem value="Uncle">Uncle</SelectItem>
+                          <SelectItem value="Aunt">Aunt</SelectItem>
+                          <SelectItem value="Grandfather">Grandfather</SelectItem>
+                          <SelectItem value="Grandmother">Grandmother</SelectItem>
+                          <SelectItem value="Cousin">Cousin</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Academic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Academic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-course">Course</Label>
+                      <Input
+                        id="edit-course"
+                        value={editForm.course}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, course: e.target.value }))}
+                        placeholder="e.g., B.Tech Computer Science"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-institution">Institution</Label>
+                      <Input
+                        id="edit-institution"
+                        value={editForm.institution}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, institution: e.target.value }))}
+                        placeholder="e.g., ABC University"
+                      />
                     </div>
                   </div>
                 </CardContent>

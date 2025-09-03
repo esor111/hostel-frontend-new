@@ -16,6 +16,11 @@ export interface DashboardStats {
   };
   pendingPayments: number;
   occupancyPercentage: number;
+  attendanceCounters?: {
+    checkIn: number;
+    checkOut: number;
+    date?: string;
+  };
 }
 
 export interface RecentActivity {

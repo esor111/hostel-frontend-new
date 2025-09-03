@@ -7,6 +7,13 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+// Guardian Information Interface
+export interface GuardianInfo {
+  name: string;
+  phone: string;
+  relation: string;
+}
+
 // Student Types
 export interface Student {
   id: string;
@@ -24,14 +31,17 @@ export interface Student {
     roomNumber: string;
     name: string;
   };
+  // Guardian information
+  guardian?: GuardianInfo;
+  // Academic information
+  course?: string;
+  institution?: string;
   // Additional fields from backend API
   guardianName?: string;
   guardianPhone?: string;
   baseMonthlyFee?: number;
   laundryFee?: number;
   foodFee?: number;
-  course?: string;
-  institution?: string;
   emergencyContact?: string;
   currentBalance?: number;
   advanceBalance?: number;
@@ -48,6 +58,9 @@ export interface CreateStudentDto {
   roomNumber?: string;
   address?: string;
   enrollmentDate?: string;
+  guardian?: GuardianInfo;
+  course?: string;
+  institution?: string;
 }
 
 export interface UpdateStudentDto {
@@ -57,6 +70,9 @@ export interface UpdateStudentDto {
   roomNumber?: string;
   status?: 'Active' | 'Inactive' | 'Suspended' | 'Graduated';
   address?: string;
+  guardian?: GuardianInfo;
+  course?: string;
+  institution?: string;
 }
 
 export interface StudentStats {

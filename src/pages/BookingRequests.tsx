@@ -12,6 +12,9 @@ import { Search, Filter, Eye, CheckCircle, XCircle, Clock, Users, Calendar, Phon
 import { useBookings } from '@/hooks/useBookings';
 import { BookingStatus } from '@/types/api';
 import { toast } from "sonner";
+import { BookingConfirmationDialog } from '@/components/dialogs/BookingConfirmationDialog';
+import { useNavigate } from 'react-router-dom';
+import { roomsApiService } from '@/services/roomsApiService';
 
 const BookingRequests = () => {
   const {
@@ -26,16 +29,34 @@ const BookingRequests = () => {
     refreshData
   } = useBookings();
   
+  const navigate = useNavigate();
+  
   const [filteredBookings, setFilteredBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [bookingToApprove, setBookingToApprove] = useState(null);
+  const [rooms, setRooms] = useState([]);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [bookingsPerPage] = useState(6); // 6 bookings per page
+
+  // Load rooms data
+  useEffect(() => {
+    const loadRooms = async () => {
+      try {
+        const roomsData = await roomsApiService.getRooms();
+        setRooms(roomsData);
+      } catch (error) {
+        console.error('Error loading rooms:', error);
+      }
+    };
+    loadRooms();
+  }, []);
 
   // Filter bookings based on search and status
   useEffect(() => {
@@ -45,8 +66,7 @@ const BookingRequests = () => {
       filtered = filtered.filter(booking => 
         booking.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.phone.includes(searchTerm) ||
-        booking.id.toLowerCase().includes(searchTerm.toLowerCase())
+        booking.phone.includes(searchTerm)
       );
     }
     
@@ -64,13 +84,27 @@ const BookingRequests = () => {
   const endIndex = startIndex + bookingsPerPage;
   const currentBookings = filteredBookings.slice(startIndex, endIndex);
 
-  const handleApprove = async (bookingId) => {
+  const handleApproveClick = (booking) => {
+    setBookingToApprove(booking);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!bookingToApprove) return;
+    
     try {
-      const result = await approveBooking(bookingId);
+      const result = await approveBooking(bookingToApprove.id);
       toast.success('Booking approved successfully! Student profile created and room assigned.', {
         duration: 4000,
       });
       console.log('Booking approved:', result);
+      
+      // Close confirmation dialog
+      setShowConfirmDialog(false);
+      setBookingToApprove(null);
+      
+      // Navigate to configuration page (ledger with student management section)
+      navigate('/ledger?section=student-management');
     } catch (error) {
       console.error('Error approving booking:', error);
       toast.error('Failed to approve booking request');
@@ -282,11 +316,10 @@ const BookingRequests = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Booking ID</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Student Details</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Contact</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Check-in Date</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Room Type</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Room/Bed</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
                   </tr>
@@ -294,86 +327,106 @@ const BookingRequests = () => {
                 <tbody>
                   {currentBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-gray-500">
+                      <td colSpan={6} className="py-8 text-center text-gray-500">
                         {searchTerm || statusFilter !== 'all' ? 'No bookings match your filters' : 'No booking requests found'}
                       </td>
                     </tr>
                   ) : (
-                    currentBookings.map((booking) => (
-                      <tr key={booking.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium text-blue-600">{booking.id}</td>
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="font-medium">{booking.name}</p>
-                            <p className="text-sm text-gray-500">{booking.address}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="text-sm flex items-center">
-                              <Mail className="h-3 w-3 mr-1" />
-                              {booking.email}
-                            </p>
-                            <p className="text-sm flex items-center">
-                              <Phone className="h-3 w-3 mr-1" />
-                              {booking.phone}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm">{new Date(booking.checkInDate).toLocaleDateString()}</td>
-                        <td className="py-3 px-4">
-                          <Badge variant="outline">{booking.preferredRoom}</Badge>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge className={getStatusColor(booking.status)}>
-                            {booking.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedBooking(booking)}
-                              className="text-xs"
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View
-                            </Button>
-                            {booking.status === BookingStatus.PENDING && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleApprove(booking.id)}
-                                  disabled={actionLoading === `approve-${booking.id}`}
-                                  className="bg-green-600 hover:bg-green-700 text-white text-xs disabled:opacity-50"
-                                >
-                                  {actionLoading === `approve-${booking.id}` ? (
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                                  ) : (
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                  )}
-                                  {actionLoading === `approve-${booking.id}` ? 'Approving...' : 'Approve'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedBooking(booking);
-                                    setShowRejectDialog(true);
-                                  }}
-                                  disabled={actionLoading === `reject-${booking.id}`}
-                                  className="border-red-600 text-red-600 hover:bg-red-50 text-xs disabled:opacity-50"
-                                >
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  Reject
-                                </Button>
-                              </>
+                    currentBookings.map((booking) => {
+                      // Find assigned room/bed information
+                      const assignedRoom = booking.assignedRoom ? 
+                        rooms.find(room => room.id === booking.assignedRoom || room.name === booking.assignedRoom) : null;
+                      
+                      return (
+                        <tr key={booking.id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div>
+                              <p className="font-medium">{booking.name}</p>
+                              <p className="text-sm text-gray-500">{booking.address}</p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div>
+                              <p className="text-sm flex items-center">
+                                <Mail className="h-3 w-3 mr-1" />
+                                {booking.email}
+                              </p>
+                              <p className="text-sm flex items-center">
+                                <Phone className="h-3 w-3 mr-1" />
+                                {booking.phone}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm">{new Date(booking.checkInDate).toLocaleDateString()}</td>
+                          <td className="py-3 px-4">
+                            {assignedRoom ? (
+                              <div>
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  {assignedRoom.name || assignedRoom.roomNumber}
+                                </Badge>
+                                {assignedRoom.bedCount && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {assignedRoom.bedCount} beds
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <Badge variant="outline" className="text-gray-600">
+                                {booking.preferredRoom}
+                              </Badge>
                             )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge className={getStatusColor(booking.status)}>
+                              {booking.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedBooking(booking)}
+                                className="text-xs"
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                View
+                              </Button>
+                              {booking.status === BookingStatus.PENDING && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleApproveClick(booking)}
+                                    disabled={actionLoading === `approve-${booking.id}`}
+                                    className="bg-green-600 hover:bg-green-700 text-white text-xs disabled:opacity-50"
+                                  >
+                                    {actionLoading === `approve-${booking.id}` ? (
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                    ) : (
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                    )}
+                                    {actionLoading === `approve-${booking.id}` ? 'Approving...' : 'Approve'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedBooking(booking);
+                                      setShowRejectDialog(true);
+                                    }}
+                                    disabled={actionLoading === `reject-${booking.id}`}
+                                    className="border-red-600 text-red-600 hover:bg-red-50 text-xs disabled:opacity-50"
+                                  >
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -426,7 +479,7 @@ const BookingRequests = () => {
         </Card>
 
         {/* View Booking Dialog */}
-        <Dialog open={!!selectedBooking && !showRejectDialog} onOpenChange={() => setSelectedBooking(null)}>
+        <Dialog open={!!selectedBooking && !showRejectDialog && !showConfirmDialog} onOpenChange={() => setSelectedBooking(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Booking Request Details</DialogTitle>
@@ -435,8 +488,8 @@ const BookingRequests = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">Booking ID</Label>
-                    <p className="text-sm font-medium text-blue-600">{selectedBooking.id}</p>
+                    <Label className="text-sm font-medium text-gray-600">Name</Label>
+                    <p className="text-sm font-medium">{selectedBooking.name}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Status</Label>
@@ -447,62 +500,58 @@ const BookingRequests = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">Name</Label>
-                    <p className="text-sm">{selectedBooking.name}</p>
-                  </div>
-                  <div>
                     <Label className="text-sm font-medium text-gray-600">Email</Label>
                     <p className="text-sm">{selectedBooking.email}</p>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Phone</Label>
                     <p className="text-sm">{selectedBooking.phone}</p>
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Check-in Date</Label>
                     <p className="text-sm">{new Date(selectedBooking.checkInDate).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Preferred Room</Label>
+                    <Badge variant="outline">{selectedBooking.preferredRoom}</Badge>
                   </div>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Address</Label>
                   <p className="text-sm">{selectedBooking.address}</p>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">Preferred Room Type</Label>
-                  <Badge variant="outline">{selectedBooking.preferredRoom}</Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Guardian Name</Label>
-                    <p className="text-sm">{selectedBooking.guardianName}</p>
+                {selectedBooking.guardianName && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Guardian Name</Label>
+                      <p className="text-sm">{selectedBooking.guardianName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Guardian Phone</Label>
+                      <p className="text-sm">{selectedBooking.guardianPhone}</p>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Guardian Phone</Label>
-                    <p className="text-sm">{selectedBooking.guardianPhone}</p>
+                )}
+                {selectedBooking.course && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Course</Label>
+                      <p className="text-sm">{selectedBooking.course}</p>
+                    </div>
+                    {selectedBooking.institution && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600">Institution</Label>
+                        <p className="text-sm">{selectedBooking.institution}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
                 {selectedBooking.rejectionReason && (
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Rejection Reason</Label>
                     <p className="text-sm text-red-600">{selectedBooking.rejectionReason}</p>
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Request Date</Label>
-                    <p className="text-sm">{selectedBooking.requestDate ? new Date(selectedBooking.requestDate).toLocaleDateString() : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Course</Label>
-                    <p className="text-sm">{selectedBooking.course || 'N/A'}</p>
-                  </div>
-                </div>
-                {selectedBooking.institution && (
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Institution</Label>
-                    <p className="text-sm">{selectedBooking.institution}</p>
                   </div>
                 )}
               </div>
@@ -554,6 +603,18 @@ const BookingRequests = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Booking Confirmation Dialog */}
+        <BookingConfirmationDialog
+          booking={bookingToApprove}
+          open={showConfirmDialog}
+          onConfirm={handleConfirmApprove}
+          onCancel={() => {
+            setShowConfirmDialog(false);
+            setBookingToApprove(null);
+          }}
+          loading={actionLoading === `approve-${bookingToApprove?.id}`}
+        />
       </div>
     </MainLayout>
   );

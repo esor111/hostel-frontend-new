@@ -8,15 +8,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDashboard } from '../hooks/useDashboard';
 import { useStudents } from '../hooks/useStudents';
 import { useNavigation } from '../hooks/useNavigation';
-import { 
-  Users, 
-  Bed, 
-  DollarSign, 
-  AlertCircle, 
-  TrendingUp, 
+import {
+  Users,
+  Bed,
+  DollarSign,
+  AlertCircle,
+  TrendingUp,
   Calendar,
   Bell,
-  Settings,
   Plus,
   Search,
   Filter,
@@ -25,7 +24,6 @@ import {
   ArrowDownRight,
   Activity,
   CreditCard,
-  Download,
   RefreshCw,
   Gift,
   Loader2
@@ -33,7 +31,7 @@ import {
 
 const Dashboard: React.FC = () => {
   const { navigateTo } = useNavigation();
-  
+
   // Use new dashboard hook with auto-refresh
   const {
     stats,
@@ -70,15 +68,15 @@ const Dashboard: React.FC = () => {
   const activeStudents = studentStats?.active || students.filter(s => s.status === 'Active').length;
   const availableRooms = stats?.availableRooms || 0;
   const occupancyRate = stats?.occupancyPercentage || stats?.occupancyRate || 0;
-  
+
   const monthlyRevenue = stats?.monthlyRevenue?.amount || stats?.totalRevenue || stats?.monthlyCollection || 0;
   const revenueDisplay = stats?.monthlyRevenue?.value || `NPR ${monthlyRevenue.toLocaleString()}`;
-  
+
   const pendingPayments = stats?.pendingPayments || studentStats?.totalDues || 0;
-  
+
   // Loading state
   const isLoading = dashboardLoading || studentsLoading;
-  
+
   // Format last refresh time
   const lastRefreshTime = lastRefresh ? new Date(lastRefresh).toLocaleTimeString() : null;
 
@@ -103,9 +101,9 @@ const Dashboard: React.FC = () => {
               Last updated: {lastRefreshTime}
             </span>
           )}
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleRefresh}
             disabled={isLoading}
           >
@@ -121,9 +119,9 @@ const Dashboard: React.FC = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
             <span>Error loading dashboard data: {dashboardError}</span>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={clearError}
             >
               Dismiss
@@ -133,7 +131,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {/* Total Students Card */}
         <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleStudentsClick}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -157,10 +155,10 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Available Rooms Card */}
+        {/* Available Beds and Rooms Card */}
         <Card className="hover:shadow-md transition-shadow cursor-pointer">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Rooms</CardTitle>
+            <CardTitle className="text-sm font-medium">Available Beds and Rooms</CardTitle>
             <Bed className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -171,9 +169,9 @@ const Dashboard: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className="text-2xl font-bold">{availableRooms}</div>
+                <div className="text-2xl font-bold">{stats?.availableBeds || availableRooms}</div>
                 <p className="text-xs text-muted-foreground">
-                  {occupancyRate}% occupancy rate
+                  {availableRooms} rooms available • {occupancyRate}% occupied
                 </p>
               </>
             )}
@@ -218,14 +216,50 @@ const Dashboard: React.FC = () => {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  {typeof pendingPayments === 'number' && pendingPayments > 0 
-                    ? `NPR ${pendingPayments.toLocaleString()}` 
-                    : '0'
+                  {typeof pendingPayments === 'number' && pendingPayments > 0
+                    ? `NPR ${pendingPayments.toLocaleString()}`
+                    : 'NPR 0'
                   }
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {typeof pendingPayments === 'number' && pendingPayments > 0 ? 'Outstanding amount' : 'No pending payments'}
+                  {typeof pendingPayments === 'number' && pendingPayments > 0
+                    ? `From ${students.filter(s => s.outstandingDues > 0).length} students`
+                    : 'No pending payments'
+                  }
                 </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Attendance Counters Card */}
+        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Today's Attendance</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Loading...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-600">
+                      {stats?.attendanceCounters?.checkIn || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Check-in</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-orange-600">
+                      {stats?.attendanceCounters?.checkOut || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Check-out</p>
+                  </div>
+                </div>
               </>
             )}
           </CardContent>
@@ -324,47 +358,31 @@ const Dashboard: React.FC = () => {
             <CardDescription>Common tasks and shortcuts</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start" 
+            <Button
+              variant="outline"
+              className="w-full justify-start"
               onClick={() => navigateTo('/ledger?section=students')}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Student
+              <Users className="h-4 w-4 mr-2" />
+              Manage Students
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-start"
               onClick={() => navigateTo('/ledger?section=payments')}
             >
               <CreditCard className="h-4 w-4 mr-2" />
               Record Payment
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-start"
               onClick={() => navigateTo('/ledger?section=students')}
             >
               <Search className="h-4 w-4 mr-2" />
               Search Students
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => navigateTo('/analytics')}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Generate Reports
-            </Button>
-            <Separator className="my-2" />
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => navigateTo('/hostel')}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
+
           </CardContent>
         </Card>
       </div>
