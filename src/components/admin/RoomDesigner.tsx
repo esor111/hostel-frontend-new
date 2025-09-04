@@ -27,6 +27,19 @@ interface RoomElement {
   height: number;
   rotation: number;
   zIndex: number;
+  // Bed status visualization properties (from API)
+  status?: string;
+  occupantId?: string | null;
+  occupantName?: string;
+  gender?: string;
+  color?: string;
+  bedDetails?: {
+    bedNumber?: string;
+    monthlyRate?: number;
+    lastCleaned?: Date;
+    maintenanceNotes?: string;
+    occupiedSince?: Date;
+  };
   properties?: {
     bedType?: 'single' | 'bunk' | 'double' | 'kids';
     bedId?: string;
@@ -59,9 +72,10 @@ interface RoomDesignerProps {
   onSave: (layout: any) => void;
   onClose: () => void;
   roomData?: any;
+  isViewMode?: boolean; // New prop to indicate if this is view mode (read-only)
 }
 
-export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) => {
+export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: RoomDesignerProps) => {
   const [showWizard, setShowWizard] = useState(!roomData);
 
   const [dimensions, setDimensions] = useState({
@@ -78,7 +92,39 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
     }
   );
 
-  const [elements, setElements] = useState<RoomElement[]>(roomData?.elements || []);
+  // Initialize elements from roomData, handling both elements and bedPositions
+  const initializeElements = () => {
+    if (roomData?.elements) {
+      return roomData.elements;
+    } else if (roomData?.bedPositions) {
+      // Convert bedPositions to elements format for the designer
+      return roomData.bedPositions.map((bedPos: any) => ({
+        id: bedPos.id,
+        type: 'single-bed', // Assume single bed for bedPositions
+        x: bedPos.x,
+        y: bedPos.y,
+        width: bedPos.width,
+        height: bedPos.height,
+        rotation: bedPos.rotation || 0,
+        zIndex: 0,
+        // Enhanced properties from bed data
+        status: bedPos.status,
+        occupantId: bedPos.occupantId,
+        occupantName: bedPos.occupantName,
+        gender: bedPos.gender,
+        color: bedPos.color,
+        bedDetails: bedPos.bedDetails,
+        properties: {
+          bedType: 'single',
+          bedId: bedPos.id,
+          bedLabel: bedPos.id
+        }
+      }));
+    }
+    return [];
+  };
+
+  const [elements, setElements] = useState<RoomElement[]>(initializeElements());
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
   const [selectedElements, setSelectedElements] = useState<string[]>([]);
   const [lastSelectedElement, setLastSelectedElement] = useState<string | null>(null);
@@ -325,14 +371,14 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
       attempts++;
     }
 
-    // Generate unique IDs and labels for beds
+    // Generate simple sequential bed IDs for better backend compatibility
     const bedElements = elements.filter(e => e.type === 'single-bed' || e.type === 'bunk-bed');
     const bedCount = bedElements.length;
     const bedLabel = `Bed ${String.fromCharCode(65 + bedCount)}`; // A, B, C, D...
     
-    // Generate unique timestamp-based IDs
-    const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 6);
+    // Use simple sequential bed IDs (bed1, bed2, bed3, etc.)
+    const nextBedNumber = bedCount + 1;
+    const simpleBedId = `bed${nextBedNumber}`;
     
     const bunkBedCount = elements.filter(e => e.type === 'bunk-bed').length;
     const singleBedCount = elements.filter(e => e.type === 'single-bed').length;
@@ -350,7 +396,7 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
     }
 
     const newElement: RoomElement = {
-      id: `${type}-${timestamp}-${randomSuffix}`,
+      id: simpleBedId, // Use simple bed ID format
       type,
       x: snapToGridPosition(x),
       y: snapToGridPosition(y),
@@ -360,7 +406,7 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
       zIndex: elements.length,
       properties: type === 'bunk-bed' ? {
         bedType: 'bunk',
-        bedId: `BUNK-${String(bunkBedCount + 1).padStart(3, '0')}-${randomSuffix.toUpperCase()}`,
+        bedId: simpleBedId,
         bedLabel: bedLabel,
         status: 'available',
         orientation: 'north',
@@ -368,23 +414,23 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
         isLocked: false,
         levels: [
           {
-            id: `${timestamp}-B1-${randomSuffix}`,
+            id: `${simpleBedId}-top`,
             position: 'top',
-            bedId: `${bedLabel}-B1-${randomSuffix.toUpperCase()}`,
+            bedId: `${simpleBedId}-top`,
             status: 'available',
             assignedTo: undefined
           },
           {
-            id: `${timestamp}-B2-${randomSuffix}`,
+            id: `${simpleBedId}-bottom`,
             position: 'bottom',
-            bedId: `${bedLabel}-B2-${randomSuffix.toUpperCase()}`,
+            bedId: `${simpleBedId}-bottom`,
             status: 'available',
             assignedTo: undefined
           }
         ]
       } : type === 'single-bed' ? {
         bedType: 'single',
-        bedId: `BED-${String(singleBedCount + 1).padStart(3, '0')}-${randomSuffix.toUpperCase()}`,
+        bedId: simpleBedId,
         bedLabel: bedLabel,
         status: 'available',
         orientation: 'north'
@@ -586,49 +632,109 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            onClick={() => setShowWizard(true)}
-            className="text-purple-600 hover:text-purple-700"
-          >
-            Room Setup
-          </Button>
+          {!isViewMode && (
+            <Button
+              variant="outline"
+              onClick={() => setShowWizard(true)}
+              className="text-purple-600 hover:text-purple-700"
+            >
+              Room Setup
+            </Button>
+          )}
+          {isViewMode && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Badge variant="secondary">View Mode</Badge>
+              <span>Real-time bed status visualization</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Toolbar */}
-      <DesignerToolbar
-        canUndo={historyIndex > 0}
-        canRedo={historyIndex < history.length - 1}
-        onUndo={undo}
-        onRedo={redo}
-        scale={scale}
-        onZoomIn={() => handleZoom(5)}
-        onZoomOut={() => handleZoom(-5)}
-        showGrid={showGrid}
-        onToggleGrid={() => setShowGrid(!showGrid)}
-        snapToGrid={snapToGrid}
-        onToggleSnap={() => setSnapToGrid(!snapToGrid)}
-        viewMode={viewMode}
-        onToggleViewMode={() => setViewMode(viewMode === '2d' ? '3d' : '2d')}
-        onSave={saveLayout}
-        onClear={clearRoom}
-        onExport={handleExport}
-        onImport={handleImport}
-        elementCount={elements.length}
-        roomDimensions={dimensions}
-      />
+      {!isViewMode && (
+        <DesignerToolbar
+          canUndo={historyIndex > 0}
+          canRedo={historyIndex < history.length - 1}
+          onUndo={undo}
+          onRedo={redo}
+          scale={scale}
+          onZoomIn={() => handleZoom(5)}
+          onZoomOut={() => handleZoom(-5)}
+          showGrid={showGrid}
+          onToggleGrid={() => setShowGrid(!showGrid)}
+          snapToGrid={snapToGrid}
+          onToggleSnap={() => setSnapToGrid(!snapToGrid)}
+          viewMode={viewMode}
+          onToggleViewMode={() => setViewMode(viewMode === '2d' ? '3d' : '2d')}
+          onSave={saveLayout}
+          onClear={clearRoom}
+          onExport={handleExport}
+          onImport={handleImport}
+          elementCount={elements.length}
+          roomDimensions={dimensions}
+        />
+      )}
+      
+      {/* View Mode Toolbar - Simplified */}
+      {isViewMode && (
+        <div className="bg-white border-b border-gray-200 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600">
+                Room Layout View - {elements.length} beds
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span className="text-xs">Available</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-red-500 rounded"></div>
+                  <span className="text-xs">Occupied</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                  <span className="text-xs">Reserved</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-gray-500 rounded"></div>
+                  <span className="text-xs">Maintenance</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleZoom(-5)}
+              >
+                Zoom Out
+              </Button>
+              <span className="text-sm text-gray-600">{scale}%</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleZoom(5)}
+              >
+                Zoom In
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Designer Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Element Library */}
-        <ElementLibraryPanel
-          onAddElement={addElement}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          onDuplicateMode={setDuplicateMode}
-          duplicateMode={duplicateMode}
-        />
+        {/* Element Library - Only show in edit mode */}
+        {!isViewMode && (
+          <ElementLibraryPanel
+            onAddElement={addElement}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            onDuplicateMode={setDuplicateMode}
+            duplicateMode={duplicateMode}
+          />
+        )}
 
         {/* Canvas */}
         <RoomCanvas
@@ -640,30 +746,67 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
           scale={scale}
           showGrid={showGrid}
           snapToGrid={snapToGrid}
-          duplicateMode={duplicateMode}
-          onMouseDown={handleCanvasMouseDown}
-          onMouseMove={handleCanvasMouseMove}
-          onMouseUp={handleCanvasMouseUp}
-          onElementSelect={handleElementSelect}
-          onElementsMove={handleElementsMove}
-          onElementsMoveComplete={handleElementsMoveComplete}
-          onElementRotate={rotateElement}
-          onElementDuplicate={handleElementDuplicate}
-          onElementDelete={deleteElement}
+          duplicateMode={duplicateMode && !isViewMode}
+          onMouseDown={isViewMode ? () => {} : handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove} // Keep for tooltips
+          onMouseUp={isViewMode ? () => {} : handleCanvasMouseUp}
+          onElementSelect={isViewMode ? () => {} : handleElementSelect}
+          onElementsMove={isViewMode ? () => {} : handleElementsMove}
+          onElementsMoveComplete={isViewMode ? () => {} : handleElementsMoveComplete}
+          onElementRotate={isViewMode ? () => {} : rotateElement}
+          onElementDuplicate={isViewMode ? () => {} : handleElementDuplicate}
+          onElementDelete={isViewMode ? () => {} : deleteElement}
           checkCollisions={checkCollisions}
           warnings={collisionWarnings}
         />
 
-        {/* Properties Panel */}
-        <PropertiesPanel
-          selectedElement={selectedElementData || (lastSelectedElement ? elements.find(el => el.id === lastSelectedElement) : null)}
-          onUpdateElement={updateElement}
-          onDeleteElement={deleteElement}
-          onRotateElement={rotateElement}
-          onDuplicateElement={duplicateElement}
-          hasCollision={selectedElementData ? checkCollisions(selectedElementData, selectedElementData.id) : false}
-          isLastSelected={!selectedElementData && !!lastSelectedElement}
-        />
+        {/* Properties Panel - Only show in edit mode */}
+        {!isViewMode && (
+          <PropertiesPanel
+            selectedElement={selectedElementData || (lastSelectedElement ? elements.find(el => el.id === lastSelectedElement) : null)}
+            onUpdateElement={updateElement}
+            onDeleteElement={deleteElement}
+            onRotateElement={rotateElement}
+            onDuplicateElement={duplicateElement}
+            hasCollision={selectedElementData ? checkCollisions(selectedElementData, selectedElementData.id) : false}
+            isLastSelected={!selectedElementData && !!lastSelectedElement}
+          />
+        )}
+        
+        {/* Bed Status Panel - Only show in view mode */}
+        {isViewMode && (
+          <div className="w-80 bg-white border-l border-gray-200 p-4 overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Bed Status Overview</h3>
+            <div className="space-y-3">
+              {elements.filter(el => el.type.includes('bed')).map(bed => (
+                <div key={bed.id} className="p-3 border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">{bed.id}</span>
+                    <div 
+                      className="w-4 h-4 rounded"
+                      style={{ backgroundColor: bed.color || '#10B981' }}
+                    ></div>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div>Status: <span className="font-medium">{bed.status || 'Available'}</span></div>
+                    {bed.occupantName && (
+                      <div>Occupant: <span className="font-medium">{bed.occupantName}</span></div>
+                    )}
+                    {bed.gender && bed.gender !== 'Any' && (
+                      <div>Gender: <span className="font-medium">{bed.gender}</span></div>
+                    )}
+                    {bed.bedDetails?.monthlyRate && (
+                      <div>Rate: <span className="font-medium">NPR {bed.bedDetails.monthlyRate.toLocaleString()}/month</span></div>
+                    )}
+                    {bed.bedDetails?.occupiedSince && (
+                      <div>Occupied since: <span className="font-medium">{new Date(bed.bedDetails.occupiedSince).toLocaleDateString()}</span></div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

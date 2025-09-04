@@ -15,7 +15,7 @@ import { useRooms } from "@/hooks/useRooms";
 
 export const RoomConfiguration = () => {
   const { translations } = useLanguage();
-  
+
   // Use the new useRooms hook for API integration (following hostel-ladger-frontend pattern)
   const {
     rooms,
@@ -34,6 +34,12 @@ export const RoomConfiguration = () => {
   const [selectedRoomForDesign, setSelectedRoomForDesign] = useState<string | null>(null);
   const [showLayoutViewer, setShowLayoutViewer] = useState(false);
   const [selectedRoomForView, setSelectedRoomForView] = useState<string | null>(null);
+  const [showRoomViewer, setShowRoomViewer] = useState(false);
+  const [selectedRoomForBedView, setSelectedRoomForBedView] = useState<string | null>(null);
+  
+  // New state for enhanced room creation workflow
+  const [roomCreationStep, setRoomCreationStep] = useState<'basic' | 'layout' | 'complete'>('basic');
+  const [pendingRoomId, setPendingRoomId] = useState<string | null>(null);
   const [newRoom, setNewRoom] = useState({
     name: "",
     roomNumber: "",
@@ -47,7 +53,7 @@ export const RoomConfiguration = () => {
   const roomTypes = ["Dormitory", "Private", "Capsule"];
   const genderOptions = ["Mixed", "Male", "Female"];
   const availableAmenities = [
-    "Wi-Fi", "Lockers", "Reading Light", "Private Bathroom", 
+    "Wi-Fi", "Lockers", "Reading Light", "Private Bathroom",
     "AC", "TV", "Power Outlet", "Personal Locker", "Bunk Bed"
   ];
 
@@ -89,23 +95,49 @@ export const RoomConfiguration = () => {
         description: `${newRoom.type} room with ${newRoom.bedCount} beds`
       };
 
-      await createRoom(roomData);
+      const createdRoom = await createRoom(roomData);
 
-      // Reset form
-      setNewRoom({
-        name: "",
-        roomNumber: "",
-        type: "Dormitory",
-        bedCount: 1,
-        gender: "Mixed",
-        baseRate: 12000,
-        amenities: []
-      });
-      setShowAddRoom(false);
+      // Enhanced workflow: Move to layout design step
+      if (createdRoom && createdRoom.id) {
+        setPendingRoomId(createdRoom.id);
+        setRoomCreationStep('layout');
+        toast.success("Room created! Now let's design the layout.", {
+          description: "Configure bed positions and room layout",
+          duration: 4000,
+        });
+      } else {
+        // Fallback to old workflow if room ID not available
+        completeRoomCreation();
+      }
     } catch (error) {
       // Error handling is done in the hook
       console.error('Error in handleAddRoom:', error);
     }
+  };
+
+  const completeRoomCreation = () => {
+    // Reset form and state
+    setNewRoom({
+      name: "",
+      roomNumber: "",
+      type: "Dormitory",
+      bedCount: 1,
+      gender: "Mixed",
+      baseRate: 12000,
+      amenities: []
+    });
+    setShowAddRoom(false);
+    setRoomCreationStep('basic');
+    setPendingRoomId(null);
+    toast.success("Room creation completed!");
+  };
+
+  const skipLayoutDesign = () => {
+    toast.info("Layout design skipped. You can design it later.", {
+      description: "Click the Layout button on the room card to design later",
+      duration: 4000,
+    });
+    completeRoomCreation();
   };
 
   const handleUpdateRoom = async () => {
@@ -187,7 +219,7 @@ export const RoomConfiguration = () => {
       toast.error("Cannot delete room with current occupants. Please move students first.");
       return;
     }
-    
+
     if (!confirm(`Are you sure you want to delete "${room.name}"? This action cannot be undone.`)) {
       return;
     }
@@ -220,26 +252,36 @@ export const RoomConfiguration = () => {
   };
 
   const handleSaveLayout = async (layout: any) => {
-    if (selectedRoomForDesign) {
+    const roomId = selectedRoomForDesign || pendingRoomId;
+    
+    if (roomId) {
       try {
         console.log('💾 Saving room layout:', layout);
-        
+
         // Analyze what we're trying to save
         const hasElements = layout.elements && layout.elements.length > 0;
         const hasTheme = layout.theme && Object.keys(layout.theme).length > 0;
         const hasDimensions = layout.dimensions && Object.keys(layout.dimensions).length > 0;
-        
+
         console.log(`📊 Layout analysis: ${hasElements ? layout.elements.length : 0} elements, ${hasTheme ? 'has theme' : 'no theme'}, ${hasDimensions ? 'has dimensions' : 'no dimensions'}`);
-        
+
         // Send complete layout data to backend
         const layoutData = {
           layout: layout // Send complete layout object
         };
+
+        await updateRoom(roomId, layoutData);
         
-        await updateRoom(selectedRoomForDesign, layoutData);
-        setShowRoomDesigner(false);
-        setSelectedRoomForDesign(null);
-        
+        // Handle different scenarios
+        if (roomCreationStep === 'layout' && pendingRoomId) {
+          // Complete room creation workflow
+          completeRoomCreation();
+        } else {
+          // Regular layout update
+          setShowRoomDesigner(false);
+          setSelectedRoomForDesign(null);
+        }
+
       } catch (error) {
         console.error('Error saving room layout:', error);
         toast.error("Failed to save room layout. Please try again.");
@@ -248,16 +290,25 @@ export const RoomConfiguration = () => {
   };
 
   const closeRoomDesigner = () => {
-    setShowRoomDesigner(false);
-    setSelectedRoomForDesign(null);
+    if (roomCreationStep === 'layout' && pendingRoomId) {
+      // Ask user if they want to skip layout design during room creation
+      if (confirm("Do you want to skip layout design? You can design it later.")) {
+        skipLayoutDesign();
+      }
+      // If they don't want to skip, keep the designer open
+    } else {
+      // Regular close for existing room layout editing
+      setShowRoomDesigner(false);
+      setSelectedRoomForDesign(null);
+    }
   };
 
   const handleViewLayout = (roomId: string) => {
     const room = rooms.find(r => r.id === roomId);
-    
+
     // Check if room has layout data
     const hasLayout = room?.layout && (room.layout.dimensions || room.layout.elements);
-    
+
     if (hasLayout) {
       console.log('📐 Viewing room layout:', room.layout);
       setSelectedRoomForView(roomId);
@@ -271,16 +322,41 @@ export const RoomConfiguration = () => {
     }
   };
 
+  const openRoomBedViewer = (roomId: string) => {
+    setSelectedRoomForBedView(roomId);
+    setShowRoomViewer(true);
+  };
+
+  const closeRoomBedViewer = () => {
+    setShowRoomViewer(false);
+    setSelectedRoomForBedView(null);
+  };
 
 
-  // Show room designer if selected
-  if (showRoomDesigner && selectedRoomForDesign) {
-    const roomData = rooms.find(r => r.id === selectedRoomForDesign);
+
+  // Show room designer if selected or during room creation workflow
+  if (showRoomDesigner && (selectedRoomForDesign || (roomCreationStep === 'layout' && pendingRoomId))) {
+    const roomId = selectedRoomForDesign || pendingRoomId;
+    const roomData = rooms.find(r => r.id === roomId);
     return (
       <RoomDesigner
         onSave={handleSaveLayout}
         onClose={closeRoomDesigner}
         roomData={roomData?.layout} // This is now properly parsed layout object
+        isViewMode={false} // Allow editing in room management
+      />
+    );
+  }
+
+  // Show room bed viewer if selected
+  if (showRoomViewer && selectedRoomForBedView) {
+    const roomData = rooms.find(r => r.id === selectedRoomForBedView);
+    return (
+      <RoomDesigner
+        onSave={() => { }} // No save functionality in view mode
+        onClose={closeRoomBedViewer}
+        roomData={roomData?.layout}
+        isViewMode={true} // Read-only view mode with bed status visualization
       />
     );
   }
@@ -333,7 +409,7 @@ export const RoomConfiguration = () => {
         </Button>
       </div>
 
-      {showAddRoom && (
+      {showAddRoom && roomCreationStep === 'basic' && (
         <Card>
           <CardHeader>
             <CardTitle>{editingRoom ? 'Edit Room' : 'Add New Room'}</CardTitle>
@@ -405,7 +481,7 @@ export const RoomConfiguration = () => {
                 />
               </div>
             </div>
-            
+
             {/* Amenities Section */}
             <div className="space-y-3 mt-4">
               <Label>Room Amenities</Label>
@@ -453,6 +529,60 @@ export const RoomConfiguration = () => {
         </Card>
       )}
 
+      {/* Layout Design Step */}
+      {roomCreationStep === 'layout' && pendingRoomId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Layout className="h-5 w-5 text-purple-600" />
+              Design Room Layout
+            </CardTitle>
+            <p className="text-gray-600">
+              Configure bed positions and room layout for better management
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Room Created Successfully!</h4>
+                <p className="text-blue-700 text-sm">
+                  Your room "{newRoom.name}" has been created. Now let's design the layout to position beds and furniture.
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => {
+                    setSelectedRoomForDesign(pendingRoomId);
+                    setShowRoomDesigner(true);
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <Layout className="h-4 w-4 mr-2" />
+                  Design Layout
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={skipLayoutDesign}
+                >
+                  Skip for Now
+                </Button>
+              </div>
+              
+              <div className="text-sm text-gray-500">
+                <p>💡 <strong>Tip:</strong> Designing the layout now will help with:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Better bed management and assignment</li>
+                  <li>Visual room status monitoring</li>
+                  <li>Mobile app room viewing</li>
+                  <li>Accurate occupancy tracking</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {rooms.map((room) => (
           <Card key={room.id} className="hover:shadow-lg transition-shadow">
@@ -473,20 +603,20 @@ export const RoomConfiguration = () => {
                       {room.status}
                     </Badge>
                     {room.layout && (
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className={
                           room.layout.dimensions && room.layout.elements && room.layout.elements.length > 0
-                            ? "bg-green-100 text-green-700" 
-                            : room.layout.dimensions 
-                              ? "bg-blue-100 text-blue-700" 
+                            ? "bg-green-100 text-green-700"
+                            : room.layout.dimensions
+                              ? "bg-blue-100 text-blue-700"
                               : "bg-gray-100 text-gray-700"
                         }
                       >
                         {room.layout.dimensions && room.layout.elements && room.layout.elements.length > 0
-                          ? "Layout Complete" 
-                          : room.layout.dimensions 
-                            ? "Dimensions Only" 
+                          ? "Layout Complete"
+                          : room.layout.dimensions
+                            ? "Dimensions Only"
                             : "No Layout"
                         }
                       </Badge>
@@ -494,36 +624,50 @@ export const RoomConfiguration = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
+                  {room.layout && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openRoomBedViewer(room.id)}
+                      className="text-green-600 hover:text-green-700"
+                      title="View Room with Bed Status"
+                    >
+                      <Bed className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => handleViewLayout(room.id)}
-                    className="text-green-600 hover:text-green-700"
+                    className="text-blue-600 hover:text-blue-700"
                     title={room.layout ? "View saved room layout" : "Configure room layout first"}
                   >
-                    View
+                    <Eye className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => openRoomDesigner(room.id)}
                     className="text-purple-600 hover:text-purple-700"
+                    title="Edit Room Layout"
                   >
-                    Layout
+                    <Layout className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => handleEditRoom(room)}
-                    className="text-blue-600 hover:text-blue-700"
+                    className="text-orange-600 hover:text-orange-700"
+                    title="Edit Room Details"
                   >
-                    Edit
+                    <Edit className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     className="text-red-600 hover:text-red-700"
                     onClick={() => handleDeleteRoom(room)}
+                    title="Delete Room"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -546,7 +690,7 @@ export const RoomConfiguration = () => {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <div className="text-sm text-gray-600 mb-1">Monthly Rate</div>
                   <div className="text-xl font-bold text-blue-600">
@@ -584,8 +728,8 @@ export const RoomConfiguration = () => {
                 </div>
 
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full" 
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
                     style={{ width: `${room.bedCount > 0 ? (room.occupancy / room.bedCount) * 100 : 0}%` }}
                   ></div>
                 </div>
