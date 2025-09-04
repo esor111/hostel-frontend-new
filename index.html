@@ -26,6 +26,29 @@
 
   <body>
     <div id="root"></div>
+    
+    <!-- Clear cache script for development -->
+    <script>
+      // Only run in development
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Clear any corrupted data on page load
+        try {
+          localStorage.removeItem('clickPatterns');
+          
+          // Unregister service workers that might be causing issues
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              for(let registration of registrations) {
+                registration.unregister();
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Cache clearing failed:', e);
+        }
+      }
+    </script>
+    
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

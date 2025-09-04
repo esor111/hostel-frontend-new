@@ -125,7 +125,14 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  // Emergency fallback - if React hooks are broken, show error UI
+  try {
+    // Test if React hooks are available by trying to access them
+    if (!React || !React.useReducer || !React.useEffect) {
+      throw new Error('React hooks not available');
+    }
+
+    const [state, dispatch] = React.useReducer(appReducer, initialState);
 
   const refreshAllData = async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -171,24 +178,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return state.invoices.filter(invoice => invoice.studentId === studentId);
   };
 
-  useEffect(() => {
-    refreshAllData();
-  }, []);
+    React.useEffect(() => {
+      // Add error boundary for useEffect
+      try {
+        refreshAllData();
+      } catch (error) {
+        console.error('Error in AppProvider useEffect:', error);
+      }
+    }, []);
 
-  const contextValue: AppContextType = {
-    state,
-    dispatch,
-    refreshAllData,
-    approveBooking,
-    getStudentById,
-    getStudentInvoices
-  };
+    const contextValue: AppContextType = {
+      state,
+      dispatch,
+      refreshAllData,
+      approveBooking,
+      getStudentById,
+      getStudentInvoices
+    };
 
-  return (
-    <AppContext.Provider value={contextValue}>
-      {children}
-    </AppContext.Provider>
-  );
+    return (
+      <AppContext.Provider value={contextValue}>
+        {children}
+      </AppContext.Provider>
+    );
+
+  } catch (error) {
+    console.error('React hooks are broken:', error);
+    
+    // Return fallback UI when React hooks fail
+    return (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+          <h2 className="text-xl font-bold text-red-600 mb-4">React Hooks Error</h2>
+          <p className="text-gray-600 mb-4">
+            React hooks are not working properly. This usually indicates:
+          </p>
+          <ul className="text-left text-sm text-gray-600 space-y-2 mb-4">
+            <li>• Multiple React instances loaded</li>
+            <li>• React version mismatch</li>
+            <li>• Corrupted node_modules</li>
+          </ul>
+          <div className="bg-gray-100 p-3 rounded text-xs text-left">
+            <strong>Quick fixes:</strong><br/>
+            1. Clear browser cache (Ctrl+Shift+R)<br/>
+            2. Stop server and run: npm run clean<br/>
+            3. Then run: npm install<br/>
+            4. Restart: npm run dev
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 }
 
 export function useAppContext() {

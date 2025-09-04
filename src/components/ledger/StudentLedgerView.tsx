@@ -11,6 +11,8 @@ import { useStudents } from "@/hooks/useStudents";
 import { useLedger } from "@/hooks/useLedger";
 import { Student as ApiStudent, LedgerEntry } from "@/types/api";
 import { useLocation } from "react-router-dom";
+import { LedgerFilters, LedgerFilterOptions } from "@/components/ledger/LedgerFilters";
+import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 
 // LedgerEntry interface is now imported from @/types/api
 
@@ -42,6 +44,8 @@ export const StudentLedgerView = () => {
   const location = useLocation();
   const [selectedStudent, setSelectedStudent] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState<LedgerFilterOptions>({});
+  const [filteredEntries, setFilteredEntries] = useState<LedgerEntry[]>([]);
 
   // Transform API students to local format and filter configured students only
   const allStudents = (apiStudents || []).map(student => ({
@@ -109,6 +113,52 @@ export const StudentLedgerView = () => {
     }
   }, [selectedStudent, fetchStudentLedger, fetchStudentBalance]);
 
+  // Apply filters to ledger entries
+  useEffect(() => {
+    let filtered = [...ledgerEntries];
+
+    // Apply date range filter
+    if (filters.dateRange?.from || filters.dateRange?.to) {
+      filtered = filtered.filter(entry => {
+        const entryDate = new Date(entry.date);
+        
+        if (filters.dateRange?.from && filters.dateRange?.to) {
+          return isWithinInterval(entryDate, {
+            start: filters.dateRange.from,
+            end: filters.dateRange.to
+          });
+        } else if (filters.dateRange?.from) {
+          return entryDate >= filters.dateRange.from;
+        } else if (filters.dateRange?.to) {
+          return entryDate <= filters.dateRange.to;
+        }
+        
+        return true;
+      });
+    }
+
+    // Apply month filter
+    if (filters.month) {
+      const monthStart = startOfMonth(filters.month);
+      const monthEnd = endOfMonth(filters.month);
+      
+      filtered = filtered.filter(entry => {
+        const entryDate = new Date(entry.date);
+        return isWithinInterval(entryDate, {
+          start: monthStart,
+          end: monthEnd
+        });
+      });
+    }
+
+    // Apply entry type filter
+    if (filters.entryType) {
+      filtered = filtered.filter(entry => entry.type === filters.entryType);
+    }
+
+    setFilteredEntries(filtered);
+  }, [ledgerEntries, filters]);
+
   // Get selected student data
   const selectedStudentData = selectedStudent ? students.find(s => s.id === selectedStudent) : null;
 
@@ -131,10 +181,26 @@ export const StudentLedgerView = () => {
     }
   };
 
-  // Calculate totals from real ledger data
+  // Calculate totals from filtered ledger data
   const currentBalance = studentBalance?.currentBalance || 0;
-  const totalDebits = ledgerEntries.reduce((sum, entry) => sum + (entry.debit || 0), 0);
-  const totalCredits = ledgerEntries.reduce((sum, entry) => sum + (entry.credit || 0), 0);
+  const totalDebits = filteredEntries.reduce((sum, entry) => sum + (entry.debit || 0), 0);
+  const totalCredits = filteredEntries.reduce((sum, entry) => sum + (entry.credit || 0), 0);
+  const filteredBalance = totalDebits - totalCredits;
+
+  // Filter handlers
+  const handleFiltersChange = (newFilters: LedgerFilterOptions) => {
+    setFilters(newFilters);
+  };
+
+  const handleApplyFilters = () => {
+    // Filters are applied automatically via useEffect
+    // This could be used for additional actions like analytics tracking
+    console.log('Filters applied:', filters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({});
+  };
 
   // Show loading state
   if (studentsLoading) {
@@ -212,8 +278,29 @@ export const StudentLedgerView = () => {
             </svg>
             Refresh Data
           </Button>
-          <Button variant="outline">🖨️ Print Ledger</Button>
-          <Button variant="outline">📄 Download PDF</Button>
+          {/* Show print and download options only after student selection */}
+          {selectedStudent && (
+            <>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  // Print functionality
+                  window.print();
+                }}
+              >
+                🖨️ Print Ledger
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  // Download PDF functionality - placeholder for now
+                  alert('PDF download functionality will be implemented');
+                }}
+              >
+                📄 Download PDF
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -295,18 +382,19 @@ export const StudentLedgerView = () => {
                   }}>
                     💰 Record Payment
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => {
-                    const params = new URLSearchParams(location.search);
-                    params.set('section', 'invoices');
-                    params.set('student', selectedStudent);
-                    window.location.href = `/ledger?${params.toString()}`;
-                  }}>
-                    🧾 Generate Invoice
-                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Ledger Filters */}
+          <LedgerFilters
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            onApplyFilters={handleApplyFilters}
+            onClearFilters={handleClearFilters}
+            loading={entriesLoading}
+          />
 
           {/* Student Summary */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -337,8 +425,17 @@ export const StudentLedgerView = () => {
                 <div className="text-2xl font-bold text-red-600">
                   {getFormattedBalance(totalDebits)}
                 </div>
-                <div className="text-sm text-gray-500">Total Charges</div>
-                <div className="text-xs mt-1 text-red-600">📈 All invoices</div>
+                <div className="text-sm text-gray-500">
+                  {Object.keys(filters).length > 0 ? 'Filtered Charges' : 'Total Charges'}
+                </div>
+                <div className="text-xs mt-1 text-red-600">
+                  📈 {Object.keys(filters).length > 0 ? 'Filtered invoices' : 'All invoices'}
+                </div>
+                {Object.keys(filters).length > 0 && (
+                  <div className="text-xs mt-1 text-gray-400">
+                    Total: {getFormattedBalance(ledgerEntries.reduce((sum, entry) => sum + (entry.debit || 0), 0))}
+                  </div>
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -346,17 +443,35 @@ export const StudentLedgerView = () => {
                 <div className="text-2xl font-bold text-green-600">
                   {getFormattedBalance(totalCredits)}
                 </div>
-                <div className="text-sm text-gray-500">Total Payments</div>
-                <div className="text-xs mt-1 text-green-600">💰 All credits</div>
+                <div className="text-sm text-gray-500">
+                  {Object.keys(filters).length > 0 ? 'Filtered Payments' : 'Total Payments'}
+                </div>
+                <div className="text-xs mt-1 text-green-600">
+                  💰 {Object.keys(filters).length > 0 ? 'Filtered credits' : 'All credits'}
+                </div>
+                {Object.keys(filters).length > 0 && (
+                  <div className="text-xs mt-1 text-gray-400">
+                    Total: {getFormattedBalance(ledgerEntries.reduce((sum, entry) => sum + (entry.credit || 0), 0))}
+                  </div>
+                )}
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
                 <div className="text-2xl font-bold text-gray-600">
-                  {ledgerEntries.length}
+                  {filteredEntries.length}
                 </div>
-                <div className="text-sm text-gray-500">Total Transactions</div>
-                <div className="text-xs mt-1 text-gray-600">📋 All entries</div>
+                <div className="text-sm text-gray-500">
+                  {Object.keys(filters).length > 0 ? 'Filtered Transactions' : 'Total Transactions'}
+                </div>
+                <div className="text-xs mt-1 text-gray-600">
+                  📋 {Object.keys(filters).length > 0 ? 'Matching entries' : 'All entries'}
+                </div>
+                {Object.keys(filters).length > 0 && (
+                  <div className="text-xs mt-1 text-gray-400">
+                    Total: {ledgerEntries.length} entries
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -364,9 +479,31 @@ export const StudentLedgerView = () => {
           {/* Ledger Table */}
           <Card>
             <CardHeader>
-              <CardTitle>
-                📊 Ledger for {students.find(s => s.id === selectedStudent)?.name}
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>
+                  📊 Ledger for {students.find(s => s.id === selectedStudent)?.name}
+                </CardTitle>
+                {Object.keys(filters).length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-blue-600">
+                      {filteredEntries.length} of {ledgerEntries.length} entries shown
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      Show All
+                    </Button>
+                  </div>
+                )}
+              </div>
+              {Object.keys(filters).length > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  Showing filtered results. Use filters above to adjust the date range and entry types.
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               {entriesLoading ? (
@@ -376,11 +513,28 @@ export const StudentLedgerView = () => {
                     <p className="mt-2 text-sm text-gray-600">Loading ledger entries...</p>
                   </div>
                 </div>
-              ) : ledgerEntries.length === 0 ? (
+              ) : filteredEntries.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-gray-400 mb-4">📋</div>
-                  <p className="text-gray-500 font-medium">No ledger entries found</p>
-                  <p className="text-sm text-gray-400">This student has no transaction history</p>
+                  <p className="text-gray-500 font-medium">
+                    {Object.keys(filters).length > 0 ? 'No entries match your filters' : 'No ledger entries found'}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    {Object.keys(filters).length > 0 
+                      ? 'Try adjusting your date range or entry type filters'
+                      : 'This student has no transaction history'
+                    }
+                  </p>
+                  {Object.keys(filters).length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="mt-3"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <Table>
@@ -396,7 +550,7 @@ export const StudentLedgerView = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ledgerEntries.map((entry) => (
+                    {filteredEntries.map((entry) => (
                       <TableRow key={entry.id}>
                         <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
                         <TableCell>
@@ -442,7 +596,9 @@ export const StudentLedgerView = () => {
               {/* Running Balance Info */}
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">Final Balance:</span>
+                  <span className="font-medium">
+                    {Object.keys(filters).length > 0 ? 'Current Account Balance:' : 'Final Balance:'}
+                  </span>
                   {balanceLoading ? (
                     <div className="animate-pulse">
                       <div className="h-6 bg-gray-200 rounded w-32"></div>
@@ -453,6 +609,21 @@ export const StudentLedgerView = () => {
                     </span>
                   )}
                 </div>
+                
+                {Object.keys(filters).length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Filtered Period Balance:</span>
+                      <span className={`font-semibold ${filteredBalance >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {getFormattedBalance(Math.abs(filteredBalance))} {filteredBalance >= 0 ? 'Net Charges' : 'Net Credits'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      This shows the net activity for the selected time period only
+                    </div>
+                  </div>
+                )}
+                
                 <div className="text-sm text-gray-600 mt-2">
                   {currentBalance >= 0 
                     ? '🔴 Student has outstanding dues to pay'

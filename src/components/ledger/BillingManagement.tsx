@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Calendar, DollarSign, Users, Eye, Download, FileText, TrendingUp, Clock, AlertTriangle, Receipt } from "lucide-react";
 import { automatedBillingApiService } from "@/services/automatedBillingApiService";
-import { useAppContext } from "@/contexts/AppContext";
+import { useAppContext } from "@/contexts/SafeAppContext";
 
 export const BillingManagement = () => {
   const { state } = useAppContext();

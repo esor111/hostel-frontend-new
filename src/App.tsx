@@ -4,9 +4,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AppProvider } from "@/contexts/AppContext";
+import { AppProvider } from "@/contexts/SafeAppContext";
 import { SafeTooltipProvider } from "@/components/providers/SafeTooltipProvider";
 import { KahaLogo } from "@/components/common/KahaLogo";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy load components for better initial load performance
 const Landing = lazy(() => import("./pages/Landing"));
@@ -23,6 +24,7 @@ const DashboardTest = lazy(() => import("./pages/DashboardTest"));
 const BillingDashboard = lazy(() => import("./pages/BillingDashboard"));
 const MonthlyBilling = lazy(() => import("./pages/MonthlyBilling"));
 
+const TestSafeContext = lazy(() => import("./pages/TestSafeContext"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Optimized QueryClient configuration
@@ -61,28 +63,25 @@ const LoadingFallback = ({ componentName }: { componentName?: string }) => (
 
 const App = () => {
   useEffect(() => {
-    // Clear any corrupted localStorage data first
+    console.log('🚀 Kaha Hostel Control Center starting...');
+    
+    // Clear any corrupted localStorage data
     try {
       localStorage.removeItem('clickPatterns');
-      console.log('Cleared corrupted localStorage data');
+      console.log('✅ Cleared corrupted localStorage data');
     } catch (error) {
       console.warn('Error clearing localStorage:', error);
     }
-
-    // Initialize mock data
-    import('@/utils/mockDataLoader.js').then(({ initializeMockData }) => {
-      initializeMockData();
-      console.log('App initialized with mock data');
-    });
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <SafeTooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AppProvider>
+          <SafeTooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 <Route
@@ -197,6 +196,14 @@ const App = () => {
                     </Suspense>
                   }
                 />
+                <Route
+                  path="/test-safe"
+                  element={
+                    <Suspense fallback={<LoadingFallback componentName="Safe Context Test" />}>
+                      <TestSafeContext />
+                    </Suspense>
+                  }
+                />
 
                 <Route
                   path="*"
@@ -212,6 +219,7 @@ const App = () => {
         </SafeTooltipProvider>
       </AppProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

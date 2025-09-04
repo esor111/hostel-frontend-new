@@ -13,6 +13,7 @@ import { useLedger } from "@/hooks/useLedger";
 import { checkoutApiService } from "@/services/checkoutApiService";
 import { useStudents } from "@/hooks/useStudents";
 import { Student as ApiStudent } from "@/types/api";
+import { CheckoutConfirmationDialog } from "./CheckoutConfirmationDialog";
 
 interface Student {
     id: string;
@@ -156,13 +157,16 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
         }
     };
 
-    const processCheckout = async () => {
+    const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+
+    const processCheckout = async (checkoutData?: any) => {
         try {
             const checkoutDate = new Date().toISOString().split('T')[0];
             const hasDues = totalDueAmount > 0;
 
-            if (hasDues && !allowCheckoutWithoutPayment) {
-                toast.error('Cannot checkout with outstanding dues. Please book payment first or enable "Allow Checkout Without Payment"');
+            if (hasDues && !allowCheckoutWithoutPayment && !checkoutData) {
+                // Show confirmation dialog instead of blocking
+                setShowConfirmationDialog(true);
                 return;
             }
 
@@ -184,10 +188,10 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
             // 2. Process checkout through REAL API
             const checkoutRequest = {
                 checkoutDate: checkoutDate,
-                clearRoom: true,
-                refundAmount: totalDueAmount < 0 ? Math.abs(totalDueAmount) : 0,
-                deductionAmount: 0,
-                notes: `Checkout processed with ${hasDues ? 'outstanding dues' : 'cleared dues'}. Partial month billing: NPR ${currentMonthBilling?.amount || 0}`,
+                clearRoom: checkoutData?.clearRoom ?? true,
+                refundAmount: checkoutData?.refundAmount ?? (totalDueAmount < 0 ? Math.abs(totalDueAmount) : 0),
+                deductionAmount: checkoutData?.deductionAmount ?? 0,
+                notes: checkoutData?.notes ?? `Checkout processed with ${hasDues ? 'outstanding dues' : 'cleared dues'}. Partial month billing: NPR ${currentMonthBilling?.amount || 0}`,
                 processedBy: "Admin"
             };
 
@@ -198,6 +202,7 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
             // 3. Complete checkout
             onCheckoutComplete(student.id);
             onClose();
+            setShowConfirmationDialog(false);
 
             // 4. Show success message
             if (hasDues) {
@@ -485,8 +490,8 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4 border-t">
                     <Button
-                        onClick={processCheckout}
-                        disabled={totalDueAmount > 0 && !allowCheckoutWithoutPayment}
+                        onClick={() => processCheckout()}
+                        disabled={false} // Always allow clicking to show confirmation
                         className="bg-[#1295D0] hover:bg-[#1295D0]/90 flex-1"
                     >
                         <LogOut className="h-4 w-4 mr-2" />
@@ -501,6 +506,26 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                     </Button>
                 </div>
             </div>
+
+            {/* Checkout Confirmation Dialog */}
+            <CheckoutConfirmationDialog
+                isOpen={showConfirmationDialog}
+                onClose={() => setShowConfirmationDialog(false)}
+                onConfirm={processCheckout}
+                student={{
+                    id: student.id,
+                    name: student.name,
+                    roomNumber: student.roomNumber,
+                    course: student.course,
+                    currentBalance: studentBalance?.currentBalance || 0,
+                    baseMonthlyFee: student.baseMonthlyFee,
+                    laundryFee: student.laundryFee,
+                    foodFee: student.foodFee
+                }}
+                totalDueAmount={totalDueAmount}
+                currentMonthBilling={currentMonthBilling}
+                loading={loading}
+            />
         </DialogContent>
     );
 };

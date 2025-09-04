@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/hooks/useLanguage";
-import { useAppContext } from "@/contexts/AppContext";
+import { useAppContext } from "@/contexts/SafeAppContext";
 import { useNavigation } from "@/hooks/useNavigation";
 import { useBookings } from "@/hooks/useBookings";
 import { KahaLogo } from "@/components/ui/KahaLogo";

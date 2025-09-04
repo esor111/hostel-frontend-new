@@ -91,19 +91,38 @@ export const PaymentRecording = () => {
   const needsReference = ["Bank Transfer", "Online", "UPI", "Mobile Wallet", "Cheque"].includes(paymentMode);
 
   const handlePaymentSubmit = async () => {
-    if (!selectedStudent || !paymentAmount || !paymentMode) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
-      return;
+    // Enhanced validation
+    const errors: string[] = [];
+    
+    if (!selectedStudent || !selectedStudent.trim()) {
+      errors.push("Please select a student");
+    }
+    
+    if (!paymentAmount || !paymentAmount.trim()) {
+      errors.push("Please enter payment amount");
+    } else {
+      const amount = parseFloat(paymentAmount);
+      if (isNaN(amount) || amount <= 0) {
+        errors.push("Payment amount must be a positive number");
+      }
+      if (amount > 1000000) {
+        errors.push("Payment amount seems too large. Please verify.");
+      }
+    }
+    
+    if (!paymentMode) {
+      errors.push("Please select payment method");
     }
 
-    if (needsReference && !referenceId) {
+    if (needsReference && (!referenceId || !referenceId.trim())) {
+      errors.push(`Please provide a reference ID for ${paymentMode} payments`);
+    }
+
+    // Show all validation errors at once
+    if (errors.length > 0) {
       toast({
-        title: "Reference Required",
-        description: `Please provide a reference ID for ${paymentMode} payments.`,
+        title: "Validation Errors",
+        description: errors.join(". "),
         variant: "destructive"
       });
       return;
@@ -112,24 +131,30 @@ export const PaymentRecording = () => {
     setSubmitting(true);
     
     try {
+      const amount = parseFloat(paymentAmount);
+      
       const paymentData: CreatePaymentDto = {
-        studentId: selectedStudent,
-        amount: parseFloat(paymentAmount),
+        studentId: selectedStudent.trim(),
+        amount: amount,
         paymentMethod: paymentMode,
-        reference: referenceId || undefined,
-        notes: notes || undefined,
+        reference: referenceId?.trim() || undefined,
+        notes: notes?.trim() || undefined,
         status: "Completed",
-        createdBy: "admin" // Use createdBy instead of processedBy
+        createdBy: "admin"
       };
 
-      await recordPayment(paymentData);
+      console.log('🔄 Recording payment:', paymentData);
+      
+      const recordedPayment = await recordPayment(paymentData);
+      
+      console.log('✅ Payment recorded successfully:', recordedPayment);
       
       // Refresh data after successful payment
       await loadPayments();
       
       toast({
-        title: "Payment Recorded",
-        description: `Payment of NPR ${Number(paymentAmount).toLocaleString()} recorded successfully. Data refreshed.`,
+        title: "Payment Recorded Successfully",
+        description: `Payment of NPR ${amount.toLocaleString()} recorded for ${studentsWithDues.find(s => s.id === selectedStudent)?.name || 'student'}. Ledger updated.`,
       });
 
       // Reset form and close modal
@@ -141,10 +166,26 @@ export const PaymentRecording = () => {
       setNotes("");
       
     } catch (error) {
-      console.error('Payment recording failed:', error);
+      console.error('❌ Payment recording failed:', error);
+      
+      // Enhanced error handling
+      let errorMessage = "Failed to record payment. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else if (error.message.includes('validation')) {
+          errorMessage = `Validation error: ${error.message}`;
+        } else if (error.message.includes('student')) {
+          errorMessage = "Student not found. Please refresh and try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Payment Failed",
-        description: error instanceof Error ? error.message : "Failed to record payment. Please try again.",
+        title: "Payment Recording Failed",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -180,7 +221,22 @@ export const PaymentRecording = () => {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {studentsError || paymentsError}
+            <div className="space-y-2">
+              <div className="font-medium">Error Loading Data:</div>
+              <div>{studentsError || paymentsError}</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  loadPayments();
+                  window.location.reload(); // Fallback for persistent errors
+                }}
+                className="mt-2"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry Loading
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}
@@ -312,11 +368,11 @@ export const PaymentRecording = () => {
               <div>
                 <Label htmlFor="student">Select Student *</Label>
                 <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                  <SelectTrigger>
+                  <SelectTrigger className={!selectedStudent ? 'border-red-300' : ''}>
                     <SelectValue placeholder="Choose student" />
                   </SelectTrigger>
                   <SelectContent>
-                    {studentsWithDues.map((student) => (
+                    {studentsWithDues.length > 0 ? studentsWithDues.map((student) => (
                       <SelectItem key={student.id} value={student.id}>
                         {student.name} - Room {student.room}
                         {student.outstandingDue > 0 && (
@@ -325,9 +381,16 @@ export const PaymentRecording = () => {
                           </span>
                         )}
                       </SelectItem>
-                    ))}
+                    )) : (
+                      <SelectItem value="" disabled>
+                        No students available
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+                {!selectedStudent && (
+                  <p className="text-xs text-red-500 mt-1">Please select a student</p>
+                )}
               </div>
 
               <div>
@@ -335,10 +398,22 @@ export const PaymentRecording = () => {
                 <Input
                   id="amount"
                   type="number"
+                  min="1"
+                  max="1000000"
+                  step="0.01"
                   placeholder="Enter amount"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
+                  className={!paymentAmount || parseFloat(paymentAmount) <= 0 ? 'border-red-300' : ''}
                 />
+                {(!paymentAmount || parseFloat(paymentAmount) <= 0) && (
+                  <p className="text-xs text-red-500 mt-1">Please enter a valid amount</p>
+                )}
+                {selectedStudent && studentsWithDues.find(s => s.id === selectedStudent)?.outstandingDue > 0 && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Outstanding due: NPR {studentsWithDues.find(s => s.id === selectedStudent)?.outstandingDue.toLocaleString()}
+                  </p>
+                )}
               </div>
 
               <div>

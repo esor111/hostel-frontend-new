@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useAppContext } from '@/contexts/AppContext';
+import { useAppContext } from '@/contexts/SafeAppContext';
 import { automatedBillingApiService } from '@/services/automatedBillingApiService';
 import { 
   Calendar, 

@@ -572,7 +572,7 @@ export const StudentManagement = () => {
   const [showChargeConfigDialog, setShowChargeConfigDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  
+
   // Edit form state
   const [editForm, setEditForm] = useState({
     name: '',
@@ -675,10 +675,10 @@ export const StudentManagement = () => {
       });
 
       toast.success('Student details updated successfully!');
-      
+
       setShowEditDialog(false);
       setSelectedStudent(null);
-      
+
     } catch (error) {
       console.error('Error updating student:', error);
       toast.error('Failed to update student details. Please try again.');
@@ -1026,7 +1026,7 @@ export const StudentManagement = () => {
                           <ChevronLeft className="h-4 w-4" />
                           Previous
                         </Button>
-                        
+
                         <div className="flex items-center gap-1">
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                             <Button
@@ -1034,11 +1034,10 @@ export const StudentManagement = () => {
                               variant={currentPage === page ? "default" : "outline"}
                               size="sm"
                               onClick={() => setCurrentPage(page)}
-                              className={`w-8 h-8 p-0 ${
-                                currentPage === page 
-                                  ? "bg-[#1295D0] hover:bg-[#1295D0]/90" 
+                              className={`w-8 h-8 p-0 ${currentPage === page
+                                  ? "bg-[#1295D0] hover:bg-[#1295D0]/90"
                                   : "hover:bg-gray-100"
-                              }`}
+                                }`}
                             >
                               {page}
                             </Button>
@@ -1263,7 +1262,7 @@ export const StudentManagement = () => {
                 Edit Student Details - {selectedStudent.name}
               </DialogTitle>
             </DialogHeader>
-            
+
             <div className="space-y-6">
               {/* Basic Information */}
               <Card>
@@ -1291,7 +1290,7 @@ export const StudentManagement = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="edit-email">Email Address *</Label>
                     <Input
@@ -1302,7 +1301,7 @@ export const StudentManagement = () => {
                       placeholder="Enter email address"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="edit-address">Address</Label>
                     <Textarea
@@ -1334,9 +1333,9 @@ export const StudentManagement = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit-status">Status</Label>
-                      <Select 
-                        value={editForm.status} 
-                        onValueChange={(value: 'Active' | 'Inactive' | 'Suspended' | 'Graduated') => 
+                      <Select
+                        value={editForm.status}
+                        onValueChange={(value: 'Active' | 'Inactive' | 'Suspended' | 'Graduated') =>
                           setEditForm(prev => ({ ...prev, status: value }))
                         }
                       >
@@ -1367,8 +1366,8 @@ export const StudentManagement = () => {
                       <Input
                         id="edit-guardian-name"
                         value={editForm.guardian.name}
-                        onChange={(e) => setEditForm(prev => ({ 
-                          ...prev, 
+                        onChange={(e) => setEditForm(prev => ({
+                          ...prev,
                           guardian: { ...prev.guardian, name: e.target.value }
                         }))}
                         placeholder="Enter guardian's name"
@@ -1379,8 +1378,8 @@ export const StudentManagement = () => {
                       <Input
                         id="edit-guardian-phone"
                         value={editForm.guardian.phone}
-                        onChange={(e) => setEditForm(prev => ({ 
-                          ...prev, 
+                        onChange={(e) => setEditForm(prev => ({
+                          ...prev,
                           guardian: { ...prev.guardian, phone: e.target.value }
                         }))}
                         placeholder="Enter guardian's phone"
@@ -1388,11 +1387,11 @@ export const StudentManagement = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit-guardian-relation">Relation</Label>
-                      <Select 
-                        value={editForm.guardian.relation} 
-                        onValueChange={(value) => 
-                          setEditForm(prev => ({ 
-                            ...prev, 
+                      <Select
+                        value={editForm.guardian.relation}
+                        onValueChange={(value) =>
+                          setEditForm(prev => ({
+                            ...prev,
                             guardian: { ...prev.guardian, relation: value }
                           }))
                         }

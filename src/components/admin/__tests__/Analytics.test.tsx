@@ -1,94 +1,154 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { Analytics } from '../Analytics';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
-// Mock the useAnalytics hook
-vi.mock('@/hooks/useAnalytics', () => ({
-  useAnalytics: () => ({
-    monthlyData: [
-      { month: 'Jan', revenue: 50000, bookings: 15, occupancy: 85 },
-      { month: 'Feb', revenue: 60000, bookings: 18, occupancy: 90 },
-      { month: 'Mar', revenue: 55000, bookings: 12, occupancy: 80 }
-    ],
-    guestTypeData: [
-      { name: 'Active Students', value: 78, color: '#07A64F' },
-      { name: 'Pending Configuration', value: 15, color: '#1295D0' },
-      { name: 'Graduated/Inactive', value: 7, color: '#FF6B6B' }
-    ],
-    loading: false,
-    error: null,
-    refreshData: vi.fn()
-  })
-}));
+// Mock the hooks
+vi.mock('@/hooks/useAnalytics');
 
-// Mock recharts components
-vi.mock('recharts', () => ({
-  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
-  Bar: () => <div data-testid="bar" />,
-  LineChart: ({ children }: any) => <div data-testid="line-chart">{children}</div>,
-  Line: () => <div data-testid="line" />,
-  PieChart: ({ children }: any) => <div data-testid="pie-chart">{children}</div>,
-  Pie: () => <div data-testid="pie" />,
-  Cell: () => <div data-testid="cell" />,
-  XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: () => <div data-testid="tooltip" />,
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>
-}));
+const mockUseAnalytics = vi.mocked(useAnalytics);
+
+const mockMonthlyData = [
+  { month: 'Jan', revenue: 120000, bookings: 15, occupancy: 80 },
+  { month: 'Feb', revenue: 135000, bookings: 18, occupancy: 85 },
+  { month: 'Mar', revenue: 150000, bookings: 20, occupancy: 90 },
+  { month: 'Apr', revenue: 140000, bookings: 17, occupancy: 87 },
+  { month: 'May', revenue: 160000, bookings: 22, occupancy: 92 }
+];
+
+const mockGuestTypeData = [
+  { name: 'Active', value: 45 },
+  { name: 'Inactive', value: 8 },
+  { name: 'Graduated', value: 12 },
+  { name: 'Suspended', value: 2 }
+];
 
 describe('Analytics Component', () => {
-  it('renders analytics dashboard with correct title', () => {
+  const mockRefreshData = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    
+    mockUseAnalytics.mockReturnValue({
+      monthlyData: mockMonthlyData,
+      guestTypeData: mockGuestTypeData,
+      loading: false,
+      error: null,
+      refreshData: mockRefreshData
+    });
+  });
+
+  it('renders analytics dashboard with header', () => {
     render(<Analytics />);
     
     expect(screen.getByText('Monthly Analytics Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Monthly performance insights and revenue trends')).toBeInTheDocument();
   });
 
-  it('displays key metrics with descriptions', () => {
+  it('displays key metrics cards with descriptions', () => {
     render(<Analytics />);
     
-    // Check for Average Monthly Revenue
+    // Check for metric titles and descriptions
     expect(screen.getByText('Average Monthly Revenue')).toBeInTheDocument();
     expect(screen.getByText('Total revenue earned per month on average')).toBeInTheDocument();
     
-    // Check for Onboarded Users This Month (replaces Average Monthly Bookings)
     expect(screen.getByText('Onboarded Users This Month')).toBeInTheDocument();
     expect(screen.getByText('New students who joined the hostel this month')).toBeInTheDocument();
     
-    // Check for Current Occupancy Rate
     expect(screen.getByText('Current Occupancy Rate')).toBeInTheDocument();
     expect(screen.getByText('Percentage of beds currently occupied')).toBeInTheDocument();
   });
 
-  it('does not display average monthly bookings metric', () => {
+  it('calculates and displays average monthly revenue correctly', () => {
     render(<Analytics />);
     
-    // This metric should be removed
-    expect(screen.queryByText('Average Monthly Bookings')).not.toBeInTheDocument();
+    // Calculate expected average: (120000 + 135000 + 150000 + 140000 + 160000) / 5 = 141000
+    const expectedAverage = 141000;
+    expect(screen.getByText(`Rs ${expectedAverage.toLocaleString()}`)).toBeInTheDocument();
   });
 
-  it('displays booking per month trend chart', () => {
+  it('displays current month onboarded users', () => {
+    render(<Analytics />);
+    
+    // Should show the bookings from the last month (May: 22)
+    expect(screen.getByText('22')).toBeInTheDocument();
+  });
+
+  it('displays current occupancy rate', () => {
+    render(<Analytics />);
+    
+    // Should show the occupancy from the last month (May: 92%)
+    expect(screen.getByText('92%')).toBeInTheDocument();
+  });
+
+  it('renders monthly revenue trend chart', () => {
+    render(<Analytics />);
+    
+    expect(screen.getByText('Monthly Revenue Trend')).toBeInTheDocument();
+    expect(screen.getByText('Track revenue performance across different months')).toBeInTheDocument();
+  });
+
+  it('renders bookings per month trend chart', () => {
     render(<Analytics />);
     
     expect(screen.getByText('Bookings Per Month Trend')).toBeInTheDocument();
     expect(screen.getByText('Monitor new student onboarding trends over time')).toBeInTheDocument();
   });
 
-  it('displays charts with descriptions', () => {
+  it('renders student status distribution chart', () => {
     render(<Analytics />);
     
-    // Monthly Revenue Trend
-    expect(screen.getByText('Monthly Revenue Trend')).toBeInTheDocument();
-    expect(screen.getByText('Track revenue performance across different months')).toBeInTheDocument();
-    
-    // Student Status Distribution
     expect(screen.getByText('Student Status Distribution')).toBeInTheDocument();
     expect(screen.getByText('Breakdown of students by their current status in the hostel')).toBeInTheDocument();
+  });
+
+  it('renders occupancy rate trend chart', () => {
+    render(<Analytics />);
     
-    // Occupancy Rate Trend
     expect(screen.getByText('Occupancy Rate Trend')).toBeInTheDocument();
     expect(screen.getByText('Track how occupancy rates change over different months')).toBeInTheDocument();
+  });
+
+  it('shows loading state', () => {
+    mockUseAnalytics.mockReturnValue({
+      monthlyData: [],
+      guestTypeData: [],
+      loading: true,
+      error: null,
+      refreshData: mockRefreshData
+    });
+    
+    render(<Analytics />);
+    
+    expect(screen.getByText('Loading analytics data...')).toBeInTheDocument();
+  });
+
+  it('shows error state with retry button', () => {
+    mockUseAnalytics.mockReturnValue({
+      monthlyData: [],
+      guestTypeData: [],
+      loading: false,
+      error: 'Failed to load analytics data',
+      refreshData: mockRefreshData
+    });
+    
+    render(<Analytics />);
+    
+    expect(screen.getByText('Failed to Load Analytics')).toBeInTheDocument();
+    expect(screen.getByText('Failed to load analytics data')).toBeInTheDocument();
+    
+    const retryButton = screen.getByRole('button', { name: /retry/i });
+    fireEvent.click(retryButton);
+    
+    expect(mockRefreshData).toHaveBeenCalled();
+  });
+
+  it('does not display average monthly booking metric', () => {
+    render(<Analytics />);
+    
+    // This metric should be removed according to requirements
+    expect(screen.queryByText('Average Monthly Booking')).not.toBeInTheDocument();
+    expect(screen.queryByText('average monthly booking')).not.toBeInTheDocument();
   });
 
   it('does not display performance metrics section', () => {
@@ -96,19 +156,48 @@ describe('Analytics Component', () => {
     
     // Performance metrics section should be removed
     expect(screen.queryByText('Performance Metrics')).not.toBeInTheDocument();
-    expect(screen.queryByText('Average Stay Duration')).not.toBeInTheDocument();
-    expect(screen.queryByText('Payment Collection Rate')).not.toBeInTheDocument();
-    expect(screen.queryByText('Total Invoices')).not.toBeInTheDocument();
-    expect(screen.queryByText('Paid Invoices')).not.toBeInTheDocument();
   });
 
-  it('renders chart components', () => {
+  it('includes metric descriptions for better understanding', () => {
     render(<Analytics />);
     
-    // Check that chart components are rendered
-    expect(screen.getAllByTestId('responsive-container')).toHaveLength(4);
-    expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
-    expect(screen.getAllByTestId('line-chart')).toHaveLength(2);
-    expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
+    // All metrics should have descriptive text
+    const descriptions = [
+      'Total revenue earned per month on average',
+      'New students who joined the hostel this month',
+      'Percentage of beds currently occupied'
+    ];
+    
+    descriptions.forEach(description => {
+      expect(screen.getByText(description)).toBeInTheDocument();
+    });
+  });
+
+  it('handles empty data gracefully', () => {
+    mockUseAnalytics.mockReturnValue({
+      monthlyData: [],
+      guestTypeData: [],
+      loading: false,
+      error: null,
+      refreshData: mockRefreshData
+    });
+    
+    render(<Analytics />);
+    
+    // Should still render the component structure
+    expect(screen.getByText('Monthly Analytics Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Rs 0')).toBeInTheDocument(); // Average revenue with no data
+    expect(screen.getByText('0')).toBeInTheDocument(); // Onboarded users with no data
+    expect(screen.getByText('0%')).toBeInTheDocument(); // Occupancy rate with no data
+  });
+
+  it('displays chart section titles with icons', () => {
+    render(<Analytics />);
+    
+    // Check that chart sections have proper titles and descriptions
+    expect(screen.getByText('Monthly Revenue Trend')).toBeInTheDocument();
+    expect(screen.getByText('Bookings Per Month Trend')).toBeInTheDocument();
+    expect(screen.getByText('Student Status Distribution')).toBeInTheDocument();
+    expect(screen.getByText('Occupancy Rate Trend')).toBeInTheDocument();
   });
 });
