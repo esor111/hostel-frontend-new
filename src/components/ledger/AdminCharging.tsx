@@ -20,7 +20,7 @@ import {
   Clock,
   RefreshCw
 } from 'lucide-react';
-import { DebugApiTest } from '../../debug-api-test';
+
 
 export const AdminCharging = () => {
   const { toast } = useToast();
@@ -66,10 +66,7 @@ export const AdminCharging = () => {
     }
   }, [students]);
 
-  // Debug: Log when todaySummary changes
-  useEffect(() => {
-    console.log('📊 Today\'s summary state changed:', todaySummary);
-  }, [todaySummary]);
+
 
   const loadOverdueStudents = async () => {
     try {
@@ -92,33 +89,14 @@ export const AdminCharging = () => {
   const loadTodaySummary = async () => {
     setSummaryLoading(true);
     try {
-      console.log('🔄 Loading today\'s summary...');
-      
-      // Try direct fetch first to debug
-      const directResponse = await fetch('http://localhost:3001/hostel/api/v1/admin-charges/today-summary');
-      const directData = await directResponse.json();
-      console.log('🧪 Direct fetch result:', directData);
-      
-      // Now try through service
       const response = await adminChargesApiService.getTodaySummary();
-      console.log('📊 Service response:', response);
       
-      // Use the service response
       if (response && typeof response === 'object') {
         setTodaySummary(response);
-        console.log('✅ Summary state updated:', response);
       } else {
-        console.warn('⚠️ Invalid response format:', response);
-        // Use direct data if service fails
-        if (directData?.data) {
-          setTodaySummary(directData.data);
-          console.log('✅ Using direct data:', directData.data);
-        } else {
-          throw new Error('Invalid response format');
-        }
+        throw new Error('Invalid response format');
       }
     } catch (error) {
-      console.error('❌ Error loading today\'s summary:', error);
       // Fallback to stats data
       const fallbackSummary = {
         totalCharges: stats?.totalCharges || 0,
@@ -126,7 +104,6 @@ export const AdminCharging = () => {
         studentsCharged: 0,
         pendingCharges: stats?.pendingCharges || 0
       };
-      console.log('🔄 Using fallback summary:', fallbackSummary);
       setTodaySummary(fallbackSummary);
     } finally {
       setSummaryLoading(false);
@@ -268,8 +245,7 @@ export const AdminCharging = () => {
 
   return (
     <div className="space-y-6">
-      {/* Debug Component */}
-      <DebugApiTest />
+
       
       {/* Header */}
       <div className="flex justify-between items-center">
@@ -295,25 +271,7 @@ export const AdminCharging = () => {
             <RefreshCw className={`h-4 w-4 mr-2 ${(chargesLoading || studentsLoading || summaryLoading) ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          {import.meta.env.DEV && (
-            <Button 
-              variant="outline" 
-              onClick={async () => {
-                console.log('🧪 Manual API test...');
-                try {
-                  const response = await fetch('http://localhost:3001/hostel/api/v1/admin-charges/today-summary');
-                  const data = await response.json();
-                  console.log('🧪 Manual test result:', data);
-                  alert(`API Response: ${JSON.stringify(data, null, 2)}`);
-                } catch (error) {
-                  console.error('🧪 Manual test error:', error);
-                  alert(`Error: ${error.message}`);
-                }
-              }}
-            >
-              🧪 Test API
-            </Button>
-          )}
+
           <Button 
             variant="outline" 
             onClick={() => setShowBulkCharge(!showBulkCharge)}
@@ -325,16 +283,6 @@ export const AdminCharging = () => {
       </div>
 
       {/* Today's Summary */}
-      {/* Debug: Show current state */}
-      <div className="bg-yellow-50 p-2 rounded text-xs mb-4">
-        <strong>Debug Info:</strong><br/>
-        summaryLoading = {summaryLoading.toString()}<br/>
-        todaySummary = {JSON.stringify(todaySummary)}<br/>
-        stats = {JSON.stringify(stats)}<br/>
-        todaySummary?.totalCharges = {JSON.stringify(todaySummary?.totalCharges)}<br/>
-        stats?.totalCharges = {JSON.stringify(stats?.totalCharges)}<br/>
-        Condition (todaySummary || stats) = {Boolean(todaySummary || stats).toString()}
-      </div>
       
       {summaryLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
