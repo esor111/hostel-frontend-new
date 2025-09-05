@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Info } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Info, RefreshCw } from "lucide-react";
 import { KahaLogo } from "@/components/common/KahaLogo";
+import { useRooms } from "@/hooks/useRooms";
 
 interface RoomElement {
   id: string;
@@ -39,11 +40,15 @@ interface RoomLayoutViewerProps {
     createdAt: string;
   };
   roomName: string;
+  roomId?: string;
+  onRefresh?: () => void;
 }
 
-export const RoomLayoutViewer = ({ layout, roomName }: RoomLayoutViewerProps) => {
+export const RoomLayoutViewer = ({ layout, roomName, roomId, onRefresh }: RoomLayoutViewerProps) => {
   const [scale, setScale] = useState(25);
   const [showInfo, setShowInfo] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { refreshData } = useRooms();
 
   const handleZoom = (delta: number) => {
     setScale(Math.max(10, Math.min(50, scale + delta)));
@@ -52,6 +57,36 @@ export const RoomLayoutViewer = ({ layout, roomName }: RoomLayoutViewerProps) =>
   const resetView = () => {
     setScale(25);
   };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Refresh room data
+      await refreshData();
+      
+      // Call parent refresh if provided
+      if (onRefresh) {
+        onRefresh();
+      }
+      
+      console.log('🔄 Room layout refreshed');
+    } catch (error) {
+      console.error('❌ Error refreshing room layout:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Auto-refresh every 30 seconds when component is visible
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        handleRefresh();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const getElementColor = (element: RoomElement) => {
     switch (element.type) {
@@ -159,6 +194,15 @@ export const RoomLayoutViewer = ({ layout, roomName }: RoomLayoutViewerProps) =>
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="text-green-600 hover:text-green-700"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
           <Button
             size="sm"
             variant="outline"

@@ -55,16 +55,61 @@ export class AnalyticsApiService {
   }
 
   /**
-   * Get student status distribution data
+   * Get student status distribution data from real API
    */
   async getGuestTypeData(): Promise<GuestTypeData[]> {
-    // Return hostel-relevant student status distribution
-    // This can be updated to call a real API endpoint when available
-    return [
-      { name: "Active Students", value: 78, color: "#07A64F" },
-      { name: "Pending Configuration", value: 15, color: "#1295D0" },
-      { name: "Graduated/Inactive", value: 7, color: "#FF6B6B" },
-    ];
+    try {
+      console.log('🔍 AnalyticsApiService.getGuestTypeData called');
+      
+      // Get real student data from API
+      const studentsResult = await this.apiService.get('/students');
+      const students = studentsResult?.data?.items || studentsResult?.items || [];
+      
+      console.log('🔍 Students data:', students.length, 'students found');
+      
+      // Count students by status
+      const statusCounts = {
+        'Active': 0,
+        'Pending Configuration': 0,
+        'Inactive': 0,
+        'Graduated': 0
+      };
+      
+      students.forEach((student: any) => {
+        const status = student.status || 'Inactive';
+        
+        // Map different status values to our categories
+        if (status === 'Active' || status === 'ACTIVE') {
+          statusCounts['Active']++;
+        } else if (status === 'Pending Configuration' || status === 'PENDING_CONFIGURATION' || status === 'Pending') {
+          statusCounts['Pending Configuration']++;
+        } else if (status === 'Graduated' || status === 'GRADUATED') {
+          statusCounts['Graduated']++;
+        } else {
+          statusCounts['Inactive']++;
+        }
+      });
+      
+      console.log('🔍 Status counts:', statusCounts);
+      
+      // Convert to chart data format
+      const chartData: GuestTypeData[] = [
+        { name: "Active Students", value: statusCounts['Active'], color: "#07A64F" },
+        { name: "Pending Configuration", value: statusCounts['Pending Configuration'], color: "#1295D0" },
+        { name: "Graduated/Inactive", value: statusCounts['Graduated'] + statusCounts['Inactive'], color: "#FF6B6B" },
+      ].filter(item => item.value > 0); // Only show categories with students
+      
+      console.log('🔍 Chart data:', chartData);
+      
+      return chartData;
+    } catch (error) {
+      console.error('❌ Error fetching student status data:', error);
+      
+      // Fallback to empty data instead of hardcoded values
+      return [
+        { name: "No Data Available", value: 1, color: "#9CA3AF" }
+      ];
+    }
   }
 
   /**

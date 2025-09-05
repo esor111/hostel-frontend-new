@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, DollarSign, Calendar, BarChart3, UserPlus } from "lucide-react";
@@ -12,6 +13,17 @@ export const Analytics = () => {
     error,
     refreshData
   } = useAnalytics();
+
+  // Auto-refresh analytics data every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refreshData();
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [refreshData]);
 
   if (loading) {
     return (
