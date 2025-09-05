@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppContext } from '@/contexts/SafeAppContext';
 import { notificationApiService } from '@/services/notificationApiService';
-import { studentsApiService } from '@/services/studentsApiService';
+import { enhancedStudentService } from '@/services/enhancedStudentService';
 import {
     Bell,
     Send,
@@ -32,6 +32,7 @@ const UserSelectionPanel = ({ students, selectedUsers, onSelectionChange }: User
     
     const filteredStudents = students.filter(student =>
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (student.assignedRoomNumber && student.assignedRoomNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (student.roomNumber && student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
@@ -95,7 +96,9 @@ const UserSelectionPanel = ({ students, selectedUsers, onSelectionChange }: User
                                                 {student.name}
                                             </p>
                                             <p className="text-xs text-gray-500">
-                                                {student.roomNumber ? `Room ${student.roomNumber}` : 'No room assigned'}
+                                                {(student.assignedRoomNumber || student.roomNumber) ? 
+                                                    `Room ${student.assignedRoomNumber || student.roomNumber}${(student.assignedBedNumber || student.bedNumber) ? ` - ${student.assignedBedNumber || student.bedNumber}` : ''}` : 
+                                                    'No room assigned'}
                                             </p>
                                         </div>
                                     </div>
@@ -176,8 +179,8 @@ const Notifications = () => {
     const fetchStudents = async () => {
         try {
             setIsLoading(true);
-            const response = await studentsApiService.getAllStudents();
-            setStudents(response.data || []);
+            const enhancedStudents = await enhancedStudentService.getEnhancedStudents();
+            setStudents(enhancedStudents || []);
         } catch (error) {
             console.error('Error fetching students:', error);
             toast.error('Failed to load students');

@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useStudents } from '../../hooks/useStudents';
 import { Student } from '../../types/api';
+import { EnhancedStudent } from '../../services/enhancedStudentService';
 
 interface Room {
   id: string;
@@ -36,7 +37,7 @@ interface ChargeItem {
 
 // Charge Configuration Form Component
 interface ChargeConfigurationFormProps {
-  student: Student;
+  student: EnhancedStudent;
   onComplete: (studentId: string, chargeData: any) => void;
   onCancel: () => void;
 }
@@ -568,7 +569,7 @@ export const StudentManagement = () => {
   } = useStudents();
 
   const [activeTab, setActiveTab] = useState("pending");
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<EnhancedStudent | null>(null);
   const [showChargeConfigDialog, setShowChargeConfigDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -652,7 +653,7 @@ export const StudentManagement = () => {
   }, [searchTerm]);
 
   // Configure charges
-  const configureCharges = (student: Student) => {
+  const configureCharges = (student: EnhancedStudent) => {
     setSelectedStudent(student);
     setShowChargeConfigDialog(true);
   };
@@ -837,8 +838,14 @@ export const StudentManagement = () => {
                             <div className="space-y-1">
                               <div className="flex items-center space-x-2">
                                 <Bed className="h-4 w-4 text-[#1295D0]" />
-                                <span className="font-medium">{student.roomNumber || 'Not assigned'}</span>
-                                {student.bedNumber && <span className="text-sm text-gray-500">({student.bedNumber})</span>}
+                                <span className="font-medium">
+                                  {student.assignedRoomNumber || student.roomNumber || 'Not assigned'}
+                                </span>
+                                {(student.assignedBedNumber || student.bedNumber) && (
+                                  <span className="text-sm text-gray-500">
+                                    ({student.assignedBedNumber || student.bedNumber})
+                                  </span>
+                                )}
                               </div>
                               <p className="text-sm text-gray-600">{student.course || 'Not specified'}</p>
                               <p className="text-xs text-gray-500">{student.institution || ''}</p>
@@ -1024,9 +1031,13 @@ export const StudentManagement = () => {
                             <div className="flex items-center gap-2">
                               <Bed className="h-4 w-4 text-[#1295D0]" />
                               <div>
-                                <p className="font-medium">{student.roomNumber || 'Not assigned'}</p>
-                                {student.bedNumber && (
-                                  <p className="text-sm text-gray-500">{student.bedNumber}</p>
+                                <p className="font-medium">
+                                  {student.assignedRoomNumber || student.roomNumber || 'Not assigned'}
+                                </p>
+                                {(student.assignedBedNumber || student.bedNumber) && (
+                                  <p className="text-sm text-gray-500">
+                                    {student.assignedBedNumber || student.bedNumber}
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -1254,9 +1265,13 @@ export const StudentManagement = () => {
                   <CardContent className="space-y-3">
                     <div>
                       <span className="text-sm text-gray-600">Room Number:</span>
-                      <p className="font-medium text-lg">{selectedStudent.roomNumber || 'Not assigned'}</p>
-                      {selectedStudent.bedNumber && (
-                        <p className="text-sm text-gray-500">Bed: {selectedStudent.bedNumber}</p>
+                      <p className="font-medium text-lg">
+                        {selectedStudent.assignedRoomNumber || selectedStudent.roomNumber || 'Not assigned'}
+                      </p>
+                      {(selectedStudent.assignedBedNumber || selectedStudent.bedNumber) && (
+                        <p className="text-sm text-gray-500">
+                          Bed: {selectedStudent.assignedBedNumber || selectedStudent.bedNumber}
+                        </p>
                       )}
                     </div>
                     <div>

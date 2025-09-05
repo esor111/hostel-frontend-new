@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { studentsApiService } from '../services/studentsApiService';
+import { enhancedStudentService, EnhancedStudent } from '../services/enhancedStudentService';
 import { handleApiError } from '../utils/errorHandler';
 import {
   Student,
@@ -10,7 +11,7 @@ import {
 } from '../types/api';
 
 interface UseStudentsState {
-  students: Student[];
+  students: EnhancedStudent[];
   loading: boolean;
   error: string | null;
   stats: StudentStats | null;
@@ -46,20 +47,36 @@ export const useStudents = (initialFilters: StudentFilters = {}): UseStudentsSta
     filters: initialFilters
   });
 
-  // Load students with current filters
+  // Load students with current filters - now using enhanced service
   const loadStudents = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
-      const students = await studentsApiService.getStudents({
-        ...state.filters,
-        search: state.searchTerm || undefined,
-        limit: 1000 // Ensure we get all students, not just a page
-      });
+      // Use enhanced student service to get complete room/bed information
+      const students = await enhancedStudentService.getEnhancedStudents();
+
+      // Apply search filter if needed
+      let filteredStudents = students;
+      if (state.searchTerm) {
+        const searchLower = state.searchTerm.toLowerCase();
+        filteredStudents = students.filter(student =>
+          student.name.toLowerCase().includes(searchLower) ||
+          student.email.toLowerCase().includes(searchLower) ||
+          (student.roomNumber && student.roomNumber.toLowerCase().includes(searchLower)) ||
+          student.phone.includes(state.searchTerm) ||
+          (student.course && student.course.toLowerCase().includes(searchLower)) ||
+          (student.institution && student.institution.toLowerCase().includes(searchLower))
+        );
+      }
+
+      // Apply status filter if needed
+      if (state.filters.status) {
+        filteredStudents = filteredStudents.filter(student => student.status === state.filters.status);
+      }
 
       setState(prev => ({
         ...prev,
-        students,
+        students: filteredStudents,
         loading: false
       }));
     } catch (err) {
