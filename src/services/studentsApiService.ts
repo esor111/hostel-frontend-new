@@ -297,6 +297,14 @@ export class StudentsApiService {
   }
 
   /**
+   * Get all students (alias for getStudents)
+   */
+  async getAllStudents(): Promise<{ data: Student[] }> {
+    const students = await this.getStudents();
+    return { data: students };
+  }
+
+  /**
    * Clear students cache to force fresh data fetch
    */
   clearCache(): void {

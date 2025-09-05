@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppContext } from '@/contexts/SafeAppContext';
+import { notificationApiService } from '@/services/notificationApiService';
+import { studentsApiService } from '@/services/studentsApiService';
 import {
     Bell,
     Send,
@@ -30,7 +32,7 @@ const UserSelectionPanel = ({ students, selectedUsers, onSelectionChange }: User
     
     const filteredStudents = students.filter(student =>
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())
+        (student.roomNumber && student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     const handleSelectAll = () => {
@@ -93,7 +95,7 @@ const UserSelectionPanel = ({ students, selectedUsers, onSelectionChange }: User
                                                 {student.name}
                                             </p>
                                             <p className="text-xs text-gray-500">
-                                                Room {student.roomNumber}
+                                                {student.roomNumber ? `Room ${student.roomNumber}` : 'No room assigned'}
                                             </p>
                                         </div>
                                     </div>
@@ -137,36 +139,11 @@ const RecentNotificationsList = ({ notifications, onRefresh }: RecentNotificatio
             <CardContent>
                 <ScrollArea className="h-64">
                     <div className="space-y-3">
-                        {notifications.map(notification => (
-                            <div key={notification.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                                <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
-                                    <Bell className="h-4 w-4 text-blue-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-gray-900 text-sm">{notification.title}</h4>
-                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
-                                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                                        <span className="flex items-center gap-1">
-                                            <Clock className="h-3 w-3" />
-                                            {new Date(notification.sentAt).toLocaleString()}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            <Users className="h-3 w-3" />
-                                            {notification.recipients.length} recipients
-                                        </span>
-                                    </div>
-                                </div>
-                                <Badge variant="default" className="bg-green-100 text-green-700 text-xs">
-                                    {notification.deliveryRate}% Delivered
-                                </Badge>
-                            </div>
-                        ))}
-                        {notifications.length === 0 && (
-                            <div className="text-center py-8 text-gray-500">
-                                <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                                <p className="text-sm">No recent notifications</p>
-                            </div>
-                        )}
+                        <div className="text-center py-8 text-gray-500">
+                            <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                            <p className="text-sm">No notifications sent yet</p>
+                            <p className="text-xs text-gray-400 mt-1">Notification history will appear here</p>
+                        </div>
                     </div>
                 </ScrollArea>
             </CardContent>
@@ -176,85 +153,60 @@ const RecentNotificationsList = ({ notifications, onRefresh }: RecentNotificatio
 
 const Notifications = () => {
     const { state } = useAppContext();
+    const [title, setTitle] = useState('');
     const [newMessage, setNewMessage] = useState('');
     const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
+    const [students, setStudents] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSending, setIsSending] = useState(false);
 
-    // Mock notification data
-    const [notifications, setNotifications] = useState([
-        {
-            id: 1,
-            type: 'payment_reminder',
-            title: 'Payment Reminder',
-            message: 'Your monthly payment is due tomorrow. Please make payment to avoid late fees.',
-            recipients: ['Ram Sharma', 'Hari Thapa'],
-            sentAt: '2024-01-15T10:30:00Z',
-            status: 'sent',
-            deliveryRate: 100
-        },
-        {
-            id: 2,
-            type: 'welcome',
-            title: 'Welcome to Kaha Hostel',
-            message: 'Welcome to Kaha Hostel! We hope you have a comfortable stay with us.',
-            recipients: ['Sita Poudel'],
-            sentAt: '2024-01-15T09:15:00Z',
-            status: 'sent',
-            deliveryRate: 100
-        },
-        {
-            id: 3,
-            type: 'maintenance',
-            title: 'Maintenance Notice',
-            message: 'Water supply will be interrupted tomorrow from 10 AM to 2 PM for maintenance.',
-            recipients: ['All Students'],
-            sentAt: '2024-01-14T16:45:00Z',
-            status: 'sent',
-            deliveryRate: 95
+    // Empty notification history as per requirement
+    const [notifications, setNotifications] = useState<any[]>([]);
+
+    // Calculate today's stats - empty as per requirement
+    const totalSentToday = 0;
+
+    // Use students from API
+    const activeStudents = students.filter(s => s.status === 'Active') || [];
+
+    useEffect(() => {
+        fetchStudents();
+    }, []);
+
+    const fetchStudents = async () => {
+        try {
+            setIsLoading(true);
+            const response = await studentsApiService.getAllStudents();
+            setStudents(response.data || []);
+        } catch (error) {
+            console.error('Error fetching students:', error);
+            toast.error('Failed to load students');
+        } finally {
+            setIsLoading(false);
         }
-    ]);
+    };
 
-    // Calculate today's stats
-    const today = new Date().toDateString();
-    const todayNotifications = notifications.filter(n =>
-        new Date(n.sentAt).toDateString() === today
-    );
-    const totalSentToday = todayNotifications.reduce((sum, n) =>
-        sum + (n.recipients.includes('All Students') ? state.students?.length || 0 : n.recipients.length), 0
-    );
-
-    // Filter out pass out students (only show active students)
-    const activeStudents = state.students?.filter(s => !s.isCheckedOut) || [];
-
-    const handleSendNotification = () => {
-        if (!newMessage.trim()) {
-            toast.error('Please enter a message');
+    const handleSendNotification = async () => {
+        if (!title.trim() || !newMessage.trim()) {
+            toast.error('Please fill in both title and message');
             return;
         }
 
-        if (selectedRecipients.length === 0) {
-            toast.error('Please select recipients');
-            return;
+        try {
+            setIsSending(true);
+            await notificationApiService.sendPushNotification(title, newMessage);
+            toast.success('Notification sent successfully!');
+            
+            // Reset form
+            setTitle('');
+            setNewMessage('');
+            setSelectedRecipients([]);
+        } catch (error) {
+            console.error('Error sending notification:', error);
+            toast.error('Failed to send notification');
+        } finally {
+            setIsSending(false);
         }
-
-        // Mock sending notification
-        const selectedStudents = activeStudents.filter(s => selectedRecipients.includes(s.id));
-        const newNotification = {
-            id: Date.now(),
-            type: 'custom',
-            title: 'Custom Notification',
-            message: newMessage,
-            recipients: selectedStudents.map(s => s.name),
-            sentAt: new Date().toISOString(),
-            status: 'sent',
-            deliveryRate: 100
-        };
-
-        // Add to notifications list
-        setNotifications(prev => [newNotification, ...prev]);
-        
-        toast.success(`Notification sent to ${selectedRecipients.length} recipients`);
-        setNewMessage('');
-        setSelectedRecipients([]);
     };
 
     const handleRefreshNotifications = () => {
@@ -329,6 +281,17 @@ const Notifications = () => {
                             <CardContent className="space-y-4">
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                        Title
+                                    </label>
+                                    <Input
+                                        placeholder="Enter notification title"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700 mb-2 block">
                                         Message
                                     </label>
                                     <Textarea
@@ -354,10 +317,19 @@ const Notifications = () => {
                                     <Button
                                         onClick={handleSendNotification}
                                         className="bg-gradient-to-r from-[#07A64F] to-[#1295D0] hover:from-[#06954A] hover:to-[#1185C0]"
-                                        disabled={!newMessage.trim() || selectedRecipients.length === 0}
+                                        disabled={isSending || !title.trim() || !newMessage.trim()}
                                     >
-                                        <Send className="h-4 w-4 mr-2" />
-                                        Send Notification
+                                        {isSending ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                Sending...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send className="h-4 w-4 mr-2" />
+                                                Send Notification
+                                            </>
+                                        )}
                                     </Button>
                                 </div>
                             </CardContent>
@@ -366,11 +338,22 @@ const Notifications = () => {
 
                     {/* Right Column - User Selection Panel */}
                     <div className="lg:col-span-1">
-                        <UserSelectionPanel
-                            students={activeStudents}
-                            selectedUsers={selectedRecipients}
-                            onSelectionChange={setSelectedRecipients}
-                        />
+                        {isLoading ? (
+                            <Card className="h-full">
+                                <CardContent className="flex items-center justify-center h-96">
+                                    <div className="text-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                        <p className="text-gray-500">Loading students...</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <UserSelectionPanel
+                                students={activeStudents}
+                                selectedUsers={selectedRecipients}
+                                onSelectionChange={setSelectedRecipients}
+                            />
+                        )}
                     </div>
                 </div>
 
