@@ -339,7 +339,7 @@ export const StudentLedgerView = () => {
                   {String(student.name)} - Room {String(student.roomNumber || 'N/A')}
                 </SelectItem>
               )) : (
-                <SelectItem value="" disabled>
+                <SelectItem value="no-students" disabled>
                   {searchTerm ? 'No students match your search' : 'No students available'}
                 </SelectItem>
               )}
