@@ -290,10 +290,19 @@ export class StudentsApiService {
     const result = await this.apiService.post(API_ENDPOINTS.STUDENTS.CONFIGURE(id), configData);
     
     // Handle backend response format
-    if (result.data) {
-      return result.data;
+    if (result && typeof result === 'object' && 'data' in result) {
+      return (result as any).data;
     }
     return result;
+  }
+
+  /**
+   * Clear students cache to force fresh data fetch
+   */
+  clearCache(): void {
+    // Since the underlying API service doesn't have caching yet,
+    // this method serves as a placeholder for future caching implementation
+    console.log('🧹 StudentsApiService cache cleared');
   }
 }
 

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, User, Phone, Mail, CreditCard, Home, Settings, Edit, Bed, Users, CheckCircle, Plus, Trash2, DollarSign, AlertTriangle, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, User, Phone, Mail, CreditCard, Home, Settings, Edit, Bed, Users, CheckCircle, Plus, Trash2, DollarSign, AlertTriangle, Calendar, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -594,10 +594,35 @@ export const StudentManagement = () => {
   // Pagination state for Student List & Management
   const [currentPage, setCurrentPage] = useState(1);
   const [studentsPerPage] = useState(6); // 6 students per page for better visibility
+  
+  // Pagination state for Pending Configuration
+  const [pendingCurrentPage, setPendingCurrentPage] = useState(1);
+  const [pendingStudentsPerPage] = useState(4); // 4 pending students per page
 
   // Separate students into pending configuration and configured
-  const pendingStudents = students?.filter(student => !student.isConfigured) || [];
+  // Primary filter: isConfigured = false (more reliable than status)
+  const pendingStudents = students?.filter(student => 
+    !student.isConfigured
+  ) || [];
   const configuredStudents = students?.filter(student => student.isConfigured) || [];
+
+  // Debug logging
+  console.log('🔍 StudentManagement Debug:', {
+    totalStudents: students?.length || 0,
+    pendingCount: pendingStudents.length,
+    configuredCount: configuredStudents.length,
+    unconfiguredStudents: students?.filter(s => !s.isConfigured).map(s => ({ 
+      id: s.id, 
+      name: s.name, 
+      status: s.status, 
+      isConfigured: s.isConfigured 
+    })) || [],
+    allStudentsStatus: students?.map(s => ({ 
+      name: s.name.substring(0, 20), 
+      status: s.status, 
+      isConfigured: s.isConfigured 
+    })) || []
+  });
 
   // Filter configured students based on search
   const filteredStudents = configuredStudents.filter(student =>
@@ -614,6 +639,12 @@ export const StudentManagement = () => {
   const startIndex = (currentPage - 1) * studentsPerPage;
   const endIndex = startIndex + studentsPerPage;
   const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
+  
+  // Pagination calculations for Pending Configuration
+  const pendingTotalPages = Math.ceil(pendingStudents.length / pendingStudentsPerPage);
+  const pendingStartIndex = (pendingCurrentPage - 1) * pendingStudentsPerPage;
+  const pendingEndIndex = pendingStartIndex + pendingStudentsPerPage;
+  const paginatedPendingStudents = pendingStudents.slice(pendingStartIndex, pendingEndIndex);
 
   // Reset to first page when search changes
   useEffect(() => {
@@ -752,19 +783,38 @@ export const StudentManagement = () => {
         <TabsContent value="pending" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-[#07A64F]" />
-                Students Pending Configuration
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-[#07A64F]" />
+                  Students Pending Configuration
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refreshData}
+                  className="flex items-center gap-2"
+                  disabled={loading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {pendingStudents.length > 0 ? (
                 <div className="space-y-4">
-                  <p className="text-gray-600 mb-4">
-                    These students need charge configuration to complete their enrollment.
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-gray-600">
+                      These students need charge configuration to complete their enrollment.
+                    </p>
+                    {pendingStudents.length > pendingStudentsPerPage && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        Showing {pendingStartIndex + 1}-{Math.min(pendingEndIndex, pendingStudents.length)} of {pendingStudents.length}
+                      </div>
+                    )}
+                  </div>
 
-                  {pendingStudents.map((student) => (
+                  {paginatedPendingStudents.map((student) => (
                     <Card key={student.id} className="border-orange-200 bg-orange-50/30">
                       <CardContent className="pt-6">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
@@ -816,14 +866,70 @@ export const StudentManagement = () => {
                       </CardContent>
                     </Card>
                   ))}
+                  
+                  {/* Pagination Controls for Pending Students */}
+                  {pendingTotalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-6">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPendingCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={pendingCurrentPage === 1}
+                        className="flex items-center gap-1"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Previous
+                      </Button>
+                      
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: pendingTotalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={page === pendingCurrentPage ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setPendingCurrentPage(page)}
+                            className={`w-10 h-10 ${
+                              page === pendingCurrentPage 
+                                ? "bg-[#07A64F] hover:bg-[#07A64F]/90" 
+                                : ""
+                            }`}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPendingCurrentPage(prev => Math.min(prev + 1, pendingTotalPages))}
+                        disabled={pendingCurrentPage === pendingTotalPages}
+                        className="flex items-center gap-1"
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-12">
                   <Settings className="h-16 w-16 mx-auto text-gray-300 mb-4" />
                   <h3 className="text-lg font-medium text-gray-600 mb-2">No Pending Configurations</h3>
-                  <p className="text-gray-500">
-                    All students have been configured. New students will appear here.
+                  <p className="text-gray-500 mb-4">
+                    All students have been configured. New students will appear here after booking confirmations.
                   </p>
+                  <div className="text-sm text-gray-400 space-y-2">
+                    <p>📊 Debug: {students?.length || 0} total students loaded</p>
+                    <p>📄 Filter: students with isConfigured = false</p>
+                    <p>🔍 Found: {students?.filter(s => !s.isConfigured).length || 0} unconfigured students</p>
+                    <p>🔄 Last refreshed: {new Date().toLocaleTimeString()}</p>
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-400">
+                      💡 Tip: If you just confirmed a multi-guest booking, click the Refresh button above to see new students.
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>

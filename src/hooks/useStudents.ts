@@ -53,7 +53,8 @@ export const useStudents = (initialFilters: StudentFilters = {}): UseStudentsSta
 
       const students = await studentsApiService.getStudents({
         ...state.filters,
-        search: state.searchTerm || undefined
+        search: state.searchTerm || undefined,
+        limit: 1000 // Ensure we get all students, not just a page
       });
 
       setState(prev => ({
@@ -214,6 +215,11 @@ export const useStudents = (initialFilters: StudentFilters = {}): UseStudentsSta
 
   // Refresh all data
   const refreshData = useCallback(async () => {
+    // Clear cache before refreshing to ensure fresh data
+    const { studentsApiService } = await import('../services/studentsApiService');
+    studentsApiService.clearCache();
+    console.log('🔄 Cleared students cache in refreshData');
+    
     await Promise.all([loadStudents(), loadStudentStats()]);
   }, [loadStudents, loadStudentStats]);
 

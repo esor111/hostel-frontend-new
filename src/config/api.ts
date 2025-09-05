@@ -56,6 +56,15 @@ export const API_ENDPOINTS = {
     UPDATE: '/booking-requests/:id',
     APPROVE: '/booking-requests/:id/approve',
     REJECT: '/booking-requests/:id/reject',
+    // Multi-Guest Booking Endpoints
+    MULTI_GUEST: {
+      LIST: '/booking-requests/multi-guest',
+      STATS: '/booking-requests/multi-guest/stats',
+      BY_ID: '/booking-requests/multi-guest/:id',
+      CREATE: '/booking-requests/multi-guest',
+      CONFIRM: '/booking-requests/multi-guest/:id/confirm',
+      CANCEL: '/booking-requests/multi-guest/:id/cancel',
+    },
   },
   ANALYTICS: {
     DASHBOARD: '/analytics/dashboard',
