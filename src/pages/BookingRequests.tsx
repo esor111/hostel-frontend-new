@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Search, Filter, Eye, CheckCircle, XCircle, Clock, Users, Calendar, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useBookings } from '@/hooks/useBookings';
-import { BookingStatus } from '@/types/api';
+import { useBookings, BookingFilters } from '@/hooks/useBookings';
+import { BookingStatus, BookingRequest, MultiGuestBooking } from '@/types/api';
 import { toast } from "sonner";
 import { BookingConfirmationDialog } from '@/components/dialogs/BookingConfirmationDialog';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +19,7 @@ import { roomsApiService } from '@/services/roomsApiService';
 const BookingRequests = () => {
   const {
     bookings,
+    multiGuestBookings,
     pendingBookings,
     bookingStats,
     loading,
@@ -26,19 +27,23 @@ const BookingRequests = () => {
     actionLoading,
     approveBooking,
     rejectBooking,
+    confirmMultiGuestBooking,
+    isMultiGuestBooking,
+    getBookingTypeLabel,
     refreshData
   } = useBookings();
   
   const navigate = useNavigate();
   
-  const [filteredBookings, setFilteredBookings] = useState([]);
+  const [filteredBookings, setFilteredBookings] = useState<(BookingRequest | MultiGuestBooking)[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [typeFilter, setTypeFilter] = useState('all'); // New filter for booking type
+  const [selectedBooking, setSelectedBooking] = useState<BookingRequest | MultiGuestBooking | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [bookingToApprove, setBookingToApprove] = useState(null);
+  const [bookingToApprove, setBookingToApprove] = useState<BookingRequest | MultiGuestBooking | null>(null);
   const [rooms, setRooms] = useState([]);
   
   // Pagination state
@@ -58,25 +63,43 @@ const BookingRequests = () => {
     loadRooms();
   }, []);
 
-  // Filter bookings based on search and status
+  // Filter bookings based on search, status, and type
   useEffect(() => {
     let filtered = bookings;
     
     if (searchTerm) {
-      filtered = filtered.filter(booking => 
-        booking.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.phone.includes(searchTerm)
-      );
+      filtered = filtered.filter(booking => {
+        const contactName = isMultiGuestBooking(booking) 
+          ? (booking as unknown as MultiGuestBooking).contactName 
+          : (booking as BookingRequest).name;
+        const contactEmail = isMultiGuestBooking(booking) 
+          ? (booking as unknown as MultiGuestBooking).contactEmail 
+          : (booking as BookingRequest).email;
+        const contactPhone = isMultiGuestBooking(booking) 
+          ? (booking as unknown as MultiGuestBooking).contactPhone 
+          : (booking as BookingRequest).phone;
+          
+        return contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               contactEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               contactPhone.includes(searchTerm);
+      });
     }
     
     if (statusFilter !== 'all') {
       filtered = filtered.filter(booking => booking.status === statusFilter);
     }
     
+    if (typeFilter !== 'all') {
+      if (typeFilter === 'single') {
+        filtered = filtered.filter(booking => !isMultiGuestBooking(booking));
+      } else if (typeFilter === 'multi') {
+        filtered = filtered.filter(booking => isMultiGuestBooking(booking));
+      }
+    }
+    
     setFilteredBookings(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [bookings, searchTerm, statusFilter]);
+  }, [bookings, searchTerm, statusFilter, typeFilter, isMultiGuestBooking]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
@@ -84,7 +107,7 @@ const BookingRequests = () => {
   const endIndex = startIndex + bookingsPerPage;
   const currentBookings = filteredBookings.slice(startIndex, endIndex);
 
-  const handleApproveClick = (booking) => {
+  const handleApproveClick = (booking: BookingRequest | MultiGuestBooking) => {
     setBookingToApprove(booking);
     setShowConfirmDialog(true);
   };
@@ -93,11 +116,22 @@ const BookingRequests = () => {
     if (!bookingToApprove) return;
     
     try {
-      const result = await approveBooking(bookingToApprove.id);
-      toast.success('Booking approved successfully! Student profile created and room assigned.', {
-        duration: 4000,
-      });
-      console.log('Booking approved:', result);
+      let result;
+      
+      // Check if it's a multi-guest booking and use appropriate method
+      if (isMultiGuestBooking(bookingToApprove)) {
+        result = await confirmMultiGuestBooking(bookingToApprove.id, 'admin');
+        toast.success('Multi-guest booking confirmed successfully! Student profiles created and beds assigned.', {
+          duration: 4000,
+        });
+      } else {
+        result = await approveBooking(bookingToApprove.id);
+        toast.success('Booking approved successfully! Student profile created and room assigned.', {
+          duration: 4000,
+        });
+      }
+      
+      console.log('Booking approved/confirmed:', result);
       
       // Close confirmation dialog
       setShowConfirmDialog(false);
@@ -106,7 +140,7 @@ const BookingRequests = () => {
       // Navigate to configuration page (ledger with student management section)
       navigate('/ledger?section=student-management');
     } catch (error) {
-      console.error('Error approving booking:', error);
+      console.error('Error approving/confirming booking:', error);
       toast.error('Failed to approve booking request');
     }
   };
@@ -293,6 +327,18 @@ const BookingRequests = () => {
                   <SelectItem value={BookingStatus.PENDING}>Pending</SelectItem>
                   <SelectItem value={BookingStatus.APPROVED}>Approved</SelectItem>
                   <SelectItem value={BookingStatus.REJECTED}>Rejected</SelectItem>
+                  <SelectItem value={BookingStatus.CONFIRMED}>Confirmed</SelectItem>
+                  <SelectItem value={BookingStatus.CANCELLED}>Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filter by Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="single">Single Guest</SelectItem>
+                  <SelectItem value="multi">Multi-Guest</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -316,8 +362,8 @@ const BookingRequests = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Student Details</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Contact</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Contact Details</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Type & Guests</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Check-in Date</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Room/Bed</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
@@ -333,6 +379,29 @@ const BookingRequests = () => {
                     </tr>
                   ) : (
                     currentBookings.map((booking) => {
+                      // Determine if it's a multi-guest booking
+                      const isMultiGuest = isMultiGuestBooking(booking);
+                      
+                      // Extract contact information based on booking type
+                      const contactName = isMultiGuest 
+                        ? (booking as MultiGuestBooking).contactName 
+                        : (booking as BookingRequest).name;
+                      const contactEmail = isMultiGuest 
+                        ? (booking as MultiGuestBooking).contactEmail 
+                        : (booking as BookingRequest).email;
+                      const contactPhone = isMultiGuest 
+                        ? (booking as MultiGuestBooking).contactPhone 
+                        : (booking as BookingRequest).phone;
+                      const address = isMultiGuest 
+                        ? (booking as MultiGuestBooking).address 
+                        : (booking as BookingRequest).address;
+                      const checkInDate = isMultiGuest 
+                        ? (booking as MultiGuestBooking).checkInDate 
+                        : (booking as BookingRequest).checkInDate;
+                      const preferredRoom = isMultiGuest 
+                        ? (booking as MultiGuestBooking).preferredRoom 
+                        : (booking as BookingRequest).preferredRoom;
+                      
                       // Find assigned room/bed information
                       const assignedRoom = booking.assignedRoom ? 
                         rooms.find(room => room.id === booking.assignedRoom || room.name === booking.assignedRoom) : null;
@@ -341,23 +410,36 @@ const BookingRequests = () => {
                         <tr key={booking.id} className="border-b hover:bg-gray-50">
                           <td className="py-3 px-4">
                             <div>
-                              <p className="font-medium">{booking.name}</p>
-                              <p className="text-sm text-gray-500">{booking.address}</p>
+                              <p className="font-medium">{contactName}</p>
+                              <p className="text-sm text-gray-500">{address}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Mail className="h-3 w-3 text-gray-400" />
+                                <span className="text-xs text-gray-600">{contactEmail}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-3 w-3 text-gray-400" />
+                                <span className="text-xs text-gray-600">{contactPhone}</span>
+                              </div>
                             </div>
                           </td>
                           <td className="py-3 px-4">
-                            <div>
-                              <p className="text-sm flex items-center">
-                                <Mail className="h-3 w-3 mr-1" />
-                                {booking.email}
-                              </p>
-                              <p className="text-sm flex items-center">
-                                <Phone className="h-3 w-3 mr-1" />
-                                {booking.phone}
-                              </p>
+                            <div className="space-y-1">
+                              <Badge 
+                                variant="outline" 
+                                className={isMultiGuest ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200"}
+                              >
+                                {getBookingTypeLabel(booking)}
+                              </Badge>
+                              {isMultiGuest && (
+                                <div className="text-xs text-gray-500">
+                                  {(booking as MultiGuestBooking).confirmedGuests || 0} / {(booking as MultiGuestBooking).totalGuests} confirmed
+                                </div>
+                              )}
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-sm">{new Date(booking.checkInDate).toLocaleDateString()}</td>
+                          <td className="py-3 px-4 text-sm">
+                            {checkInDate ? new Date(checkInDate).toLocaleDateString() : 'Not specified'}
+                          </td>
                           <td className="py-3 px-4">
                             {assignedRoom ? (
                               <div>
@@ -372,7 +454,7 @@ const BookingRequests = () => {
                               </div>
                             ) : (
                               <Badge variant="outline" className="text-gray-600">
-                                {booking.preferredRoom}
+                                {preferredRoom || 'Not specified'}
                               </Badge>
                             )}
                           </td>
@@ -397,15 +479,17 @@ const BookingRequests = () => {
                                   <Button
                                     size="sm"
                                     onClick={() => handleApproveClick(booking)}
-                                    disabled={actionLoading === `approve-${booking.id}`}
+                                    disabled={actionLoading === `approve-${booking.id}` || actionLoading === `confirm-${booking.id}`}
                                     className="bg-green-600 hover:bg-green-700 text-white text-xs disabled:opacity-50"
                                   >
-                                    {actionLoading === `approve-${booking.id}` ? (
+                                    {(actionLoading === `approve-${booking.id}` || actionLoading === `confirm-${booking.id}`) ? (
                                       <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
                                     ) : (
                                       <CheckCircle className="h-3 w-3 mr-1" />
                                     )}
-                                    {actionLoading === `approve-${booking.id}` ? 'Approving...' : 'Approve'}
+                                    {(actionLoading === `approve-${booking.id}` || actionLoading === `confirm-${booking.id}`) 
+                                      ? (isMultiGuest ? 'Confirming...' : 'Approving...') 
+                                      : (isMultiGuest ? 'Confirm' : 'Approve')}
                                   </Button>
                                   <Button
                                     size="sm"
@@ -414,11 +498,11 @@ const BookingRequests = () => {
                                       setSelectedBooking(booking);
                                       setShowRejectDialog(true);
                                     }}
-                                    disabled={actionLoading === `reject-${booking.id}`}
+                                    disabled={actionLoading === `reject-${booking.id}` || actionLoading === `cancel-${booking.id}`}
                                     className="border-red-600 text-red-600 hover:bg-red-50 text-xs disabled:opacity-50"
                                   >
                                     <XCircle className="h-3 w-3 mr-1" />
-                                    Reject
+                                    {isMultiGuest ? 'Cancel' : 'Reject'}
                                   </Button>
                                 </>
                               )}
@@ -480,16 +564,22 @@ const BookingRequests = () => {
 
         {/* View Booking Dialog */}
         <Dialog open={!!selectedBooking && !showRejectDialog && !showConfirmDialog} onOpenChange={() => setSelectedBooking(null)}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Booking Request Details</DialogTitle>
             </DialogHeader>
             {selectedBooking && (
               <div className="space-y-4">
+                {/* Booking Type */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">Name</Label>
-                    <p className="text-sm font-medium">{selectedBooking.name}</p>
+                    <Label className="text-sm font-medium text-gray-600">Booking Type</Label>
+                    <Badge 
+                      variant="outline" 
+                      className={isMultiGuestBooking(selectedBooking) ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200"}
+                    >
+                      {getBookingTypeLabel(selectedBooking)}
+                    </Badge>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Status</Label>
@@ -498,60 +588,144 @@ const BookingRequests = () => {
                     </Badge>
                   </div>
                 </div>
+                
+                {/* Contact Information */}
                 <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Contact Name</Label>
+                    <p className="text-sm font-medium">
+                      {isMultiGuestBooking(selectedBooking) 
+                        ? (selectedBooking as MultiGuestBooking).contactName 
+                        : (selectedBooking as BookingRequest).name}
+                    </p>
+                  </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Email</Label>
-                    <p className="text-sm">{selectedBooking.email}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Phone</Label>
-                    <p className="text-sm">{selectedBooking.phone}</p>
+                    <p className="text-sm">
+                      {isMultiGuestBooking(selectedBooking) 
+                        ? (selectedBooking as MultiGuestBooking).contactEmail 
+                        : (selectedBooking as BookingRequest).email}
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">Check-in Date</Label>
-                    <p className="text-sm">{new Date(selectedBooking.checkInDate).toLocaleDateString()}</p>
+                    <Label className="text-sm font-medium text-gray-600">Phone</Label>
+                    <p className="text-sm">
+                      {isMultiGuestBooking(selectedBooking) 
+                        ? (selectedBooking as MultiGuestBooking).contactPhone 
+                        : (selectedBooking as BookingRequest).phone}
+                    </p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">Preferred Room</Label>
-                    <Badge variant="outline">{selectedBooking.preferredRoom}</Badge>
+                    <Label className="text-sm font-medium text-gray-600">Check-in Date</Label>
+                    <p className="text-sm">
+                      {(() => {
+                        const date = isMultiGuestBooking(selectedBooking) 
+                          ? (selectedBooking as MultiGuestBooking).checkInDate 
+                          : (selectedBooking as BookingRequest).checkInDate;
+                        return date ? new Date(date).toLocaleDateString() : 'Not specified';
+                      })()}
+                    </p>
                   </div>
                 </div>
+                
+                {/* Address */}
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Address</Label>
-                  <p className="text-sm">{selectedBooking.address}</p>
+                  <p className="text-sm">
+                    {isMultiGuestBooking(selectedBooking) 
+                      ? (selectedBooking as MultiGuestBooking).address 
+                      : (selectedBooking as BookingRequest).address}
+                  </p>
                 </div>
-                {selectedBooking.guardianName && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-600">Guardian Name</Label>
-                      <p className="text-sm">{selectedBooking.guardianName}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-600">Guardian Phone</Label>
-                      <p className="text-sm">{selectedBooking.guardianPhone}</p>
-                    </div>
-                  </div>
-                )}
-                {selectedBooking.course && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-600">Course</Label>
-                      <p className="text-sm">{selectedBooking.course}</p>
-                    </div>
-                    {selectedBooking.institution && (
+                
+                {/* Preferred Room */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Preferred Room</Label>
+                  <Badge variant="outline">
+                    {isMultiGuestBooking(selectedBooking) 
+                      ? (selectedBooking as MultiGuestBooking).preferredRoom || 'Not specified'
+                      : (selectedBooking as BookingRequest).preferredRoom || 'Not specified'}
+                  </Badge>
+                </div>
+                
+                {/* Multi-guest specific information */}
+                {isMultiGuestBooking(selectedBooking) && (
+                  <div className="border-t pt-4">
+                    <Label className="text-sm font-medium text-gray-600">Guest Information</Label>
+                    <div className="grid grid-cols-2 gap-4 mt-2">
                       <div>
-                        <Label className="text-sm font-medium text-gray-600">Institution</Label>
-                        <p className="text-sm">{selectedBooking.institution}</p>
+                        <Label className="text-xs text-gray-500">Total Guests</Label>
+                        <p className="text-sm font-medium">{(selectedBooking as MultiGuestBooking).totalGuests}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">Confirmed Guests</Label>
+                        <p className="text-sm font-medium">{(selectedBooking as MultiGuestBooking).confirmedGuests || 0}</p>
+                      </div>
+                    </div>
+                    {(selectedBooking as MultiGuestBooking).guests && (selectedBooking as MultiGuestBooking).guests.length > 0 && (
+                      <div className="mt-3">
+                        <Label className="text-xs text-gray-500">Guest List</Label>
+                        <div className="max-h-32 overflow-y-auto space-y-1 mt-1">
+                          {(selectedBooking as MultiGuestBooking).guests.map((guest, index) => (
+                            <div key={guest.id || index} className="text-xs bg-gray-50 p-2 rounded">
+                              <span className="font-medium">{guest.guestName}</span>
+                              <span className="text-gray-500 ml-2">({guest.age} years, {guest.gender})</span>
+                              <Badge className="ml-2" variant={guest.status === 'Confirmed' ? 'default' : 'secondary'}>
+                                {guest.status}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
+                
+                {/* Guardian Information (for single guest bookings) */}
+                {!isMultiGuestBooking(selectedBooking) && (selectedBooking as BookingRequest).guardianName && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Guardian Name</Label>
+                      <p className="text-sm">{(selectedBooking as BookingRequest).guardianName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Guardian Phone</Label>
+                      <p className="text-sm">{(selectedBooking as BookingRequest).guardianPhone}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Course Information (for single guest bookings) */}
+                {!isMultiGuestBooking(selectedBooking) && (selectedBooking as BookingRequest).course && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Course</Label>
+                      <p className="text-sm">{(selectedBooking as BookingRequest).course}</p>
+                    </div>
+                    {(selectedBooking as BookingRequest).institution && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600">Institution</Label>
+                        <p className="text-sm">{(selectedBooking as BookingRequest).institution}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Rejection Reason */}
                 {selectedBooking.rejectionReason && (
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Rejection Reason</Label>
                     <p className="text-sm text-red-600">{selectedBooking.rejectionReason}</p>
+                  </div>
+                )}
+                
+                {/* Notes */}
+                {selectedBooking.notes && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Notes</Label>
+                    <p className="text-sm text-gray-700">{selectedBooking.notes}</p>
                   </div>
                 )}
               </div>

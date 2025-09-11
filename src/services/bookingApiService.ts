@@ -6,14 +6,20 @@ import {
   UpdateBookingRequest, 
   BookingStats,
   ApproveBookingResponse,
-  RejectBookingRequest
+  RejectBookingRequest,
+  MultiGuestBooking,
+  CreateMultiGuestBookingDto,
+  BookingGuest,
+  isMultiGuestBooking,
+  isSingleGuestBooking
 } from '../types/api';
 
 export class BookingApiService {
   private apiService = apiService;
 
   /**
-   * Get all booking requests (now served by unified MultiGuestBookingService)
+   * Get all booking requests (unified system - includes both single and multi-guest)
+   * Now returns MultiGuestBooking[] but maintains BookingRequest compatibility
    */
   async getAllBookings(): Promise<BookingRequest[]> {
     console.log('🔍 BookingApiService.getAllBookings called (unified system)');
@@ -25,14 +31,9 @@ export class BookingApiService {
     
     console.log('🔍 Raw API result (unified system):', result);
     
-    // Handle unified system response structure - maintains backward compatibility
-    if (result && result.data && result.data.items) {
-      return result.data.items;
-    }
-    
-    // Handle direct items response
-    if (result && result.items) {
-      return result.items;
+    // API service handles response extraction, result is the actual data
+    if (result && (result as any).items) {
+      return (result as any).items;
     }
     
     // Fallback for different response structures
@@ -56,11 +57,7 @@ export class BookingApiService {
     
     console.log('🔍 Raw API result (unified system):', result);
     
-    // Handle unified system response structure
-    if (result.data) {
-      return result.data;
-    }
-    
+    // API service handles response extraction, result is the actual data
     return result;
   }
 
@@ -77,12 +74,7 @@ export class BookingApiService {
     
     console.log('🔍 Raw API result (unified system):', result);
     
-    // Handle unified system response structure
-    if (result && result.data && Array.isArray(result.data)) {
-      return result.data;
-    }
-    
-    // Handle direct array response
+    // API service handles response extraction, result is the actual data
     if (Array.isArray(result)) {
       return result;
     }
@@ -103,33 +95,61 @@ export class BookingApiService {
     
     console.log('🔍 Raw API result:', result);
     
-    // Handle backend API response structure
-    if (result.data) {
-      return result.data;
-    }
-    
+    // API service handles response extraction, result is the actual data
     return result;
   }
 
   /**
-   * Create new booking request
+   * Create unified booking request (supports both single and multi-guest)
+   * Automatically creates multi-guest booking structure even for single guests
    */
-  async createBooking(bookingData: CreateBookingRequest): Promise<BookingRequest> {
+  async createBooking(bookingData: CreateBookingRequest | CreateMultiGuestBookingDto): Promise<BookingRequest> {
     console.log('🔍 BookingApiService.createBooking called with data:', bookingData);
     console.log('🔍 API endpoint:', API_ENDPOINTS.BOOKINGS.CREATE);
 
+    // The unified backend expects multi-guest format, so transform if needed
+    let unifiedBookingData: CreateMultiGuestBookingDto;
+    
+    // Check if it's already in multi-guest format
+    if ('data' in bookingData && 'contactPerson' in bookingData.data && 'guests' in bookingData.data) {
+      unifiedBookingData = bookingData as CreateMultiGuestBookingDto;
+    } else {
+      // Transform single guest booking to multi-guest format
+      const singleBooking = bookingData as CreateBookingRequest;
+      unifiedBookingData = {
+        data: {
+          contactPerson: {
+            name: singleBooking.name,
+            phone: singleBooking.phone,
+            email: singleBooking.email || ''
+          },
+          guests: [{
+            bedId: 'auto-assign', // Let backend handle bed assignment
+            guestName: singleBooking.name,
+            age: 18, // Default age, should be provided in actual usage
+            gender: 'Male' as const, // Default gender, should be provided in actual usage
+            idProofType: singleBooking.idProofType,
+            idProofNumber: singleBooking.idProofNumber,
+            emergencyContact: singleBooking.emergencyContact,
+            notes: singleBooking.notes
+          }],
+          checkInDate: singleBooking.checkInDate,
+          duration: singleBooking.duration,
+          source: singleBooking.source || 'Direct',
+          notes: singleBooking.notes,
+          emergencyContact: singleBooking.emergencyContact
+        }
+      };
+    }
+
     const result = await this.apiService.post<BookingRequest>(
       API_ENDPOINTS.BOOKINGS.CREATE,
-      bookingData
+      unifiedBookingData
     );
     
     console.log('🔍 Raw API result:', result);
     
-    // Handle backend API response structure
-    if (result.data) {
-      return result.data;
-    }
-    
+    // API service handles response extraction, result is the actual data
     return result;
   }
 
@@ -146,11 +166,7 @@ export class BookingApiService {
     
     console.log('🔍 Raw API result:', result);
     
-    // Handle backend API response structure
-    if (result.data) {
-      return result.data;
-    }
-    
+    // API service handles response extraction, result is the actual data
     return result;
   }
 
@@ -201,11 +217,7 @@ export class BookingApiService {
     
     console.log('🔍 Raw API result:', result);
     
-    // Handle backend API response structure
-    if (result.data) {
-      return result.data;
-    }
-    
+    // API service handles response extraction, result is the actual data
     return result;
   }
 
@@ -223,37 +235,35 @@ export class BookingApiService {
     console.log('🔍 Booking deleted successfully');
   }
 
-  // Multi-Guest Booking Methods
+  // UNIFIED MULTI-GUEST BOOKING METHODS
+  // These methods now work with the unified backend system
 
   /**
-   * Create multi-guest booking
+   * Create multi-guest booking (direct method for multi-guest bookings)
    */
-  async createMultiGuestBooking(bookingData: any): Promise<any> {
+  async createMultiGuestBooking(bookingData: CreateMultiGuestBookingDto): Promise<MultiGuestBooking> {
     console.log('🔍 BookingApiService.createMultiGuestBooking called with data:', bookingData);
-    console.log('🔍 API endpoint: /booking-requests/multi-guest');
+    console.log('🔍 Using unified endpoint:', API_ENDPOINTS.BOOKINGS.CREATE);
 
-    const result = await this.apiService.post<any>(
-      '/booking-requests/multi-guest',
+    const result = await this.apiService.post<MultiGuestBooking>(
+      API_ENDPOINTS.BOOKINGS.CREATE,
       bookingData
     );
     
     console.log('🔍 Raw API result:', result);
     
-    // Handle backend API response structure
-    if (result.data) {
-      return result.data;
-    }
-    
+    // API service handles response extraction, result is the actual data
     return result;
   }
 
   /**
-   * Get all multi-guest bookings
+   * Get all multi-guest bookings (unified endpoint)
    */
-  async getMultiGuestBookings(filters?: any): Promise<any[]> {
+  async getMultiGuestBookings(filters?: any): Promise<MultiGuestBooking[]> {
     console.log('🔍 BookingApiService.getMultiGuestBookings called with filters:', filters);
     
-    let endpoint = '/booking-requests/multi-guest';
+    // Use unified endpoint - all bookings are now multi-guest format
+    let endpoint = API_ENDPOINTS.BOOKINGS.LIST;
     if (filters) {
       const params = new URLSearchParams(filters).toString();
       endpoint += `?${params}`;
@@ -261,58 +271,60 @@ export class BookingApiService {
     
     console.log('🔍 API endpoint:', endpoint);
 
-    const result = await this.apiService.get<{ items: any[]; pagination: any }>(endpoint);
+    const result = await this.apiService.get<{ items: MultiGuestBooking[]; pagination: any }>(endpoint);
     
     console.log('🔍 Raw API result:', result);
     
-    // Handle backend API response structure
-    if (result && result.data && result.data.items) {
-      return result.data.items;
+    // API service handles response extraction, result is the actual data
+    if (result && (result as any).items) {
+      return (result as any).items;
     }
     
-    if (result && result.items) {
-      return result.items;
+    if (Array.isArray(result)) {
+      return result;
     }
     
     return [];
   }
 
   /**
-   * Get multi-guest booking by ID
+   * Get multi-guest booking by ID (unified endpoint)
    */
-  async getMultiGuestBookingById(id: string): Promise<any> {
+  async getMultiGuestBookingById(id: string): Promise<MultiGuestBooking> {
     console.log('🔍 BookingApiService.getMultiGuestBookingById called with ID:', id);
     
-    const endpoint = `/booking-requests/multi-guest/${id}`;
+    const endpoint = API_ENDPOINTS.BOOKINGS.BY_ID.replace(':id', id);
     console.log('🔍 API endpoint:', endpoint);
 
-    const result = await this.apiService.get<any>(endpoint);
+    const result = await this.apiService.get<MultiGuestBooking>(endpoint);
     
     console.log('🔍 Raw API result:', result);
     
-    // Handle backend API response structure
-    if (result.data) {
-      return result.data;
-    }
-    
+    // API service handles response extraction, result is the actual data
     return result;
   }
 
   /**
-   * Confirm multi-guest booking
+   * Confirm/approve multi-guest booking (unified endpoint)
    */
-  async confirmMultiGuestBooking(id: string, processedBy?: string): Promise<any> {
+  async confirmMultiGuestBooking(id: string, processedBy?: string): Promise<ApproveBookingResponse> {
     console.log('🔍 BookingApiService.confirmMultiGuestBooking called with ID:', id);
     
-    const endpoint = `/booking-requests/multi-guest/${id}/confirm`;
+    // Use unified approve endpoint
+    const endpoint = API_ENDPOINTS.BOOKINGS.APPROVE.replace(':id', id);
     console.log('🔍 API endpoint:', endpoint);
 
-    const result = await this.apiService.post<any>(endpoint, { processedBy });
+    // Include createStudent flag to ensure student profiles are created
+    const approvalData = {
+      createStudent: true,
+      processedBy: processedBy || 'admin'
+    };
+
+    const result = await this.apiService.post<ApproveBookingResponse>(endpoint, approvalData);
     
     console.log('🔍 Raw API result:', result);
     
     // Clear students cache after confirming multi-guest booking
-    // This ensures the frontend shows newly created students in pending configuration
     const { studentsApiService } = await import('./studentsApiService');
     studentsApiService.clearCache();
     console.log('🔄 Cleared students cache after multi-guest booking confirmation');
@@ -321,15 +333,18 @@ export class BookingApiService {
   }
 
   /**
-   * Cancel multi-guest booking
+   * Cancel/reject multi-guest booking (unified endpoint)
    */
-  async cancelMultiGuestBooking(id: string, reason: string, processedBy?: string): Promise<any> {
+  async cancelMultiGuestBooking(id: string, reason: string, processedBy?: string): Promise<BookingRequest> {
     console.log('🔍 BookingApiService.cancelMultiGuestBooking called with ID:', id, 'reason:', reason);
     
-    const endpoint = `/booking-requests/multi-guest/${id}/cancel`;
+    // Use unified reject endpoint
+    const endpoint = API_ENDPOINTS.BOOKINGS.REJECT.replace(':id', id);
     console.log('🔍 API endpoint:', endpoint);
 
-    const result = await this.apiService.post<any>(endpoint, { reason, processedBy });
+    const rejectData: RejectBookingRequest = { reason };
+
+    const result = await this.apiService.post<BookingRequest>(endpoint, rejectData);
     
     console.log('🔍 Raw API result:', result);
     
@@ -337,40 +352,92 @@ export class BookingApiService {
   }
 
   /**
-   * Get multi-guest booking statistics
+   * Get multi-guest booking statistics (unified endpoint)
    */
-  async getMultiGuestBookingStats(): Promise<any> {
+  async getMultiGuestBookingStats(): Promise<BookingStats> {
     console.log('🔍 BookingApiService.getMultiGuestBookingStats called');
-    console.log('🔍 API endpoint: /booking-requests/multi-guest/stats');
+    console.log('🔍 Using unified stats endpoint:', API_ENDPOINTS.BOOKINGS.STATS);
 
-    const result = await this.apiService.get<any>('/booking-requests/multi-guest/stats');
+    const result = await this.apiService.get<BookingStats>(API_ENDPOINTS.BOOKINGS.STATS);
     
     console.log('🔍 Raw API result:', result);
     
-    // Handle backend API response structure
-    if (result.data) {
-      return result.data;
-    }
-    
+    // API service handles response extraction, result is the actual data
     return result;
   }
+
+  // UTILITY METHODS FOR UNIFIED BOOKING SYSTEM
 
   /**
    * Check if booking is multi-guest type
    */
-  isMultiGuestBooking(booking: any): boolean {
-    return booking.totalGuests > 1 || booking.guests?.length > 1;
+  isMultiGuestBooking(booking: BookingRequest | MultiGuestBooking): boolean {
+    return isMultiGuestBooking(booking);
+  }
+
+  /**
+   * Check if booking is single-guest type
+   */
+  isSingleGuestBooking(booking: BookingRequest | MultiGuestBooking): boolean {
+    return isSingleGuestBooking(booking);
   }
 
   /**
    * Get booking type label
    */
-  getBookingTypeLabel(booking: any): string {
+  getBookingTypeLabel(booking: BookingRequest | MultiGuestBooking): string {
     if (this.isMultiGuestBooking(booking)) {
-      const guestCount = booking.totalGuests || booking.guests?.length || 0;
+      const guestCount = (booking as MultiGuestBooking).totalGuests || (booking as any).guests?.length || 0;
       return `Multi-Guest (${guestCount})`;
     }
     return 'Single Guest';
+  }
+
+  /**
+   * Get all guests from bookings (unified method)
+   */
+  async getAllGuests(): Promise<BookingGuest[]> {
+    try {
+      const bookings = await this.getMultiGuestBookings();
+      const allGuests: BookingGuest[] = [];
+      
+      bookings.forEach(booking => {
+        if (booking.guests && Array.isArray(booking.guests)) {
+          allGuests.push(...booking.guests);
+        }
+      });
+      
+      return allGuests;
+    } catch (error) {
+      console.error('Error fetching all guests:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get guest by ID (unified method)
+   */
+  async getGuestById(guestId: string): Promise<BookingGuest | null> {
+    try {
+      const allGuests = await this.getAllGuests();
+      return allGuests.find(guest => guest.id === guestId) || null;
+    } catch (error) {
+      console.error('Error fetching guest by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get active guests (confirmed status)
+   */
+  async getActiveGuests(): Promise<BookingGuest[]> {
+    try {
+      const allGuests = await this.getAllGuests();
+      return allGuests.filter(guest => guest.status === 'Confirmed');
+    } catch (error) {
+      console.error('Error fetching active guests:', error);
+      throw error;
+    }
   }
 }
 
