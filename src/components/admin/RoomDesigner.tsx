@@ -16,6 +16,7 @@ interface BunkLevel {
   assignedTo?: string;
   bedId: string;
   status?: 'available' | 'booked' | 'occupied' | 'selected';
+  color?: string; // Add color property for API bed visualization
 }
 
 interface RoomElement {
@@ -210,17 +211,28 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
       setSelectedElement(null);
       setSelectedElements([]);
     } else if (multiSelect) {
-      setSelectedElements(prev =>
-        prev.includes(id)
-          ? prev.filter(elId => elId !== id)
-          : [...prev, id]
-      );
-      // Update single selection to the last selected element
-      if (!selectedElements.includes(id)) {
-        setSelectedElement(id);
-        setLastSelectedElement(id);
-      }
+      // Multi-select mode
+      setSelectedElements(prev => {
+        if (prev.includes(id)) {
+          // Remove from selection
+          const newSelection = prev.filter(elId => elId !== id);
+          // Update single selection to the last remaining element
+          if (newSelection.length > 0) {
+            setSelectedElement(newSelection[newSelection.length - 1]);
+          } else {
+            setSelectedElement(null);
+          }
+          return newSelection;
+        } else {
+          // Add to selection
+          const newSelection = [...prev, id];
+          setSelectedElement(id);
+          setLastSelectedElement(id);
+          return newSelection;
+        }
+      });
     } else {
+      // Single select mode - only select this element
       setSelectedElement(id);
       setSelectedElements([id]);
       setLastSelectedElement(id);

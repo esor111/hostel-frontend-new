@@ -338,7 +338,17 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
                 id="baseFee"
                 type="number"
                 value={baseCharges.baseMonthlyFee}
-                onChange={(e) => handleBaseChargeChange('baseMonthlyFee', parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    handleBaseChargeChange('baseMonthlyFee', 0);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      handleBaseChargeChange('baseMonthlyFee', Math.max(0, numValue));
+                    }
+                  }
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -347,7 +357,17 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
                 id="laundryFee"
                 type="number"
                 value={baseCharges.laundryFee}
-                onChange={(e) => handleBaseChargeChange('laundryFee', parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    handleBaseChargeChange('laundryFee', 0);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      handleBaseChargeChange('laundryFee', Math.max(0, numValue));
+                    }
+                  }
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -356,7 +376,17 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
                 id="foodFee"
                 type="number"
                 value={baseCharges.foodFee}
-                onChange={(e) => handleBaseChargeChange('foodFee', parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    handleBaseChargeChange('foodFee', 0);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      handleBaseChargeChange('foodFee', Math.max(0, numValue));
+                    }
+                  }
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -365,7 +395,17 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
                 id="wifiFee"
                 type="number"
                 value={baseCharges.wifiFee}
-                onChange={(e) => handleBaseChargeChange('wifiFee', parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    handleBaseChargeChange('wifiFee', 0);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      handleBaseChargeChange('wifiFee', Math.max(0, numValue));
+                    }
+                  }
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -374,7 +414,17 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
                 id="maintenanceFee"
                 type="number"
                 value={baseCharges.maintenanceFee}
-                onChange={(e) => handleBaseChargeChange('maintenanceFee', parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    handleBaseChargeChange('maintenanceFee', 0);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      handleBaseChargeChange('maintenanceFee', Math.max(0, numValue));
+                    }
+                  }
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -383,7 +433,17 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
                 id="securityDeposit"
                 type="number"
                 value={baseCharges.securityDeposit}
-                onChange={(e) => handleBaseChargeChange('securityDeposit', parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    handleBaseChargeChange('securityDeposit', 0);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      handleBaseChargeChange('securityDeposit', Math.max(0, numValue));
+                    }
+                  }
+                }}
               />
             </div>
           </div>
@@ -433,7 +493,17 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
                   type="number"
                   placeholder="0"
                   value={charge.amount}
-                  onChange={(e) => handleAdditionalChargeChange(charge.id, 'amount', parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      handleAdditionalChargeChange(charge.id, 'amount', 0);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue)) {
+                        handleAdditionalChargeChange(charge.id, 'amount', Math.max(0, numValue));
+                      }
+                    }
+                  }}
                 />
               </div>
               <Button

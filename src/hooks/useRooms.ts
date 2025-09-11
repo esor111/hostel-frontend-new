@@ -63,6 +63,24 @@ export interface UpdateRoomData {
   layout?: any;
 }
 
+// Helper function to calculate bed count from layout
+const calculateBedCountFromLayout = (layout: any): number => {
+  if (!layout || !layout.elements) {
+    return 0;
+  }
+  
+  const bedElements = layout.elements.filter((element: any) => 
+    element.type === 'single-bed' || element.type === 'bunk-bed'
+  );
+  
+  return bedElements.reduce((count: number, element: any) => {
+    if (element.type === 'bunk-bed') {
+      return count + (element.properties?.bunkLevels || 2);
+    }
+    return count + 1;
+  }, 0);
+};
+
 export const useRooms = () => {
   // State management (following hostel-ladger-frontend pattern)
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -136,13 +154,36 @@ export const useRooms = () => {
           }
         }
         
+        // Calculate actual bed count from layout if available
+        let actualBedCount = parseInt(room.bedCount) || 0;
+        let actualAvailableBeds = parseInt(room.availableBeds) || 0;
+        
+        if (parsedLayout && parsedLayout.elements) {
+          // Count beds from layout elements
+          const bedElements = parsedLayout.elements.filter((element: any) => 
+            element.type === 'single-bed' || element.type === 'bunk-bed'
+          );
+          
+          // Calculate total beds considering bunk beds have multiple levels
+          actualBedCount = bedElements.reduce((count: number, element: any) => {
+            if (element.type === 'bunk-bed') {
+              return count + (element.properties?.bunkLevels || 2);
+            }
+            return count + 1;
+          }, 0);
+          
+          // Recalculate available beds based on actual bed count and occupancy
+          const occupancy = parseInt(room.occupancy) || 0;
+          actualAvailableBeds = Math.max(0, actualBedCount - occupancy);
+        }
+        
         return {
           ...room,
           monthlyRate: parseFloat(room.monthlyRate) || 0,
           dailyRate: parseFloat(room.dailyRate) || 0,
-          bedCount: parseInt(room.bedCount) || 0,
+          bedCount: actualBedCount, // Use calculated bed count from layout
           occupancy: parseInt(room.occupancy) || 0,
-          availableBeds: parseInt(room.availableBeds) || 0,
+          availableBeds: actualAvailableBeds, // Use calculated available beds
           layout: parsedLayout, // Properly parsed layout object
         };
       });
@@ -177,15 +218,43 @@ export const useRooms = () => {
       const availableData = await roomsApiService.getAvailableRooms();
       console.log('✅ Available rooms fetched:', availableData);
       
-      // Parse numeric fields
-      const parsedAvailable = availableData.map((room: any) => ({
-        ...room,
-        monthlyRate: parseFloat(room.monthlyRate) || 0,
-        dailyRate: parseFloat(room.dailyRate) || 0,
-        bedCount: parseInt(room.bedCount) || 0,
-        occupancy: parseInt(room.occupancy) || 0,
-        availableBeds: parseInt(room.availableBeds) || 0,
-      }));
+      // Parse numeric fields and calculate bed count from layout
+      const parsedAvailable = availableData.map((room: any) => {
+        let actualBedCount = parseInt(room.bedCount) || 0;
+        let actualAvailableBeds = parseInt(room.availableBeds) || 0;
+        
+        // Parse layout and calculate actual bed count
+        if (room.layout) {
+          let parsedLayout = null;
+          try {
+            if (typeof room.layout === 'string') {
+              parsedLayout = JSON.parse(room.layout);
+            } else {
+              parsedLayout = room.layout.layoutData || room.layout;
+            }
+            
+            if (parsedLayout) {
+              const layoutBedCount = calculateBedCountFromLayout(parsedLayout);
+              if (layoutBedCount > 0) {
+                actualBedCount = layoutBedCount;
+                const occupancy = parseInt(room.occupancy) || 0;
+                actualAvailableBeds = Math.max(0, actualBedCount - occupancy);
+              }
+            }
+          } catch (error) {
+            console.warn(`Failed to parse layout for available room ${room.id}:`, error);
+          }
+        }
+        
+        return {
+          ...room,
+          monthlyRate: parseFloat(room.monthlyRate) || 0,
+          dailyRate: parseFloat(room.dailyRate) || 0,
+          bedCount: actualBedCount,
+          occupancy: parseInt(room.occupancy) || 0,
+          availableBeds: actualAvailableBeds,
+        };
+      });
       
       setAvailableRooms(parsedAvailable);
     } catch (error: any) {

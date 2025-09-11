@@ -145,6 +145,7 @@ interface BunkLevel {
   assignedTo?: string;
   bedId: string;
   status?: 'available' | 'booked' | 'occupied' | 'selected';
+  color?: string; // Add color property for API bed visualization
 }
 
 interface RoomElement {
@@ -665,6 +666,12 @@ export const RoomCanvas = ({
         return;
       }
 
+      // Clear previous selections if not multi-selecting
+      if (!isMultiSelect) {
+        // Single selection - clear all other selections first
+        onElementSelect('', false); // Clear selections
+      }
+      
       onElementSelect(clickedElement.id, isMultiSelect);
 
       // Start 🧈 ULTRA-SMOOTH BUTTER DRAGGING 🧈

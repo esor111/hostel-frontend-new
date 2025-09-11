@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Loader2, Plus, Trash2, Users, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { useUnifiedBookings } from '../hooks/useUnifiedBookings';
+import { roomsApiService } from '../services/roomsApiService';
 
 interface Guest {
   id: string;
@@ -74,11 +75,53 @@ export const ParentBookingForm: React.FC<ParentBookingFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [loadingBeds, setLoadingBeds] = useState(false);
 
-  // Available beds (mock data - in real app, fetch from API)
-  const [availableBeds] = useState([
-    'bed1', 'bed2', 'bed3', 'bed4', 'bed5', 'bed6', 'bed7', 'bed8'
-  ]);
+  // Available beds (fetch from API)
+  const [availableBeds, setAvailableBeds] = useState<Array<{ id: string; label: string; roomName: string; rate: number }>>([]);
+
+  // Fetch available beds on component mount
+  useEffect(() => {
+    const fetchAvailableBeds = async () => {
+      setLoadingBeds(true);
+      try {
+        console.log('🔍 Fetching available beds from API...');
+        const rooms = await roomsApiService.getRooms();
+        
+        const beds: Array<{ id: string; label: string; roomName: string; rate: number }> = [];
+        
+        rooms.forEach(room => {
+          if (room.beds && room.beds.length > 0) {
+            // Get available beds from each room
+            const availableRoomBeds = room.beds.filter(bed => 
+              bed.status === 'Available' || bed.status === 'AVAILABLE'
+            );
+            
+            availableRoomBeds.forEach(bed => {
+              beds.push({
+                id: bed.bedIdentifier || bed.id,
+                label: `${bed.bedIdentifier || bed.bedNumber} (${room.name})`,
+                roomName: room.name,
+                rate: bed.monthlyRate || room.monthlyRate || 0
+              });
+            });
+          }
+        });
+        
+        console.log(`✅ Found ${beds.length} available beds`);
+        setAvailableBeds(beds);
+      } catch (error) {
+        console.error('❌ Error fetching available beds:', error);
+        setError('Failed to load available beds. Please try again.');
+        // Fallback to empty array if API fails
+        setAvailableBeds([]);
+      } finally {
+        setLoadingBeds(false);
+      }
+    };
+
+    fetchAvailableBeds();
+  }, []);
 
   // Add new guest
   const addGuest = () => {
@@ -144,7 +187,12 @@ export const ParentBookingForm: React.FC<ParentBookingFormProps> = ({
     const bedIds = guests.map(guest => guest.bedId).filter(Boolean);
     const duplicateBeds = bedIds.filter((bedId, index) => bedIds.indexOf(bedId) !== index);
     if (duplicateBeds.length > 0) {
-      errors.duplicateBeds = `Duplicate bed assignments: ${duplicateBeds.join(', ')}`;
+      // Get bed labels for better error message
+      const duplicateLabels = duplicateBeds.map(bedId => {
+        const bed = availableBeds.find(b => b.id === bedId);
+        return bed ? bed.label : bedId;
+      });
+      errors.duplicateBeds = `Duplicate bed assignments: ${duplicateLabels.join(', ')}`;
     }
 
     setValidationErrors(errors);
@@ -366,25 +414,51 @@ export const ParentBookingForm: React.FC<ParentBookingFormProps> = ({
                       
                       <div>
                         <Label>Bed Assignment *</Label>
-                        <Select
-                          value={guest.bedId}
-                          onValueChange={(value) => updateGuest(guest.id, 'bedId', value)}
-                        >
-                          <SelectTrigger className={validationErrors[`guest${index}BedId`] ? 'border-red-500' : ''}>
-                            <SelectValue placeholder="Select bed" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableBeds.map(bedId => (
-                              <SelectItem 
-                                key={bedId} 
-                                value={bedId}
-                                disabled={guests.some(g => g.bedId === bedId && g.id !== guest.id)}
-                              >
-                                {bedId} {guests.some(g => g.bedId === bedId && g.id !== guest.id) ? '(Assigned)' : ''}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {loadingBeds ? (
+                          <div className="flex items-center gap-2 p-2 border rounded">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm text-gray-600">Loading available beds...</span>
+                          </div>
+                        ) : (
+                          <Select
+                            value={guest.bedId}
+                            onValueChange={(value) => updateGuest(guest.id, 'bedId', value)}
+                          >
+                            <SelectTrigger className={validationErrors[`guest${index}BedId`] ? 'border-red-500' : ''}>
+                              <SelectValue placeholder={availableBeds.length > 0 ? "Select bed" : "No beds available"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableBeds.length === 0 ? (
+                                <SelectItem value="no-beds" disabled>
+                                  No available beds found
+                                </SelectItem>
+                              ) : (
+                                availableBeds.map(bed => {
+                                  const isAssigned = guests.some(g => g.bedId === bed.id && g.id !== guest.id);
+                                  return (
+                                    <SelectItem 
+                                      key={bed.id} 
+                                      value={bed.id}
+                                      disabled={isAssigned}
+                                    >
+                                      <div className="flex flex-col">
+                                        <span>{bed.label}</span>
+                                        {bed.rate > 0 && (
+                                          <span className="text-xs text-gray-500">
+                                            NPR {bed.rate.toLocaleString()}/month
+                                          </span>
+                                        )}
+                                        {isAssigned && (
+                                          <span className="text-xs text-red-500">(Already assigned)</span>
+                                        )}
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })
+                              )}
+                            </SelectContent>
+                          </Select>
+                        )}
                         {validationErrors[`guest${index}BedId`] && (
                           <p className="text-sm text-red-500 mt-1">{validationErrors[`guest${index}BedId`]}</p>
                         )}

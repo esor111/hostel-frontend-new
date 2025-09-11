@@ -12,9 +12,11 @@ import { toast } from "sonner";
 import { RoomDesigner } from "./RoomDesigner";
 import { RoomLayoutViewer } from "./RoomLayoutViewer";
 import { useRooms } from "@/hooks/useRooms";
+import { useNavigate } from "react-router-dom";
 
 export const RoomConfiguration = () => {
   const { translations } = useLanguage();
+  const navigate = useNavigate();
 
   // Use the new useRooms hook for API integration (following hostel-ladger-frontend pattern)
   const {
@@ -70,13 +72,15 @@ export const RoomConfiguration = () => {
     }
 
     // Validate capacity (bedCount)
-    if (!newRoom.bedCount || newRoom.bedCount < 1 || newRoom.bedCount > 10) {
+    const bedCountNum = Number(newRoom.bedCount);
+    if (!bedCountNum || bedCountNum < 1 || bedCountNum > 10) {
       toast.error("Bed count must be between 1 and 10!");
       return;
     }
 
     // Validate rent (baseRate)
-    if (newRoom.baseRate < 0) {
+    const baseRateNum = Number(newRoom.baseRate);
+    if (baseRateNum < 0) {
       toast.error("Base rate cannot be negative!");
       return;
     }
@@ -86,13 +90,13 @@ export const RoomConfiguration = () => {
         name: newRoom.name,
         roomNumber: newRoom.roomNumber,
         type: newRoom.type,
-        capacity: Number(newRoom.bedCount),
-        rent: Number(newRoom.baseRate),
+        capacity: bedCountNum,
+        rent: baseRateNum,
         gender: newRoom.gender,
         status: "ACTIVE",
         amenities: newRoom.amenities,
         isActive: true,
-        description: `${newRoom.type} room with ${newRoom.bedCount} beds`
+        description: `${newRoom.type} room with ${bedCountNum} beds`
       };
 
       const createdRoom = await createRoom(roomData);
@@ -130,6 +134,9 @@ export const RoomConfiguration = () => {
     setRoomCreationStep('basic');
     setPendingRoomId(null);
     toast.success("Room creation completed!");
+    
+    // Navigate to /rooms after successful creation
+    navigate('/rooms');
   };
 
   const skipLayoutDesign = () => {
@@ -155,13 +162,15 @@ export const RoomConfiguration = () => {
     }
 
     // Validate capacity (bedCount)
-    if (!newRoom.bedCount || newRoom.bedCount < 1 || newRoom.bedCount > 10) {
+    const bedCountNum = Number(newRoom.bedCount);
+    if (!bedCountNum || bedCountNum < 1 || bedCountNum > 10) {
       toast.error("Bed count must be between 1 and 10!");
       return;
     }
 
     // Validate rent (baseRate)
-    if (newRoom.baseRate < 0) {
+    const baseRateNum = Number(newRoom.baseRate);
+    if (baseRateNum < 0) {
       toast.error("Base rate cannot be negative!");
       return;
     }
@@ -171,13 +180,13 @@ export const RoomConfiguration = () => {
         name: newRoom.name,
         roomNumber: newRoom.roomNumber,
         type: newRoom.type,
-        capacity: Number(newRoom.bedCount),
-        rent: Number(newRoom.baseRate),
+        capacity: bedCountNum,
+        rent: baseRateNum,
         gender: newRoom.gender,
         status: "ACTIVE",
         amenities: newRoom.amenities,
         isActive: true,
-        description: `${newRoom.type} room with ${newRoom.bedCount} beds`
+        description: `${newRoom.type} room with ${bedCountNum} beds`
       };
 
       await updateRoom(editingRoom.id, roomData);
@@ -272,14 +281,20 @@ export const RoomConfiguration = () => {
 
         await updateRoom(roomId, layoutData);
         
-        // Handle different scenarios
+        // Handle different scenarios with proper navigation
         if (roomCreationStep === 'layout' && pendingRoomId) {
           // Complete room creation workflow
           completeRoomCreation();
         } else {
-          // Regular layout update
+          // Regular layout update - close designer and redirect
           setShowRoomDesigner(false);
           setSelectedRoomForDesign(null);
+          
+          // Show success message
+          toast.success('Room layout saved successfully!', {
+            description: 'Your room layout has been saved and you can now view it in the room listing.',
+            duration: 3000,
+          });
         }
 
       } catch (error) {
@@ -300,6 +315,12 @@ export const RoomConfiguration = () => {
       // Regular close for existing room layout editing
       setShowRoomDesigner(false);
       setSelectedRoomForDesign(null);
+      
+      // Show helpful message about how to access the layout later
+      toast.info('Layout designer closed', {
+        description: 'You can reopen the layout designer anytime by clicking the "Layout" button on any room.',
+        duration: 4000,
+      });
     }
   };
 
@@ -452,7 +473,14 @@ export const RoomConfiguration = () => {
                 <Input
                   type="number"
                   value={newRoom.bedCount}
-                  onChange={(e) => setNewRoom({ ...newRoom, bedCount: parseInt(e.target.value) || 1 })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string during editing, parse only when not empty
+                    setNewRoom({ 
+                      ...newRoom, 
+                      bedCount: value === '' ? '' : Math.max(1, parseInt(value) || 1)
+                    });
+                  }}
                   min="1"
                   max="10"
                 />
@@ -475,7 +503,14 @@ export const RoomConfiguration = () => {
                 <Input
                   type="number"
                   value={newRoom.baseRate}
-                  onChange={(e) => setNewRoom({ ...newRoom, baseRate: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string during editing, parse only when not empty
+                    setNewRoom({ 
+                      ...newRoom, 
+                      baseRate: value === '' ? '' : Math.max(0, parseFloat(value) || 0)
+                    });
+                  }}
                   min="0"
                   placeholder="e.g., 8000"
                 />

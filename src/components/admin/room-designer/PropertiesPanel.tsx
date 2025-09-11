@@ -299,7 +299,17 @@ export const PropertiesPanel = ({
               <Input
                 type="number"
                 value={selectedElement.x.toFixed(1)}
-                onChange={(e) => onUpdateElement(selectedElement.id, { x: Number(e.target.value) })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    onUpdateElement(selectedElement.id, { x: 0 });
+                  } else {
+                    const numValue = Number(value);
+                    if (!isNaN(numValue)) {
+                      onUpdateElement(selectedElement.id, { x: Math.max(0, numValue) });
+                    }
+                  }
+                }}
                 step="0.1"
                 min="0"
                 className="text-sm"
@@ -311,7 +321,17 @@ export const PropertiesPanel = ({
               <Input
                 type="number"
                 value={selectedElement.y.toFixed(1)}
-                onChange={(e) => onUpdateElement(selectedElement.id, { y: Number(e.target.value) })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    onUpdateElement(selectedElement.id, { y: 0 });
+                  } else {
+                    const numValue = Number(value);
+                    if (!isNaN(numValue)) {
+                      onUpdateElement(selectedElement.id, { y: Math.max(0, numValue) });
+                    }
+                  }
+                }}
                 step="0.1"
                 min="0"
                 className="text-sm"
@@ -323,7 +343,17 @@ export const PropertiesPanel = ({
               <Input
                 type="number"
                 value={selectedElement.width.toFixed(1)}
-                onChange={(e) => onUpdateElement(selectedElement.id, { width: Number(e.target.value) })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    onUpdateElement(selectedElement.id, { width: 0.1 });
+                  } else {
+                    const numValue = Number(value);
+                    if (!isNaN(numValue)) {
+                      onUpdateElement(selectedElement.id, { width: Math.max(0.1, numValue) });
+                    }
+                  }
+                }}
                 step="0.1"
                 min="0.1"
                 className="text-sm"
@@ -335,7 +365,17 @@ export const PropertiesPanel = ({
               <Input
                 type="number"
                 value={selectedElement.height.toFixed(1)}
-                onChange={(e) => onUpdateElement(selectedElement.id, { height: Number(e.target.value) })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    onUpdateElement(selectedElement.id, { height: 0.1 });
+                  } else {
+                    const numValue = Number(value);
+                    if (!isNaN(numValue)) {
+                      onUpdateElement(selectedElement.id, { height: Math.max(0.1, numValue) });
+                    }
+                  }
+                }}
                 step="0.1"
                 min="0.1"
                 className="text-sm"
@@ -360,7 +400,17 @@ export const PropertiesPanel = ({
               <Input
                 type="number"
                 value={selectedElement.rotation}
-                onChange={(e) => onUpdateElement(selectedElement.id, { rotation: Number(e.target.value) })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    onUpdateElement(selectedElement.id, { rotation: 0 });
+                  } else {
+                    const numValue = Number(value);
+                    if (!isNaN(numValue)) {
+                      onUpdateElement(selectedElement.id, { rotation: Math.max(0, Math.min(360, numValue)) });
+                    }
+                  }
+                }}
                 step="90"
                 min="0"
                 max="360"
@@ -373,7 +423,17 @@ export const PropertiesPanel = ({
               <Input
                 type="number"
                 value={selectedElement.zIndex}
-                onChange={(e) => onUpdateElement(selectedElement.id, { zIndex: Number(e.target.value) })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    onUpdateElement(selectedElement.id, { zIndex: 0 });
+                  } else {
+                    const numValue = Number(value);
+                    if (!isNaN(numValue)) {
+                      onUpdateElement(selectedElement.id, { zIndex: Math.max(0, numValue) });
+                    }
+                  }
+                }}
                 min="0"
                 className="text-sm"
               />
