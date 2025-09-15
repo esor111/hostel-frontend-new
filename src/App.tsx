@@ -5,9 +5,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/SafeAppContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { SafeTooltipProvider } from "@/components/providers/SafeTooltipProvider";
 import { KahaLogo } from "@/components/common/KahaLogo";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import AuthGuard from "@/components/auth/AuthGuard";
+import AuthHeader from "@/components/auth/AuthHeader";
 
 // Lazy load components for better initial load performance
 const Landing = lazy(() => import("./pages/Landing"));
@@ -77,13 +80,16 @@ const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AppProvider>
-          <SafeTooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-            <Suspense fallback={<LoadingFallback />}>
-              <Routes>
+        <AuthProvider>
+          <AppProvider>
+            <SafeTooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AuthGuard>
+                  <AuthHeader />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Routes>
                 <Route
                   path="/"
                   element={
@@ -213,12 +219,14 @@ const App = () => {
                     </Suspense>
                   }
                 />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </SafeTooltipProvider>
-      </AppProvider>
-    </QueryClientProvider>
+                    </Routes>
+                  </Suspense>
+                </AuthGuard>
+              </BrowserRouter>
+            </SafeTooltipProvider>
+          </AppProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 };

@@ -1,5 +1,6 @@
 import { buildApiUrl, getEnvironmentConfig } from '../config/environment';
 import { ApiError, handleApiError, logApiError } from '../utils/errorHandler';
+import { authService } from './authService';
 
 export interface ApiRequestOptions extends RequestInit {
   timeout?: number;
@@ -24,10 +25,14 @@ export class ApiService {
     const url = buildApiUrl(endpoint);
     const { timeout = 30000, retries = 3, ...fetchOptions } = options;
     
+    // Get authentication token
+    const token = authService.getApiToken();
+    
     const requestOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...fetchOptions.headers,
       },
       ...fetchOptions,
