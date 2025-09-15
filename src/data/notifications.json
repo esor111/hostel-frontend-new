@@ -1,0 +1,44 @@
+[
+  {
+    "id": "NOT001",
+    "recipientId": "student_001",
+    "recipientType": "student",
+    "title": "Welcome to Kaha Hostel",
+    "message": "Welcome to Kaha Hostel! Your room is ready and your first invoice has been generated.",
+    "type": "success",
+    "category": "welcome",
+    "isRead": false,
+    "sentAt": "2024-01-15T10:30:00Z",
+    "readAt": null,
+    "priority": "high",
+    "actionUrl": null
+  },
+  {
+    "id": "NOT002",
+    "recipientId": "student_001",
+    "recipientType": "student",
+    "title": "Payment Received",
+    "message": "Payment of NPR 5,000 received successfully! Your account is now up to date.",
+    "type": "payment",
+    "category": "payment",
+    "isRead": true,
+    "sentAt": "2024-01-20T14:15:00Z",
+    "readAt": "2024-01-20T15:30:00Z",
+    "priority": "normal",
+    "actionUrl": null
+  },
+  {
+    "id": "NOT003",
+    "recipientId": "student_002",
+    "recipientType": "student",
+    "title": "New Invoice Available",
+    "message": "New invoice for February: NPR 8,500. View details and pay conveniently through the Kaha app.",
+    "type": "info",
+    "category": "invoice",
+    "isRead": false,
+    "sentAt": "2024-02-01T09:00:00Z",
+    "readAt": null,
+    "priority": "normal",
+    "actionUrl": "/invoices/INV002"
+  }
+]

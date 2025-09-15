@@ -1,30 +1,4 @@
-import { getEnvironmentConfig } from '../config/environment';
-
-const API_BASE_URL = getEnvironmentConfig().apiBaseUrl;
-
-// Helper function to handle API requests (following hostel-ladger-frontend pattern)
-async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data; // API returns different formats, handle in individual methods
-  } catch (error) {
-    console.error('Room API Request Error:', error);
-    throw error;
-  }
-}
+import { apiService } from './apiService';
 
 export const roomsApiService = {
   // Get all rooms
@@ -40,10 +14,17 @@ export const roomsApiService = {
         }
       });
 
-      const endpoint = `/rooms${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await apiRequest(endpoint);
+      const response = await apiService.get('/rooms', Object.fromEntries(queryParams));
       console.log('✅ Rooms API response:', response);
-      return response.result?.items || []; // API returns { status, result: { items, pagination } }
+      
+      // The apiService already extracts the data, so response is the actual result
+      if (response && response.items) {
+        return response.items; // Direct access to items
+      } else if (Array.isArray(response)) {
+        return response; // Fallback for direct array response
+      } else {
+        return []; // Empty array if no items found
+      }
     } catch (error) {
       console.error('❌ Error fetching rooms:', error);
       throw error;
@@ -54,11 +35,11 @@ export const roomsApiService = {
   async getRoomById(id: string) {
     try {
       console.log(`🏠 Fetching room ${id} from API...`);
-      const response = await apiRequest(`/rooms/${id}`);
+      const response = await apiService.get(`/rooms/${id}`);
       console.log('✅ Room fetched successfully:', response);
 
-      // Handle different API response formats
-      const roomData = response.room || response.result || response;
+      // The apiService already extracts the data, so response is the actual room data
+      const roomData = response;
 
       // Parse layout if it exists and is a string
       if (roomData.layout && typeof roomData.layout === 'string') {
@@ -118,12 +99,9 @@ export const roomsApiService = {
         roomData.layout = transformedLayout;
       }
 
-      const response = await apiRequest('/rooms', {
-        method: 'POST',
-        body: JSON.stringify(roomData),
-      });
+      const response = await apiService.post('/rooms', roomData);
       console.log('✅ Room created successfully');
-      return response.newRoom || response; // API returns { status, newRoom }
+      return response; // apiService already extracts the data
     } catch (error) {
       console.error('❌ Error creating room:', error);
       throw error;
@@ -175,15 +153,12 @@ export const roomsApiService = {
         updates.layout = transformedLayout;
       }
 
-      const response = await apiRequest(`/rooms/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updates),
-      });
+      const response = await apiService.put(`/rooms/${id}`, updates);
 
       console.log('✅ Room updated successfully');
       console.log('📥 Backend response:', response);
 
-      return response.updatedRoom || response; // API returns { status, updatedRoom }
+      return response; // apiService already extracts the data
     } catch (error) {
       console.error('❌ Error updating room:', error);
       throw error;
@@ -195,12 +170,9 @@ export const roomsApiService = {
     try {
       console.log(`🗑️ Deleting room ${id} via API...`);
       // For now, we'll update the room status to 'Inactive' instead of deleting
-      const response = await apiRequest(`/rooms/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status: 'Inactive' }),
-      });
+      const response = await apiService.put(`/rooms/${id}`, { status: 'Inactive' });
       console.log('✅ Room deleted successfully');
-      return response.updatedRoom || response;
+      return response; // apiService already extracts the data
     } catch (error) {
       console.error('❌ Error deleting room:', error);
       throw error;
@@ -211,9 +183,17 @@ export const roomsApiService = {
   async getAvailableRooms() {
     try {
       console.log('🏠 Fetching available rooms from API...');
-      const response = await apiRequest('/rooms/available');
+      const response = await apiService.get('/rooms/available');
       console.log('✅ Available rooms fetched successfully');
-      return response.data?.items || []; // API returns { status, data: { items, count } }
+      
+      // The apiService already extracts the data
+      if (response && response.items) {
+        return response.items;
+      } else if (Array.isArray(response)) {
+        return response;
+      } else {
+        return [];
+      }
     } catch (error) {
       console.error('❌ Error fetching available rooms:', error);
       throw error;
@@ -224,9 +204,9 @@ export const roomsApiService = {
   async getRoomStats() {
     try {
       console.log('📊 Fetching room statistics from API...');
-      const response = await apiRequest('/rooms/stats');
+      const response = await apiService.get('/rooms/stats');
       console.log('✅ Room stats fetched successfully');
-      return response.stats || response; // API returns { status, stats }
+      return response; // apiService already extracts the data
     } catch (error) {
       console.error('❌ Error fetching room stats:', error);
       throw error;
@@ -237,12 +217,9 @@ export const roomsApiService = {
   async assignStudentToRoom(roomId: string, studentId: string) {
     try {
       console.log(`🏠 Assigning student ${studentId} to room ${roomId}...`);
-      const response = await apiRequest(`/rooms/${roomId}/assign`, {
-        method: 'POST',
-        body: JSON.stringify({ studentId }),
-      });
+      const response = await apiService.post(`/rooms/${roomId}/assign`, { studentId });
       console.log('✅ Student assigned to room successfully');
-      return response.data || response;
+      return response; // apiService already extracts the data
     } catch (error) {
       console.error('❌ Error assigning student to room:', error);
       throw error;
@@ -253,12 +230,9 @@ export const roomsApiService = {
   async vacateStudentFromRoom(roomId: string, studentId: string) {
     try {
       console.log(`🏠 Vacating student ${studentId} from room ${roomId}...`);
-      const response = await apiRequest(`/rooms/${roomId}/vacate`, {
-        method: 'POST',
-        body: JSON.stringify({ studentId }),
-      });
+      const response = await apiService.post(`/rooms/${roomId}/vacate`, { studentId });
       console.log('✅ Student vacated from room successfully');
-      return response.data || response;
+      return response; // apiService already extracts the data
     } catch (error) {
       console.error('❌ Error vacating student from room:', error);
       throw error;
@@ -269,12 +243,9 @@ export const roomsApiService = {
   async scheduleRoomMaintenance(roomId: string, maintenanceData: any) {
     try {
       console.log(`🔧 Scheduling maintenance for room ${roomId}...`);
-      const response = await apiRequest(`/rooms/${roomId}/maintenance`, {
-        method: 'POST',
-        body: JSON.stringify(maintenanceData),
-      });
+      const response = await apiService.post(`/rooms/${roomId}/maintenance`, maintenanceData);
       console.log('✅ Room maintenance scheduled successfully');
-      return response.data || response;
+      return response; // apiService already extracts the data
     } catch (error) {
       console.error('❌ Error scheduling room maintenance:', error);
       throw error;
