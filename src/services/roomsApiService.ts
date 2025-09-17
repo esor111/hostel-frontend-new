@@ -67,36 +67,43 @@ export const roomsApiService = {
       // Transform layout data if present
       if (roomData.layout) {
         console.log('🎨 Layout data detected - Transforming for backend');
-        const transformedLayout = {
-          layoutData: roomData.layout, // Store complete layout as layoutData
-          dimensions: roomData.layout.dimensions,
-          bedPositions: roomData.layout.elements?.filter(e =>
-            e.type === 'single-bed' || e.type === 'bunk-bed'
-          ).map(bed => ({
-            id: bed.id,
-            type: bed.type,
-            x: bed.x,
-            y: bed.y,
-            width: bed.width,
-            height: bed.height,
-            rotation: bed.rotation,
-            properties: bed.properties
-          })),
-          furnitureLayout: roomData.layout.elements?.filter(e =>
-            e.type !== 'single-bed' && e.type !== 'bunk-bed'
-          ).map(furniture => ({
-            id: furniture.id,
-            type: furniture.type,
-            x: furniture.x,
-            y: furniture.y,
-            width: furniture.width,
-            height: furniture.height,
-            rotation: furniture.rotation
-          })),
+        
+        // Extract bed positions from elements
+        const bedPositions = roomData.layout.elements?.filter(e =>
+          e.type === 'single-bed' || e.type === 'bunk-bed'
+        ).map(bed => ({
+          id: bed.id,
+          type: bed.type,
+          x: bed.x,
+          y: bed.y,
+          width: bed.width,
+          height: bed.height,
+          rotation: bed.rotation,
+          properties: bed.properties
+        })) || [];
+
+        // Extract furniture layout from elements
+        const furnitureLayout = roomData.layout.elements?.filter(e =>
+          e.type !== 'single-bed' && e.type !== 'bunk-bed'
+        ).map(furniture => ({
+          id: furniture.id,
+          type: furniture.type,
+          x: furniture.x,
+          y: furniture.y,
+          width: furniture.width,
+          height: furniture.height,
+          rotation: furniture.rotation
+        })) || [];
+
+        // Keep the original structure but add the extracted data
+        roomData.layout = {
+          ...roomData.layout, // Keep original layout data
+          bedPositions: bedPositions,
+          furnitureLayout: furnitureLayout,
           layoutType: roomData.layout.theme?.name || 'standard'
         };
 
-        roomData.layout = transformedLayout;
+        console.log('🔄 Transformed layout for backend:', JSON.stringify(roomData.layout, null, 2));
       }
 
       const response = await apiService.post('/rooms', roomData);
@@ -119,38 +126,42 @@ export const roomsApiService = {
         console.log('🎨 Layout update detected - Transforming data for backend');
         console.log('📤 Original layout data:', updates.layout);
 
-        // Transform frontend layout format to backend format
-        const transformedLayout = {
-          layoutData: updates.layout, // Store complete layout as layoutData
-          dimensions: updates.layout.dimensions,
-          bedPositions: updates.layout.elements?.filter(e =>
-            e.type === 'single-bed' || e.type === 'bunk-bed'
-          ).map(bed => ({
-            id: bed.id,
-            type: bed.type,
-            x: bed.x,
-            y: bed.y,
-            width: bed.width,
-            height: bed.height,
-            rotation: bed.rotation,
-            properties: bed.properties
-          })),
-          furnitureLayout: updates.layout.elements?.filter(e =>
-            e.type !== 'single-bed' && e.type !== 'bunk-bed'
-          ).map(furniture => ({
-            id: furniture.id,
-            type: furniture.type,
-            x: furniture.x,
-            y: furniture.y,
-            width: furniture.width,
-            height: furniture.height,
-            rotation: furniture.rotation
-          })),
+        // Extract bed positions from elements
+        const bedPositions = updates.layout.elements?.filter(e =>
+          e.type === 'single-bed' || e.type === 'bunk-bed'
+        ).map(bed => ({
+          id: bed.id,
+          type: bed.type,
+          x: bed.x,
+          y: bed.y,
+          width: bed.width,
+          height: bed.height,
+          rotation: bed.rotation,
+          properties: bed.properties
+        })) || [];
+
+        // Extract furniture layout from elements
+        const furnitureLayout = updates.layout.elements?.filter(e =>
+          e.type !== 'single-bed' && e.type !== 'bunk-bed'
+        ).map(furniture => ({
+          id: furniture.id,
+          type: furniture.type,
+          x: furniture.x,
+          y: furniture.y,
+          width: furniture.width,
+          height: furniture.height,
+          rotation: furniture.rotation
+        })) || [];
+
+        // Keep the original structure but add the extracted data
+        updates.layout = {
+          ...updates.layout, // Keep original layout data
+          bedPositions: bedPositions,
+          furnitureLayout: furnitureLayout,
           layoutType: updates.layout.theme?.name || 'standard'
         };
 
-        console.log('🔄 Transformed layout for backend:', transformedLayout);
-        updates.layout = transformedLayout;
+        console.log('🔄 Transformed layout for backend:', updates.layout);
       }
 
       const response = await apiService.put(`/rooms/${id}`, updates);

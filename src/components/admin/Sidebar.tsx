@@ -13,8 +13,7 @@ import {
   CreditCard,
   FileText,
   TrendingUp,
-  Bell,
-  UserX
+  Bell
 } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useState } from "react";
@@ -36,7 +35,6 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     { id: "rooms", label: translations.rooms, icon: Bed },
     { id: "analytics", label: translations.analytics, icon: BarChart3 },
     { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "inactive", label: "Inactive Students", icon: UserX },
     { id: "profile", label: translations.hostelProfile, icon: Building2 },
   ];
 

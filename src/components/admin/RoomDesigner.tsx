@@ -142,6 +142,7 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
   const [historyIndex, setHistoryIndex] = useState(-1);
 
   const [collisionWarnings, setCollisionWarnings] = useState<string[]>([]);
+  const [dragCollisionDetected, setDragCollisionDetected] = useState(false);
 
   const snapToGridPosition = (value: number) => {
     if (!snapToGrid) return value;
@@ -240,7 +241,7 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
   };
 
   const handleElementsMove = (ids: string[], deltaX: number, deltaY: number) => {
-    // 🧈 ULTRA-SMOOTH BUTTER MOVEMENT SYSTEM 🧈
+    // 🧈 ULTRA-SMOOTH BUTTER MOVEMENT SYSTEM with INDEPENDENT COLLISION DETECTION 🧈
     setElements(prevElements => {
       // Use React's batching for optimal performance
       return prevElements.map(el => {
@@ -256,12 +257,12 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
         const effectiveWidth = isRotated ? el.height : el.width;
         const effectiveHeight = isRotated ? el.width : el.height;
         
-        // 🔧 FIXED: PERFECT boundary constraints with wall-snapping for windows/doors 🔧
+        // 🔧 FIXED: PERFECT boundary constraints with INDEPENDENT movement 🔧
         // Calculate maximum positions with ultra-high precision
         const maxX = Math.max(0, dimensions.length - effectiveWidth);
         const maxY = Math.max(0, dimensions.width - effectiveHeight);
         
-        // Apply boundary constraints with wall-snapping for openings
+        // Apply boundary constraints with independent element movement
         let constrainedX = newX;
         let constrainedY = newY;
         
@@ -297,12 +298,47 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
           }
         }
         
-        // Return element with butter-smooth positioning
-        return { 
-          ...el, 
-          x: constrainedX, 
-          y: constrainedY 
+        // 🔧 COLLISION DETECTION: Check if new position would cause collision 🔧
+        const testElement = {
+          ...el,
+          x: constrainedX,
+          y: constrainedY
         };
+        
+        // Check collision with other elements (excluding elements being moved)
+        const hasCollision = prevElements.some(otherEl => {
+          if (otherEl.id === el.id || ids.includes(otherEl.id)) return false;
+          
+          return !(
+            testElement.x >= otherEl.x + otherEl.width ||
+            testElement.x + testElement.width <= otherEl.x ||
+            testElement.y >= otherEl.y + otherEl.height ||
+            testElement.y + testElement.height <= otherEl.y
+          );
+        });
+        
+        // Only move if no collision detected - INDEPENDENT MOVEMENT
+        if (!hasCollision) {
+          return { 
+            ...el, 
+            x: constrainedX, 
+            y: constrainedY 
+          };
+        } else {
+          // If collision detected, don't move this element and show feedback
+          setDragCollisionDetected(true);
+          setTimeout(() => setDragCollisionDetected(false), 500); // Clear after 500ms
+          
+          // Show toast notification for collision (throttled to prevent spam)
+          if (!dragCollisionDetected) {
+            toast.warning("Cannot move - collision detected!", {
+              description: "Element cannot be moved to this position due to overlap with another element.",
+              duration: 2000,
+            });
+          }
+          
+          return el;
+        }
       });
     });
   };
@@ -639,6 +675,12 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
                 <Badge variant="destructive" className="ml-2">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   {collisionWarnings.length} Warning{collisionWarnings.length > 1 ? 's' : ''}
+                </Badge>
+              )}
+              {dragCollisionDetected && (
+                <Badge variant="destructive" className="ml-2 animate-pulse">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Collision Detected!
                 </Badge>
               )}
             </div>

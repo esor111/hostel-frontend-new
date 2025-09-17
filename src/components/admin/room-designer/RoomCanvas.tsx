@@ -666,15 +666,17 @@ export const RoomCanvas = ({
         return;
       }
 
-      // Clear previous selections if not multi-selecting
+      // 🔧 FIXED: For dragging, always select only the clicked element to prevent group movement 🔧
       if (!isMultiSelect) {
         // Single selection - clear all other selections first
         onElementSelect('', false); // Clear selections
+        onElementSelect(clickedElement.id, false); // Select only this element
+      } else {
+        // For multi-select, still add to selection but drag will only move the clicked element
+        onElementSelect(clickedElement.id, isMultiSelect);
       }
-      
-      onElementSelect(clickedElement.id, isMultiSelect);
 
-      // Start 🧈 ULTRA-SMOOTH BUTTER DRAGGING 🧈
+      // Start 🧈 ULTRA-SMOOTH BUTTER DRAGGING 🧈 with INDEPENDENT MOVEMENT
       if (!clickedElement.properties?.isLocked) {
         setIsDragging(true);
         setDraggedElementId(clickedElement.id);
@@ -816,14 +818,29 @@ export const RoomCanvas = ({
       const deltaX = newX - currentElement.x;
       const deltaY = newY - currentElement.y;
       
-      // Apply movement with BUTTER-SMOOTH threshold
+      // 🔧 FIXED: Add collision detection to prevent overlapping 🔧
+      const testElement = {
+        ...currentElement,
+        x: newX,
+        y: newY
+      };
+      
+      // Check for collisions with other elements (excluding the current one)
+      const hasCollision = checkCollisions(testElement, draggedElementId);
+      
+      // Apply movement with BUTTER-SMOOTH threshold and collision prevention
       if (Math.abs(deltaX) > 0.0001 || Math.abs(deltaY) > 0.0001) {
-        // Use optimized state update for 60fps performance
-        onElementsMove([draggedElementId], deltaX, deltaY);
-        
-        // Update position tracking
-        lastPositionRef.current = { x: newX, y: newY };
-        lastRenderTime.current = currentTime;
+        if (!hasCollision) {
+          // Only move if no collision detected - INDEPENDENT MOVEMENT
+          onElementsMove([draggedElementId], deltaX, deltaY);
+          
+          // Update position tracking
+          lastPositionRef.current = { x: newX, y: newY };
+          lastRenderTime.current = currentTime;
+        } else {
+          // If collision detected, don't move and show visual feedback
+          console.log('🚫 Collision detected - movement blocked');
+        }
       }
     } else {
       // Handle hover effects when not dragging (optimized)

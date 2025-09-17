@@ -49,7 +49,7 @@ describe('Sidebar Component', () => {
     expect(screen.getByText('Rooms')).toBeInTheDocument();
     expect(screen.getByText('Analytics')).toBeInTheDocument();
     expect(screen.getByText('Notifications')).toBeInTheDocument();
-    expect(screen.getByText('Inactive Students')).toBeInTheDocument();
+
     expect(screen.getByText('Hostel Profile')).toBeInTheDocument();
   });
 

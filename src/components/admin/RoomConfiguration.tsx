@@ -42,6 +42,10 @@ export const RoomConfiguration = () => {
   // New state for enhanced room creation workflow
   const [roomCreationStep, setRoomCreationStep] = useState<'basic' | 'layout' | 'complete'>('basic');
   const [pendingRoomId, setPendingRoomId] = useState<string | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [roomsPerPage] = useState(6); // Show 6 rooms per page
   const [newRoom, setNewRoom] = useState({
     name: "",
     roomNumber: "",
@@ -110,7 +114,7 @@ export const RoomConfiguration = () => {
           duration: 4000,
         });
       } else {
-        // Fallback to old workflow if room ID not available
+        // Fallback to old workflow if room ID not available - complete creation and hide form
         completeRoomCreation();
       }
     } catch (error) {
@@ -120,7 +124,7 @@ export const RoomConfiguration = () => {
   };
 
   const completeRoomCreation = () => {
-    // Reset form and state
+    // Reset form and state completely
     setNewRoom({
       name: "",
       roomNumber: "",
@@ -133,10 +137,15 @@ export const RoomConfiguration = () => {
     setShowAddRoom(false);
     setRoomCreationStep('basic');
     setPendingRoomId(null);
-    toast.success("Room creation completed!");
+    setEditingRoom(null); // Clear any editing state
     
-    // Navigate to /rooms after successful creation
-    navigate('/rooms');
+    toast.success("Room creation completed!", {
+      description: "Room has been created successfully and form has been reset.",
+      duration: 3000,
+    });
+    
+    // Refresh the rooms data to show the new room
+    refreshData();
   };
 
   const skipLayoutDesign = () => {
@@ -191,7 +200,7 @@ export const RoomConfiguration = () => {
 
       await updateRoom(editingRoom.id, roomData);
 
-      // Reset form and editing state
+      // Reset form and editing state completely
       setNewRoom({
         name: "",
         roomNumber: "",
@@ -203,6 +212,11 @@ export const RoomConfiguration = () => {
       });
       setEditingRoom(null);
       setShowAddRoom(false);
+      
+      toast.success("Room updated successfully!", {
+        description: "Room details have been updated and form has been reset.",
+        duration: 3000,
+      });
     } catch (error) {
       // Error handling is done in the hook
       console.error('Error in handleUpdateRoom:', error);
@@ -286,15 +300,20 @@ export const RoomConfiguration = () => {
           // Complete room creation workflow
           completeRoomCreation();
         } else {
-          // Regular layout update - close designer and redirect
+          // Regular layout update - close designer and redirect to room listing
           setShowRoomDesigner(false);
           setSelectedRoomForDesign(null);
           
-          // Show success message
+          // Show success message and redirect to room listing page
           toast.success('Room layout saved successfully!', {
-            description: 'Your room layout has been saved and you can now view it in the room listing.',
-            duration: 3000,
+            description: 'Redirecting to room listing page...',
+            duration: 2000,
           });
+          
+          // Redirect to room listing page after saving layout
+          setTimeout(() => {
+            navigate('/rooms');
+          }, 1000);
         }
 
       } catch (error) {
@@ -618,8 +637,17 @@ export const RoomConfiguration = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {rooms.map((room) => (
+      {/* Pagination Logic */}
+      {(() => {
+        const indexOfLastRoom = currentPage * roomsPerPage;
+        const indexOfFirstRoom = indexOfLastRoom - roomsPerPage;
+        const currentRooms = rooms.slice(indexOfFirstRoom, indexOfLastRoom);
+        const totalPages = Math.ceil(rooms.length / roomsPerPage);
+
+        return (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {currentRooms.map((room) => (
           <Card key={room.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex justify-between items-start">
@@ -774,8 +802,53 @@ export const RoomConfiguration = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                
+                <div className="flex space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={currentPage === page ? "bg-blue-600 hover:bg-blue-700" : ""}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+
+            {/* Pagination Info */}
+            <div className="text-center text-sm text-gray-600 mt-4">
+              Showing {indexOfFirstRoom + 1} to {Math.min(indexOfLastRoom, rooms.length)} of {rooms.length} rooms
+            </div>
+          </>
+        );
+      })()}
 
       {/* Layout Viewer Dialog */}
       <Dialog open={showLayoutViewer} onOpenChange={setShowLayoutViewer}>

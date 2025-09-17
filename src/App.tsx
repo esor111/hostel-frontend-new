@@ -22,7 +22,7 @@ const RoomManagement = lazy(() => import("./pages/RoomManagement"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Attendance = lazy(() => import("./pages/Attendance"));
 const Notifications = lazy(() => import("./pages/Notifications"));
-const InactiveStudents = lazy(() => import("./pages/InactiveStudents"));
+
 const DashboardTest = lazy(() => import("./pages/DashboardTest"));
 const BillingDashboard = lazy(() => import("./pages/BillingDashboard"));
 const MonthlyBilling = lazy(() => import("./pages/MonthlyBilling"));
@@ -170,14 +170,7 @@ const App = () => {
                     </Suspense>
                   }
                 />
-                <Route
-                  path="/inactive"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Inactive Students" />}>
-                      <InactiveStudents />
-                    </Suspense>
-                  }
-                />
+
                 <Route
                   path="/dashboard-test"
                   element={
