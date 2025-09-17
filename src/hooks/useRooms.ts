@@ -177,6 +177,21 @@ export const useRooms = () => {
           actualAvailableBeds = Math.max(0, actualBedCount - occupancy);
         }
         
+        // Parse amenities to handle both string and object formats
+        let parsedAmenities = room.amenities || [];
+        if (Array.isArray(parsedAmenities)) {
+          // Ensure amenities are in a consistent format
+          parsedAmenities = parsedAmenities.map((amenity: any) => {
+            if (typeof amenity === 'string') {
+              return amenity;
+            } else if (typeof amenity === 'object' && amenity !== null) {
+              // If amenity is an object, extract the name or description
+              return amenity.name || amenity.description || 'Unknown Amenity';
+            }
+            return 'Unknown Amenity';
+          });
+        }
+
         return {
           ...room,
           monthlyRate: parseFloat(room.monthlyRate) || 0,
@@ -185,6 +200,7 @@ export const useRooms = () => {
           occupancy: parseInt(room.occupancy) || 0,
           availableBeds: actualAvailableBeds, // Use calculated available beds
           layout: parsedLayout, // Properly parsed layout object
+          amenities: parsedAmenities, // Properly parsed amenities as strings
         };
       });
       
@@ -246,6 +262,19 @@ export const useRooms = () => {
           }
         }
         
+        // Parse amenities to handle both string and object formats
+        let parsedAmenities = room.amenities || [];
+        if (Array.isArray(parsedAmenities)) {
+          parsedAmenities = parsedAmenities.map((amenity: any) => {
+            if (typeof amenity === 'string') {
+              return amenity;
+            } else if (typeof amenity === 'object' && amenity !== null) {
+              return amenity.name || amenity.description || 'Unknown Amenity';
+            }
+            return 'Unknown Amenity';
+          });
+        }
+
         return {
           ...room,
           monthlyRate: parseFloat(room.monthlyRate) || 0,
@@ -253,6 +282,7 @@ export const useRooms = () => {
           bedCount: actualBedCount,
           occupancy: parseInt(room.occupancy) || 0,
           availableBeds: actualAvailableBeds,
+          amenities: parsedAmenities,
         };
       });
       
@@ -403,15 +433,31 @@ export const useRooms = () => {
       console.log(`🔍 Searching rooms: ${searchTerm}`);
       const searchResults = await roomsApiService.searchRooms(searchTerm, filters);
       
-      // Parse numeric fields
-      const parsedResults = searchResults.map((room: any) => ({
-        ...room,
-        monthlyRate: parseFloat(room.monthlyRate) || 0,
-        dailyRate: parseFloat(room.dailyRate) || 0,
-        bedCount: parseInt(room.bedCount) || 0,
-        occupancy: parseInt(room.occupancy) || 0,
-        availableBeds: parseInt(room.availableBeds) || 0,
-      }));
+      // Parse numeric fields and amenities
+      const parsedResults = searchResults.map((room: any) => {
+        // Parse amenities to handle both string and object formats
+        let parsedAmenities = room.amenities || [];
+        if (Array.isArray(parsedAmenities)) {
+          parsedAmenities = parsedAmenities.map((amenity: any) => {
+            if (typeof amenity === 'string') {
+              return amenity;
+            } else if (typeof amenity === 'object' && amenity !== null) {
+              return amenity.name || amenity.description || 'Unknown Amenity';
+            }
+            return 'Unknown Amenity';
+          });
+        }
+
+        return {
+          ...room,
+          monthlyRate: parseFloat(room.monthlyRate) || 0,
+          dailyRate: parseFloat(room.dailyRate) || 0,
+          bedCount: parseInt(room.bedCount) || 0,
+          occupancy: parseInt(room.occupancy) || 0,
+          availableBeds: parseInt(room.availableBeds) || 0,
+          amenities: parsedAmenities,
+        };
+      });
       
       setRooms(parsedResults);
       return parsedResults;

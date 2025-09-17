@@ -563,11 +563,17 @@ export const RoomConfiguration = () => {
               </div>
               {newRoom.amenities.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {newRoom.amenities.map((amenity) => (
-                    <Badge key={amenity} variant="secondary" className="text-xs">
-                      {amenity}
-                    </Badge>
-                  ))}
+                  {newRoom.amenities.map((amenity, index) => {
+                    // Handle both string and object formats for amenities
+                    const amenityText = typeof amenity === 'string' ? amenity : amenity?.name || amenity?.description || 'Unknown';
+                    const amenityKey = typeof amenity === 'string' ? amenity : amenity?.id || `new-amenity-${index}`;
+                    
+                    return (
+                      <Badge key={amenityKey} variant="secondary" className="text-xs">
+                        {amenityText}
+                      </Badge>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -779,11 +785,17 @@ export const RoomConfiguration = () => {
                   <div className="text-sm font-medium text-gray-700 mb-2">Amenities</div>
                   <div className="flex flex-wrap gap-1">
                     {room.amenities && room.amenities.length > 0 ? (
-                      room.amenities.map((amenity) => (
-                        <Badge key={amenity} variant="secondary" className="text-xs">
-                          {amenity}
-                        </Badge>
-                      ))
+                      room.amenities.map((amenity, index) => {
+                        // Handle both string and object formats for amenities
+                        const amenityText = typeof amenity === 'string' ? amenity : amenity?.name || amenity?.description || 'Unknown';
+                        const amenityKey = typeof amenity === 'string' ? amenity : amenity?.id || `amenity-${index}`;
+                        
+                        return (
+                          <Badge key={amenityKey} variant="secondary" className="text-xs">
+                            {amenityText}
+                          </Badge>
+                        );
+                      })
                     ) : (
                       <span className="text-xs text-gray-500">No amenities listed</span>
                     )}
