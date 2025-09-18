@@ -6,13 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Bed, Plus, Edit, Trash2, Users, Layout, Eye, Loader2 } from "lucide-react";
+import { Bed, Plus, Edit, Trash2, Users, Layout, Eye, Loader2, Image as ImageIcon } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "sonner";
 import { RoomDesigner } from "./RoomDesigner";
 import { RoomLayoutViewer } from "./RoomLayoutViewer";
 import { useRooms } from "@/hooks/useRooms";
 import { useNavigate } from "react-router-dom";
+import ImageUpload from "@/components/common/ImageUpload";
 
 export const RoomConfiguration = () => {
   const { translations } = useLanguage();
@@ -38,11 +39,11 @@ export const RoomConfiguration = () => {
   const [selectedRoomForView, setSelectedRoomForView] = useState<string | null>(null);
   const [showRoomViewer, setShowRoomViewer] = useState(false);
   const [selectedRoomForBedView, setSelectedRoomForBedView] = useState<string | null>(null);
-  
+
   // New state for enhanced room creation workflow
   const [roomCreationStep, setRoomCreationStep] = useState<'basic' | 'layout' | 'complete'>('basic');
   const [pendingRoomId, setPendingRoomId] = useState<string | null>(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [roomsPerPage] = useState(6); // Show 6 rooms per page
@@ -53,7 +54,8 @@ export const RoomConfiguration = () => {
     bedCount: 1,
     gender: "Mixed",
     baseRate: 12000,
-    amenities: []
+    amenities: [],
+    images: [] as string[]
   });
 
   const roomTypes = ["Dormitory", "Private", "Capsule"];
@@ -99,6 +101,7 @@ export const RoomConfiguration = () => {
         gender: newRoom.gender,
         status: "ACTIVE",
         amenities: newRoom.amenities,
+        images: newRoom.images,
         isActive: true,
         description: `${newRoom.type} room with ${bedCountNum} beds`
       };
@@ -132,18 +135,19 @@ export const RoomConfiguration = () => {
       bedCount: 1,
       gender: "Mixed",
       baseRate: 12000,
-      amenities: []
+      amenities: [],
+      images: []
     });
     setShowAddRoom(false);
     setRoomCreationStep('basic');
     setPendingRoomId(null);
     setEditingRoom(null); // Clear any editing state
-    
+
     toast.success("Room creation completed!", {
       description: "Room has been created successfully and form has been reset.",
       duration: 3000,
     });
-    
+
     // Refresh the rooms data to show the new room
     refreshData();
   };
@@ -194,6 +198,7 @@ export const RoomConfiguration = () => {
         gender: newRoom.gender,
         status: "ACTIVE",
         amenities: newRoom.amenities,
+        images: newRoom.images,
         isActive: true,
         description: `${newRoom.type} room with ${bedCountNum} beds`
       };
@@ -208,11 +213,12 @@ export const RoomConfiguration = () => {
         bedCount: 1,
         gender: "Mixed",
         baseRate: 12000,
-        amenities: []
+        amenities: [],
+        images: []
       });
       setEditingRoom(null);
       setShowAddRoom(false);
-      
+
       toast.success("Room updated successfully!", {
         description: "Room details have been updated and form has been reset.",
         duration: 3000,
@@ -232,7 +238,8 @@ export const RoomConfiguration = () => {
       bedCount: room.bedCount,
       gender: room.gender,
       baseRate: room.monthlyRate || room.baseRate || 0,
-      amenities: room.amenities || []
+      amenities: room.amenities || [],
+      images: room.images || []
     });
     setShowAddRoom(true);
   };
@@ -264,7 +271,8 @@ export const RoomConfiguration = () => {
       bedCount: 1,
       gender: "Mixed",
       baseRate: 12000,
-      amenities: []
+      amenities: [],
+      images: []
     });
     setShowAddRoom(false);
   };
@@ -276,7 +284,7 @@ export const RoomConfiguration = () => {
 
   const handleSaveLayout = async (layout: any) => {
     const roomId = selectedRoomForDesign || pendingRoomId;
-    
+
     if (roomId) {
       try {
         console.log('💾 Saving room layout:', layout);
@@ -294,7 +302,7 @@ export const RoomConfiguration = () => {
         };
 
         await updateRoom(roomId, layoutData);
-        
+
         // Handle different scenarios with proper navigation
         if (roomCreationStep === 'layout' && pendingRoomId) {
           // Complete room creation workflow
@@ -303,13 +311,13 @@ export const RoomConfiguration = () => {
           // Regular layout update - close designer and redirect to room listing
           setShowRoomDesigner(false);
           setSelectedRoomForDesign(null);
-          
+
           // Show success message and redirect to room listing page
           toast.success('Room layout saved successfully!', {
             description: 'Redirecting to room listing page...',
             duration: 2000,
           });
-          
+
           // Redirect to room listing page after saving layout
           setTimeout(() => {
             navigate('/rooms');
@@ -334,7 +342,7 @@ export const RoomConfiguration = () => {
       // Regular close for existing room layout editing
       setShowRoomDesigner(false);
       setSelectedRoomForDesign(null);
-      
+
       // Show helpful message about how to access the layout later
       toast.info('Layout designer closed', {
         description: 'You can reopen the layout designer anytime by clicking the "Layout" button on any room.',
@@ -495,8 +503,8 @@ export const RoomConfiguration = () => {
                   onChange={(e) => {
                     const value = e.target.value;
                     // Allow empty string during editing, parse only when not empty
-                    setNewRoom({ 
-                      ...newRoom, 
+                    setNewRoom({
+                      ...newRoom,
                       bedCount: value === '' ? '' : Math.max(1, parseInt(value) || 1)
                     });
                   }}
@@ -525,8 +533,8 @@ export const RoomConfiguration = () => {
                   onChange={(e) => {
                     const value = e.target.value;
                     // Allow empty string during editing, parse only when not empty
-                    setNewRoom({ 
-                      ...newRoom, 
+                    setNewRoom({
+                      ...newRoom,
                       baseRate: value === '' ? '' : Math.max(0, parseFloat(value) || 0)
                     });
                   }}
@@ -567,7 +575,7 @@ export const RoomConfiguration = () => {
                     // Handle both string and object formats for amenities
                     const amenityText = typeof amenity === 'string' ? amenity : amenity?.name || amenity?.description || 'Unknown';
                     const amenityKey = typeof amenity === 'string' ? amenity : amenity?.id || `new-amenity-${index}`;
-                    
+
                     return (
                       <Badge key={amenityKey} variant="secondary" className="text-xs">
                         {amenityText}
@@ -576,6 +584,23 @@ export const RoomConfiguration = () => {
                   })}
                 </div>
               )}
+            </div>
+
+            {/* Room Images Section */}
+            <div className="space-y-3 mt-6">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-gray-600" />
+                <Label className="text-base font-medium">Room Images</Label>
+              </div>
+              <p className="text-sm text-gray-600">
+                Upload images to help guests visualize the room. Images will be stored securely and displayed in the booking interface.
+              </p>
+              <ImageUpload
+                onImagesUploaded={(imageUrls) => setNewRoom({ ...newRoom, images: imageUrls })}
+                existingImages={newRoom.images}
+                maxImages={8}
+                className="mt-3"
+              />
             </div>
             <div className="flex gap-2 mt-4">
               <Button onClick={editingRoom ? handleUpdateRoom : handleAddRoom}>
@@ -609,9 +634,9 @@ export const RoomConfiguration = () => {
                   Your room "{newRoom.name}" has been created. Now let's design the layout to position beds and furniture.
                 </p>
               </div>
-              
+
               <div className="flex gap-3">
-                <Button 
+                <Button
                   onClick={() => {
                     setSelectedRoomForDesign(pendingRoomId);
                     setShowRoomDesigner(true);
@@ -621,14 +646,14 @@ export const RoomConfiguration = () => {
                   <Layout className="h-4 w-4 mr-2" />
                   Design Layout
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={skipLayoutDesign}
                 >
                   Skip for Now
                 </Button>
               </div>
-              
+
               <div className="text-sm text-gray-500">
                 <p>💡 <strong>Tip:</strong> Designing the layout now will help with:</p>
                 <ul className="list-disc list-inside mt-1 space-y-1">
@@ -654,166 +679,196 @@ export const RoomConfiguration = () => {
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {currentRooms.map((room) => (
-          <Card key={room.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bed className="h-5 w-5" />
-                    {room.name}
-                  </CardTitle>
-                  {room.roomNumber && (
-                    <p className="text-sm text-gray-600 mt-1">Room #{room.roomNumber}</p>
-                  )}
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="outline">{room.type}</Badge>
-                    <Badge variant="outline">{room.gender}</Badge>
-                    <Badge className={getStatusColor(room.status)}>
-                      {room.status}
-                    </Badge>
-                    {room.layout && (
-                      <Badge
-                        variant="secondary"
-                        className={
-                          room.layout.dimensions && room.layout.elements && room.layout.elements.length > 0
-                            ? "bg-green-100 text-green-700"
-                            : room.layout.dimensions
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-700"
-                        }
-                      >
-                        {room.layout.dimensions && room.layout.elements && room.layout.elements.length > 0
-                          ? "Layout Complete"
-                          : room.layout.dimensions
-                            ? "Dimensions Only"
-                            : "No Layout"
-                        }
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {room.layout && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openRoomBedViewer(room.id)}
-                      className="text-green-600 hover:text-green-700"
-                      title="View Room with Bed Status"
-                    >
-                      <Bed className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewLayout(room.id)}
-                    className="text-blue-600 hover:text-blue-700"
-                    title={room.layout ? "View saved room layout" : "Configure room layout first"}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openRoomDesigner(room.id)}
-                    className="text-purple-600 hover:text-purple-700"
-                    title="Edit Room Layout"
-                  >
-                    <Layout className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEditRoom(room)}
-                    className="text-orange-600 hover:text-orange-700"
-                    title="Edit Room Details"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-red-600 hover:text-red-700"
-                    onClick={() => handleDeleteRoom(room)}
-                    title="Delete Room"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Bed className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">
-                      {room.bedCount} beds
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">
-                      {room.occupancy}/{room.bedCount} occupied
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Monthly Rate</div>
-                  <div className="text-xl font-bold text-blue-600">
-                    NPR {(room.monthlyRate || 0).toLocaleString()}/month
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Daily: NPR {(room.dailyRate || Math.round((room.monthlyRate || 0) / 30)).toLocaleString()}/day
-                  </div>
-                </div>
-
-                {room.layout && (
-                  <div className="bg-purple-50 p-3 rounded-lg">
-                    <div className="text-sm text-purple-600 mb-1">Room Layout</div>
-                    <div className="text-sm text-gray-600">
-                      {room.layout.dimensions?.length}m × {room.layout.dimensions?.width}m
-                      <br />
-                      {room.layout.elements?.length || 0} elements configured
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <div className="text-sm font-medium text-gray-700 mb-2">Amenities</div>
-                  <div className="flex flex-wrap gap-1">
-                    {room.amenities && room.amenities.length > 0 ? (
-                      room.amenities.map((amenity, index) => {
-                        // Handle both string and object formats for amenities
-                        const amenityText = typeof amenity === 'string' ? amenity : amenity?.name || amenity?.description || 'Unknown';
-                        const amenityKey = typeof amenity === 'string' ? amenity : amenity?.id || `amenity-${index}`;
-                        
-                        return (
-                          <Badge key={amenityKey} variant="secondary" className="text-xs">
-                            {amenityText}
+                <Card key={room.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Bed className="h-5 w-5" />
+                          {room.name}
+                        </CardTitle>
+                        {room.roomNumber && (
+                          <p className="text-sm text-gray-600 mt-1">Room #{room.roomNumber}</p>
+                        )}
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="outline">{room.type}</Badge>
+                          <Badge variant="outline">{room.gender}</Badge>
+                          <Badge className={getStatusColor(room.status)}>
+                            {room.status}
                           </Badge>
-                        );
-                      })
-                    ) : (
-                      <span className="text-xs text-gray-500">No amenities listed</span>
-                    )}
-                  </div>
-                </div>
+                          {room.layout && (
+                            <Badge
+                              variant="secondary"
+                              className={
+                                room.layout.dimensions && room.layout.elements && room.layout.elements.length > 0
+                                  ? "bg-green-100 text-green-700"
+                                  : room.layout.dimensions
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-gray-100 text-gray-700"
+                              }
+                            >
+                              {room.layout.dimensions && room.layout.elements && room.layout.elements.length > 0
+                                ? "Layout Complete"
+                                : room.layout.dimensions
+                                  ? "Dimensions Only"
+                                  : "No Layout"
+                              }
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {room.layout && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openRoomBedViewer(room.id)}
+                            className="text-green-600 hover:text-green-700"
+                            title="View Room with Bed Status"
+                          >
+                            <Bed className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewLayout(room.id)}
+                          className="text-blue-600 hover:text-blue-700"
+                          title={room.layout ? "View saved room layout" : "Configure room layout first"}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openRoomDesigner(room.id)}
+                          className="text-purple-600 hover:text-purple-700"
+                          title="Edit Room Layout"
+                        >
+                          <Layout className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditRoom(room)}
+                          className="text-orange-600 hover:text-orange-700"
+                          title="Edit Room Details"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleDeleteRoom(room)}
+                          title="Delete Room"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2">
+                          <Bed className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">
+                            {room.bedCount} beds
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">
+                            {room.occupancy}/{room.bedCount} occupied
+                          </span>
+                        </div>
+                      </div>
 
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: `${room.bedCount > 0 ? (room.occupancy / room.bedCount) * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <div className="text-xs text-gray-500 text-center">
-                  {room.bedCount > 0 ? Math.round((room.occupancy / room.bedCount) * 100) : 0}% Occupancy
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <div className="text-sm text-gray-600 mb-1">Monthly Rate</div>
+                        <div className="text-xl font-bold text-blue-600">
+                          NPR {(room.monthlyRate || 0).toLocaleString()}/month
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Daily: NPR {(room.dailyRate || Math.round((room.monthlyRate || 0) / 30)).toLocaleString()}/day
+                        </div>
+                      </div>
+
+                      {room.layout && (
+                        <div className="bg-purple-50 p-3 rounded-lg">
+                          <div className="text-sm text-purple-600 mb-1">Room Layout</div>
+                          <div className="text-sm text-gray-600">
+                            {room.layout.dimensions?.length}m × {room.layout.dimensions?.width}m
+                            <br />
+                            {room.layout.elements?.length || 0} elements configured
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Room Images */}
+                      {room.images && room.images.length > 0 && (
+                        <div className="mb-4">
+                          <div className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                            <ImageIcon className="h-4 w-4" />
+                            Room Images ({room.images.length})
+                          </div>
+                          <div className="flex gap-2 overflow-x-auto pb-2">
+                            {room.images.slice(0, 4).map((imageUrl, index) => (
+                              <div key={index} className="flex-shrink-0">
+                                <img
+                                  src={imageUrl}
+                                  alt={`${room.name} - Image ${index + 1}`}
+                                  className="w-16 h-16 object-cover rounded-md border border-gray-200 hover:scale-105 transition-transform cursor-pointer"
+                                  onClick={() => window.open(imageUrl, '_blank')}
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            ))}
+                            {room.images.length > 4 && (
+                              <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center text-xs text-gray-600">
+                                +{room.images.length - 4}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 mb-2">Amenities</div>
+                        <div className="flex flex-wrap gap-1">
+                          {room.amenities && room.amenities.length > 0 ? (
+                            room.amenities.map((amenity, index) => {
+                              // Handle both string and object formats for amenities
+                              const amenityText = typeof amenity === 'string' ? amenity : amenity?.name || amenity?.description || 'Unknown';
+                              const amenityKey = typeof amenity === 'string' ? amenity : amenity?.id || `amenity-${index}`;
+
+                              return (
+                                <Badge key={amenityKey} variant="secondary" className="text-xs">
+                                  {amenityText}
+                                </Badge>
+                              );
+                            })
+                          ) : (
+                            <span className="text-xs text-gray-500">No amenities listed</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full"
+                          style={{ width: `${room.bedCount > 0 ? (room.occupancy / room.bedCount) * 100 : 0}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-500 text-center">
+                        {room.bedCount > 0 ? Math.round((room.occupancy / room.bedCount) * 100) : 0}% Occupancy
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
 
@@ -828,7 +883,7 @@ export const RoomConfiguration = () => {
                 >
                   Previous
                 </Button>
-                
+
                 <div className="flex space-x-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <Button
@@ -842,7 +897,7 @@ export const RoomConfiguration = () => {
                     </Button>
                   ))}
                 </div>
-                
+
                 <Button
                   variant="outline"
                   size="sm"

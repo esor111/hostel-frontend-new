@@ -233,9 +233,13 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
         }
       });
     } else {
-      // Single select mode - only select this element
+      // 🔧 FIXED: Single select mode - clear all selections first, then select only this element 🔧
+      // This ensures no other elements remain selected when clicking on a single element
+      if (selectedElement && selectedElement !== id) {
+        setLastSelectedElement(selectedElement);
+      }
       setSelectedElement(id);
-      setSelectedElements([id]);
+      setSelectedElements([id]); // Always create a new array with only this element
       setLastSelectedElement(id);
     }
   };
@@ -419,14 +423,38 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
       attempts++;
     }
 
-    // Generate simple sequential bed IDs for better backend compatibility
-    const bedElements = elements.filter(e => e.type === 'single-bed' || e.type === 'bunk-bed');
-    const bedCount = bedElements.length;
-    const bedLabel = `Bed ${String.fromCharCode(65 + bedCount)}`; // A, B, C, D...
+    // 🔧 FIXED: Generate unique IDs for each element type to prevent ID conflicts
+    let elementId: string;
+    let elementLabel: string;
     
-    // Use simple sequential bed IDs (bed1, bed2, bed3, etc.)
-    const nextBedNumber = bedCount + 1;
-    const simpleBedId = `bed${nextBedNumber}`;
+    if (type === 'single-bed' || type === 'bunk-bed') {
+      // Generate simple sequential bed IDs for better backend compatibility
+      const bedElements = elements.filter(e => e.type === 'single-bed' || e.type === 'bunk-bed');
+      const bedCount = bedElements.length;
+      elementLabel = `Bed ${String.fromCharCode(65 + bedCount)}`; // A, B, C, D...
+      
+      // Use simple sequential bed IDs (bed1, bed2, bed3, etc.)
+      const nextBedNumber = bedCount + 1;
+      elementId = `bed${nextBedNumber}`;
+    } else if (type === 'door') {
+      // Generate unique door IDs
+      const doorElements = elements.filter(e => e.type === 'door');
+      const doorCount = doorElements.length;
+      elementId = `door${doorCount + 1}`;
+      elementLabel = `Door ${doorCount + 1}`;
+    } else if (type === 'window') {
+      // Generate unique window IDs
+      const windowElements = elements.filter(e => e.type === 'window');
+      const windowCount = windowElements.length;
+      elementId = `window${windowCount + 1}`;
+      elementLabel = `Window ${windowCount + 1}`;
+    } else {
+      // Generate unique IDs for other element types
+      const sameTypeElements = elements.filter(e => e.type === type);
+      const count = sameTypeElements.length;
+      elementId = `${type}${count + 1}`;
+      elementLabel = `${elementType.label} ${count + 1}`;
+    }
     
     const bunkBedCount = elements.filter(e => e.type === 'bunk-bed').length;
     const singleBedCount = elements.filter(e => e.type === 'single-bed').length;
@@ -444,7 +472,7 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
     }
 
     const newElement: RoomElement = {
-      id: simpleBedId, // Use simple bed ID format
+      id: elementId, // 🔧 FIXED: Use the correct unique ID for each element type
       type,
       x: snapToGridPosition(x),
       y: snapToGridPosition(y),
@@ -454,32 +482,32 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
       zIndex: elements.length,
       properties: type === 'bunk-bed' ? {
         bedType: 'bunk',
-        bedId: simpleBedId,
-        bedLabel: bedLabel,
+        bedId: elementId,
+        bedLabel: elementLabel,
         status: 'available',
         orientation: 'north',
         bunkLevels: 2, // Default to 2 levels
         isLocked: false,
         levels: [
           {
-            id: `${simpleBedId}-top`,
+            id: `${elementId}-top`,
             position: 'top',
-            bedId: `${simpleBedId}-top`,
+            bedId: `${elementId}-top`,
             status: 'available',
             assignedTo: undefined
           },
           {
-            id: `${simpleBedId}-bottom`,
+            id: `${elementId}-bottom`,
             position: 'bottom',
-            bedId: `${simpleBedId}-bottom`,
+            bedId: `${elementId}-bottom`,
             status: 'available',
             assignedTo: undefined
           }
         ]
       } : type === 'single-bed' ? {
         bedType: 'single',
-        bedId: simpleBedId,
-        bedLabel: bedLabel,
+        bedId: elementId,
+        bedLabel: elementLabel,
         status: 'available',
         orientation: 'north'
       } : type === 'door' ? {

@@ -259,6 +259,9 @@ export const RoomCanvas = ({
   const lastRenderTime = useRef<number>(0);
   const targetFPS = 60;
   const frameInterval = 1000 / targetFPS;
+  
+  // 🔧 SAFEGUARD: Store the original clicked element to ensure only it moves
+  const originalClickedElementRef = useRef<string | null>(null);
 
   // Reasonable scale for better visibility without being too large
   const canvasScale = Math.max(scale * 2, 60);
@@ -642,11 +645,20 @@ export const RoomCanvas = ({
   };
 
   const getElementAtPosition = (x: number, y: number): RoomElement | null => {
+    // Sort by zIndex (highest first) to get the topmost element
     const sortedElements = [...elements].sort((a, b) => b.zIndex - a.zIndex);
-    return sortedElements.find(element =>
-      x >= element.x && x <= element.x + element.width &&
-      y >= element.y && y <= element.y + element.height
-    ) || null;
+    
+    // Find the first element that contains the click position with precise boundary checking
+    return sortedElements.find(element => {
+      // Use precise boundary checking without tolerance to prevent accidental selection
+      // This ensures only direct clicks on elements are registered
+      return (
+        x >= element.x && 
+        x <= (element.x + element.width) &&
+        y >= element.y && 
+        y <= (element.y + element.height)
+      );
+    }) || null;
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -666,18 +678,23 @@ export const RoomCanvas = ({
         return;
       }
 
-      // 🔧 FIXED: For dragging, always select only the clicked element to prevent group movement 🔧
+      // 🔧 FIXED: Simplified selection logic to prevent unintended multi-selection 🔧
       if (!isMultiSelect) {
-        // Single selection - clear all other selections first
-        onElementSelect('', false); // Clear selections
-        onElementSelect(clickedElement.id, false); // Select only this element
+        // Single selection - directly select only this element (this will clear others automatically)
+        onElementSelect(clickedElement.id, false);
       } else {
-        // For multi-select, still add to selection but drag will only move the clicked element
-        onElementSelect(clickedElement.id, isMultiSelect);
+        // For multi-select, add to selection
+        onElementSelect(clickedElement.id, true);
       }
 
       // Start 🧈 ULTRA-SMOOTH BUTTER DRAGGING 🧈 with INDEPENDENT MOVEMENT
       if (!clickedElement.properties?.isLocked) {
+        // 🔧 SAFEGUARD: Store the original clicked element
+        originalClickedElementRef.current = clickedElement.id;
+        
+        // FORCE: Ensure ONLY this element is selected before starting drag
+        onElementSelect(clickedElement.id, false);
+        
         setIsDragging(true);
         setDraggedElementId(clickedElement.id);
         setDragStartTime(performance.now());
@@ -832,7 +849,11 @@ export const RoomCanvas = ({
       if (Math.abs(deltaX) > 0.0001 || Math.abs(deltaY) > 0.0001) {
         if (!hasCollision) {
           // Only move if no collision detected - INDEPENDENT MOVEMENT
-          onElementsMove([draggedElementId], deltaX, deltaY);
+          // 🔧 ULTIMATE SAFEGUARD: Use the original clicked element, not any state that might have changed
+          const elementToMove = originalClickedElementRef.current || draggedElementId;
+          
+          // FORCE: Only move the specific dragged element, ignore selectedElements
+          onElementsMove([elementToMove], deltaX, deltaY);
           
           // Update position tracking
           lastPositionRef.current = { x: newX, y: newY };
@@ -944,6 +965,9 @@ export const RoomCanvas = ({
     setDragOffset(null);
     setLastMousePos(null);
     setDragStartTime(0);
+    
+    // 🔧 SAFEGUARD: Clear the original clicked element reference
+    originalClickedElementRef.current = null;
     
     // Clear all smoothing systems
     smoothingBuffer.current = [];
