@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, Sparkles, CheckCircle } from "lucide-react";
+import { formatDimensionsAsFeet, formatMetersAsFeet, formatSquareMetersAsFeet } from "@/utils/unitConversion";
 
 interface RoomDimensions {
   length: number;
@@ -171,8 +172,8 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                   <span className="font-medium">Room Preview</span>
                 </div>
                 <p className="text-blue-700">
-                  Your room will be {dimensions.length}m × {dimensions.width}m × {dimensions.height}m 
-                  ({(dimensions.length * dimensions.width).toFixed(1)} sq meters)
+                  Your room will be {formatDimensionsAsFeet(dimensions.length, dimensions.width)} × {formatMetersAsFeet(dimensions.height)} 
+                  ({formatSquareMetersAsFeet(dimensions.length * dimensions.width)})
                 </p>
               </div>
             </div>

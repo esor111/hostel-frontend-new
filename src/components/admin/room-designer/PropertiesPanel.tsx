@@ -23,6 +23,7 @@ import {
   Minus
 } from "lucide-react";
 import { elementTypes } from "./ElementTypes";
+import { formatMetersAsFeet, formatSquareMetersAsFeet, formatDimensionsAsFeet, metersToFeet, feetToMeters } from "@/utils/unitConversion";
 
 interface BunkLevel {
   id: string;
@@ -339,40 +340,42 @@ export const PropertiesPanel = ({
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-600">Width (m)</Label>
+              <Label className="text-xs text-gray-600">Width (ft)</Label>
               <Input
                 type="number"
-                value={selectedElement.width.toFixed(1)}
+                value={metersToFeet(selectedElement.width).toFixed(1)}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '') {
-                    onUpdateElement(selectedElement.id, { width: 0.1 });
+                    onUpdateElement(selectedElement.id, { width: feetToMeters(1.0) });
                   } else {
                     const numValue = Number(value);
                     if (!isNaN(numValue)) {
-                      onUpdateElement(selectedElement.id, { width: Math.max(0.1, numValue) });
+                      // Convert feet back to meters for storage
+                      onUpdateElement(selectedElement.id, { width: Math.max(feetToMeters(0.3), feetToMeters(numValue)) });
                     }
                   }
                 }}
                 step="0.1"
-                min="0.1"
+                min="0.3"
                 className="text-sm"
                 disabled={selectedElement.properties?.isLocked}
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-600">Height (m)</Label>
+              <Label className="text-xs text-gray-600">Height (ft)</Label>
               <Input
                 type="number"
-                value={selectedElement.height.toFixed(1)}
+                value={metersToFeet(selectedElement.height).toFixed(1)}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '') {
-                    onUpdateElement(selectedElement.id, { height: 0.1 });
+                    onUpdateElement(selectedElement.id, { height: feetToMeters(1.0) });
                   } else {
                     const numValue = Number(value);
                     if (!isNaN(numValue)) {
-                      onUpdateElement(selectedElement.id, { height: Math.max(0.1, numValue) });
+                      // Convert feet back to meters for storage
+                      onUpdateElement(selectedElement.id, { height: Math.max(feetToMeters(0.3), feetToMeters(numValue)) });
                     }
                   }
                 }}
@@ -770,7 +773,7 @@ export const PropertiesPanel = ({
             <div className="flex justify-between">
               <span>Area:</span>
               <span className="font-medium">
-                {(selectedElement.width * selectedElement.height).toFixed(2)} m²
+                {formatSquareMetersAsFeet(selectedElement.width * selectedElement.height)}
               </span>
             </div>
             {selectedElement.type === 'bunk-bed' && (

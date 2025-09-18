@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RotateCw, Copy, Trash2, Ruler, Grid3X3 } from "lucide-react";
 import { elementTypes } from "./ElementTypes";
+import { formatDimensionsAsFeet } from "@/utils/unitConversion";
 
 // Enhanced emoji mapping function for room elements
 const getElementEmoji = (elementType: string, properties?: any): string => {
@@ -1099,7 +1100,7 @@ export const RoomCanvas = ({
           </Badge>
           <Badge variant="secondary">
             <Ruler className="h-4 w-4 mr-2" />
-            {dimensions.length}m × {dimensions.width}m
+            {formatDimensionsAsFeet(dimensions.length, dimensions.width)}
           </Badge>
           <Badge variant="outline" className="bg-green-50 text-green-700">
             📦 {elements.length} elements
