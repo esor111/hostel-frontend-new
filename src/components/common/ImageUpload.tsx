@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -95,19 +95,33 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       const filesToUpload = unuploadedImages.map(img => img.file);
       const uploadedResults = await ImageUploadService.uploadImages(filesToUpload);
 
-      // Update preview images with upload results
-      setPreviewImages(prev => prev.map((img, index) => {
-        const unuploadedIndex = unuploadedImages.findIndex(unuploaded => unuploaded === img);
-        if (unuploadedIndex !== -1) {
-          return {
-            ...img,
-            uploading: false,
-            uploaded: true,
-            uploadedData: uploadedResults[unuploadedIndex],
-          };
-        }
-        return img;
-      }));
+      // Update preview images with upload results - use a more explicit approach
+      setPreviewImages(prev => {
+        const updated = prev.map((img) => {
+          const unuploadedIndex = unuploadedImages.findIndex(unuploaded => unuploaded === img);
+          if (unuploadedIndex !== -1 && uploadedResults[unuploadedIndex]) {
+            // This image was successfully uploaded
+            console.log(`✅ Marking image as uploaded:`, img.file.name);
+            return {
+              ...img,
+              uploading: false,
+              uploaded: true,
+              uploadedData: uploadedResults[unuploadedIndex],
+              error: undefined,
+            };
+          }
+          return img;
+        });
+        
+        console.log('📊 Updated preview images state:', updated.map(img => ({
+          name: img.file.name,
+          uploading: img.uploading,
+          uploaded: img.uploaded,
+          error: img.error
+        })));
+        
+        return updated;
+      });
 
       // Combine existing images with newly uploaded images (extract URLs only)
       const allImageUrls = [
@@ -121,11 +135,12 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     } catch (error) {
       console.error('Upload error:', error);
       
-      // Mark failed uploads
+      // Mark failed uploads - ensure we clear the uploading state
       setPreviewImages(prev => prev.map(img => 
         unuploadedImages.includes(img) ? { 
           ...img, 
           uploading: false, 
+          uploaded: false, // Explicitly set to false on error
           error: error instanceof Error ? error.message : 'Upload failed' 
         } : img
       ));
@@ -155,6 +170,16 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   };
 
   const hasUnuploadedImages = previewImages.some(img => !img.uploaded);
+
+  // Debug effect to monitor state changes
+  useEffect(() => {
+    console.log('🔄 Preview images state changed:', previewImages.map(img => ({
+      name: img.file.name,
+      uploading: img.uploading,
+      uploaded: img.uploaded,
+      hasError: !!img.error
+    })));
+  }, [previewImages]);
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -290,7 +315,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                     />
                     
                     {/* Upload Status Overlay */}
-                    {(image.uploading || image.error) && (
+                    {(image.uploading || (image.error && !image.uploaded)) && (
                       <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                         {image.uploading ? (
                           <Loader2 className="h-6 w-6 text-white animate-spin" />
@@ -300,6 +325,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                             <p>Failed</p>
                           </div>
                         ) : null}
+                      </div>
+                    )}
+                    
+                    {/* Success Overlay for uploaded images */}
+                    {image.uploaded && (
+                      <div className="absolute inset-0 bg-green-600 bg-opacity-20 flex items-center justify-center">
+                        <div className="bg-green-600 rounded-full p-1">
+                          <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
                       </div>
                     )}
 
