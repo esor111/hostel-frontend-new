@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getEnvironmentConfig } from '../config/environment';
 
-const API_BASE_URL = 'http://localhost:3001/hostel/api/v1';
+const API_BASE_URL = getEnvironmentConfig().apiBaseUrl;
 
 export interface BookingGuest {
   id: string;
