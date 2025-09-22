@@ -16,6 +16,7 @@ interface BunkLevel {
   assignedTo?: string;
   bedId: string;
   status?: 'available' | 'booked' | 'occupied' | 'selected';
+  color?: string; // Add color property for API bed visualization
 }
 
 interface RoomElement {
@@ -27,6 +28,19 @@ interface RoomElement {
   height: number;
   rotation: number;
   zIndex: number;
+  // Bed status visualization properties (from API)
+  status?: string;
+  occupantId?: string | null;
+  occupantName?: string;
+  gender?: string;
+  color?: string;
+  bedDetails?: {
+    bedNumber?: string;
+    monthlyRate?: number;
+    lastCleaned?: Date;
+    maintenanceNotes?: string;
+    occupiedSince?: Date;
+  };
   properties?: {
     bedType?: 'single' | 'bunk' | 'double' | 'kids';
     bedId?: string;
@@ -59,9 +73,10 @@ interface RoomDesignerProps {
   onSave: (layout: any) => void;
   onClose: () => void;
   roomData?: any;
+  isViewMode?: boolean; // New prop to indicate if this is view mode (read-only)
 }
 
-export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) => {
+export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: RoomDesignerProps) => {
   const [showWizard, setShowWizard] = useState(!roomData);
 
   const [dimensions, setDimensions] = useState({
@@ -78,7 +93,39 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
     }
   );
 
-  const [elements, setElements] = useState<RoomElement[]>(roomData?.elements || []);
+  // Initialize elements from roomData, handling both elements and bedPositions
+  const initializeElements = () => {
+    if (roomData?.elements) {
+      return roomData.elements;
+    } else if (roomData?.bedPositions) {
+      // Convert bedPositions to elements format for the designer
+      return roomData.bedPositions.map((bedPos: any) => ({
+        id: bedPos.id,
+        type: 'single-bed', // Assume single bed for bedPositions
+        x: bedPos.x,
+        y: bedPos.y,
+        width: bedPos.width,
+        height: bedPos.height,
+        rotation: bedPos.rotation || 0,
+        zIndex: 0,
+        // Enhanced properties from bed data
+        status: bedPos.status,
+        occupantId: bedPos.occupantId,
+        occupantName: bedPos.occupantName,
+        gender: bedPos.gender,
+        color: bedPos.color,
+        bedDetails: bedPos.bedDetails,
+        properties: {
+          bedType: 'single',
+          bedId: bedPos.id,
+          bedLabel: bedPos.id
+        }
+      }));
+    }
+    return [];
+  };
+
+  const [elements, setElements] = useState<RoomElement[]>(initializeElements());
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
   const [selectedElements, setSelectedElements] = useState<string[]>([]);
   const [lastSelectedElement, setLastSelectedElement] = useState<string | null>(null);
@@ -95,6 +142,7 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
   const [historyIndex, setHistoryIndex] = useState(-1);
 
   const [collisionWarnings, setCollisionWarnings] = useState<string[]>([]);
+  const [dragCollisionDetected, setDragCollisionDetected] = useState(false);
 
   const snapToGridPosition = (value: number) => {
     if (!snapToGrid) return value;
@@ -164,25 +212,40 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
       setSelectedElement(null);
       setSelectedElements([]);
     } else if (multiSelect) {
-      setSelectedElements(prev =>
-        prev.includes(id)
-          ? prev.filter(elId => elId !== id)
-          : [...prev, id]
-      );
-      // Update single selection to the last selected element
-      if (!selectedElements.includes(id)) {
-        setSelectedElement(id);
-        setLastSelectedElement(id);
-      }
+      // Multi-select mode
+      setSelectedElements(prev => {
+        if (prev.includes(id)) {
+          // Remove from selection
+          const newSelection = prev.filter(elId => elId !== id);
+          // Update single selection to the last remaining element
+          if (newSelection.length > 0) {
+            setSelectedElement(newSelection[newSelection.length - 1]);
+          } else {
+            setSelectedElement(null);
+          }
+          return newSelection;
+        } else {
+          // Add to selection
+          const newSelection = [...prev, id];
+          setSelectedElement(id);
+          setLastSelectedElement(id);
+          return newSelection;
+        }
+      });
     } else {
+      // 🔧 FIXED: Single select mode - clear all selections first, then select only this element 🔧
+      // This ensures no other elements remain selected when clicking on a single element
+      if (selectedElement && selectedElement !== id) {
+        setLastSelectedElement(selectedElement);
+      }
       setSelectedElement(id);
-      setSelectedElements([id]);
+      setSelectedElements([id]); // Always create a new array with only this element
       setLastSelectedElement(id);
     }
   };
 
   const handleElementsMove = (ids: string[], deltaX: number, deltaY: number) => {
-    // 🧈 ULTRA-SMOOTH BUTTER MOVEMENT SYSTEM 🧈
+    // 🧈 ULTRA-SMOOTH BUTTER MOVEMENT SYSTEM with INDEPENDENT COLLISION DETECTION 🧈
     setElements(prevElements => {
       // Use React's batching for optimal performance
       return prevElements.map(el => {
@@ -198,33 +261,88 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
         const effectiveWidth = isRotated ? el.height : el.width;
         const effectiveHeight = isRotated ? el.width : el.height;
         
-        // 🔧 FIXED: PERFECT boundary constraints (NO MORE BOUNCING!) 🔧
+        // 🔧 FIXED: PERFECT boundary constraints with INDEPENDENT movement 🔧
         // Calculate maximum positions with ultra-high precision
         const maxX = Math.max(0, dimensions.length - effectiveWidth);
         const maxY = Math.max(0, dimensions.width - effectiveHeight);
         
-        // Apply boundary constraints with NO bouncing
+        // Apply boundary constraints with independent element movement
         let constrainedX = newX;
         let constrainedY = newY;
         
-        if (constrainedX < 0) {
-          constrainedX = 0;
-        } else if (constrainedX > maxX) {
-          constrainedX = maxX;
+        // Special handling for windows and doors - allow wall positioning
+        const isOpening = el.type === 'window' || el.type === 'door';
+        
+        if (isOpening) {
+          // For openings, allow positioning at exact boundaries (walls)
+          if (constrainedX < 0) {
+            constrainedX = 0; // Left wall
+          } else if (constrainedX > dimensions.length - effectiveWidth) {
+            constrainedX = dimensions.length - effectiveWidth; // Right wall
+          }
+          
+          if (constrainedY < 0) {
+            constrainedY = 0; // Top wall
+          } else if (constrainedY > dimensions.width - effectiveHeight) {
+            constrainedY = dimensions.width - effectiveHeight; // Bottom wall
+          }
+        } else {
+          // For furniture, maintain small margin from walls
+          const margin = 0.1;
+          if (constrainedX < margin) {
+            constrainedX = margin;
+          } else if (constrainedX > maxX - margin) {
+            constrainedX = maxX - margin;
+          }
+          
+          if (constrainedY < margin) {
+            constrainedY = margin;
+          } else if (constrainedY > maxY - margin) {
+            constrainedY = maxY - margin;
+          }
         }
         
-        if (constrainedY < 0) {
-          constrainedY = 0;
-        } else if (constrainedY > maxY) {
-          constrainedY = maxY;
-        }
-        
-        // Return element with butter-smooth positioning
-        return { 
-          ...el, 
-          x: constrainedX, 
-          y: constrainedY 
+        // 🔧 COLLISION DETECTION: Check if new position would cause collision 🔧
+        const testElement = {
+          ...el,
+          x: constrainedX,
+          y: constrainedY
         };
+        
+        // Check collision with other elements (excluding elements being moved)
+        const hasCollision = prevElements.some(otherEl => {
+          if (otherEl.id === el.id || ids.includes(otherEl.id)) return false;
+          
+          return !(
+            testElement.x >= otherEl.x + otherEl.width ||
+            testElement.x + testElement.width <= otherEl.x ||
+            testElement.y >= otherEl.y + otherEl.height ||
+            testElement.y + testElement.height <= otherEl.y
+          );
+        });
+        
+        // Only move if no collision detected - INDEPENDENT MOVEMENT
+        if (!hasCollision) {
+          return { 
+            ...el, 
+            x: constrainedX, 
+            y: constrainedY 
+          };
+        } else {
+          // If collision detected, don't move this element and show feedback
+          setDragCollisionDetected(true);
+          setTimeout(() => setDragCollisionDetected(false), 500); // Clear after 500ms
+          
+          // Show toast notification for collision (throttled to prevent spam)
+          if (!dragCollisionDetected) {
+            toast.warning("Cannot move - collision detected!", {
+              description: "Element cannot be moved to this position due to overlap with another element.",
+              duration: 2000,
+            });
+          }
+          
+          return el;
+        }
       });
     });
   };
@@ -305,14 +423,38 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
       attempts++;
     }
 
-    // Generate unique IDs and labels for beds
-    const bedElements = elements.filter(e => e.type === 'single-bed' || e.type === 'bunk-bed');
-    const bedCount = bedElements.length;
-    const bedLabel = `Bed ${String.fromCharCode(65 + bedCount)}`; // A, B, C, D...
+    // 🔧 FIXED: Generate unique IDs for each element type to prevent ID conflicts
+    let elementId: string;
+    let elementLabel: string;
     
-    // Generate unique timestamp-based IDs
-    const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 6);
+    if (type === 'single-bed' || type === 'bunk-bed') {
+      // Generate simple sequential bed IDs for better backend compatibility
+      const bedElements = elements.filter(e => e.type === 'single-bed' || e.type === 'bunk-bed');
+      const bedCount = bedElements.length;
+      elementLabel = `Bed ${String.fromCharCode(65 + bedCount)}`; // A, B, C, D...
+      
+      // Use simple sequential bed IDs (bed1, bed2, bed3, etc.)
+      const nextBedNumber = bedCount + 1;
+      elementId = `bed${nextBedNumber}`;
+    } else if (type === 'door') {
+      // Generate unique door IDs
+      const doorElements = elements.filter(e => e.type === 'door');
+      const doorCount = doorElements.length;
+      elementId = `door${doorCount + 1}`;
+      elementLabel = `Door ${doorCount + 1}`;
+    } else if (type === 'window') {
+      // Generate unique window IDs
+      const windowElements = elements.filter(e => e.type === 'window');
+      const windowCount = windowElements.length;
+      elementId = `window${windowCount + 1}`;
+      elementLabel = `Window ${windowCount + 1}`;
+    } else {
+      // Generate unique IDs for other element types
+      const sameTypeElements = elements.filter(e => e.type === type);
+      const count = sameTypeElements.length;
+      elementId = `${type}${count + 1}`;
+      elementLabel = `${elementType.label} ${count + 1}`;
+    }
     
     const bunkBedCount = elements.filter(e => e.type === 'bunk-bed').length;
     const singleBedCount = elements.filter(e => e.type === 'single-bed').length;
@@ -330,7 +472,7 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
     }
 
     const newElement: RoomElement = {
-      id: `${type}-${timestamp}-${randomSuffix}`,
+      id: elementId, // 🔧 FIXED: Use the correct unique ID for each element type
       type,
       x: snapToGridPosition(x),
       y: snapToGridPosition(y),
@@ -340,32 +482,32 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
       zIndex: elements.length,
       properties: type === 'bunk-bed' ? {
         bedType: 'bunk',
-        bedId: `BUNK-${String(bunkBedCount + 1).padStart(3, '0')}-${randomSuffix.toUpperCase()}`,
-        bedLabel: bedLabel,
+        bedId: elementId,
+        bedLabel: elementLabel,
         status: 'available',
         orientation: 'north',
         bunkLevels: 2, // Default to 2 levels
         isLocked: false,
         levels: [
           {
-            id: `${timestamp}-B1-${randomSuffix}`,
+            id: `${elementId}-top`,
             position: 'top',
-            bedId: `${bedLabel}-B1-${randomSuffix.toUpperCase()}`,
+            bedId: `${elementId}-top`,
             status: 'available',
             assignedTo: undefined
           },
           {
-            id: `${timestamp}-B2-${randomSuffix}`,
+            id: `${elementId}-bottom`,
             position: 'bottom',
-            bedId: `${bedLabel}-B2-${randomSuffix.toUpperCase()}`,
+            bedId: `${elementId}-bottom`,
             status: 'available',
             assignedTo: undefined
           }
         ]
       } : type === 'single-bed' ? {
         bedType: 'single',
-        bedId: `BED-${String(singleBedCount + 1).padStart(3, '0')}-${randomSuffix.toUpperCase()}`,
-        bedLabel: bedLabel,
+        bedId: elementId,
+        bedLabel: elementLabel,
         status: 'available',
         orientation: 'north'
       } : type === 'door' ? {
@@ -563,52 +705,118 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
                   {collisionWarnings.length} Warning{collisionWarnings.length > 1 ? 's' : ''}
                 </Badge>
               )}
+              {dragCollisionDetected && (
+                <Badge variant="destructive" className="ml-2 animate-pulse">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Collision Detected!
+                </Badge>
+              )}
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            onClick={() => setShowWizard(true)}
-            className="text-purple-600 hover:text-purple-700"
-          >
-            Room Setup
-          </Button>
+          {!isViewMode && (
+            <Button
+              variant="outline"
+              onClick={() => setShowWizard(true)}
+              className="text-purple-600 hover:text-purple-700"
+            >
+              Room Setup
+            </Button>
+          )}
+          {isViewMode && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Badge variant="secondary">View Mode</Badge>
+              <span>Real-time bed status visualization</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Toolbar */}
-      <DesignerToolbar
-        canUndo={historyIndex > 0}
-        canRedo={historyIndex < history.length - 1}
-        onUndo={undo}
-        onRedo={redo}
-        scale={scale}
-        onZoomIn={() => handleZoom(5)}
-        onZoomOut={() => handleZoom(-5)}
-        showGrid={showGrid}
-        onToggleGrid={() => setShowGrid(!showGrid)}
-        snapToGrid={snapToGrid}
-        onToggleSnap={() => setSnapToGrid(!snapToGrid)}
-        viewMode={viewMode}
-        onToggleViewMode={() => setViewMode(viewMode === '2d' ? '3d' : '2d')}
-        onSave={saveLayout}
-        onClear={clearRoom}
-        onExport={handleExport}
-        onImport={handleImport}
-        elementCount={elements.length}
-        roomDimensions={dimensions}
-      />
+      {!isViewMode && (
+        <DesignerToolbar
+          canUndo={historyIndex > 0}
+          canRedo={historyIndex < history.length - 1}
+          onUndo={undo}
+          onRedo={redo}
+          scale={scale}
+          onZoomIn={() => handleZoom(5)}
+          onZoomOut={() => handleZoom(-5)}
+          showGrid={showGrid}
+          onToggleGrid={() => setShowGrid(!showGrid)}
+          snapToGrid={snapToGrid}
+          onToggleSnap={() => setSnapToGrid(!snapToGrid)}
+          viewMode={viewMode}
+          onToggleViewMode={() => setViewMode(viewMode === '2d' ? '3d' : '2d')}
+          onSave={saveLayout}
+          onClear={clearRoom}
+          onExport={handleExport}
+          onImport={handleImport}
+          elementCount={elements.length}
+          roomDimensions={dimensions}
+        />
+      )}
+      
+      {/* View Mode Toolbar - Simplified */}
+      {isViewMode && (
+        <div className="bg-white border-b border-gray-200 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600">
+                Room Layout View - {elements.length} beds
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span className="text-xs">Available</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-red-500 rounded"></div>
+                  <span className="text-xs">Occupied</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                  <span className="text-xs">Reserved</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-gray-500 rounded"></div>
+                  <span className="text-xs">Maintenance</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleZoom(-5)}
+              >
+                Zoom Out
+              </Button>
+              <span className="text-sm text-gray-600">{scale}%</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleZoom(5)}
+              >
+                Zoom In
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Designer Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Element Library */}
-        <ElementLibraryPanel
-          onAddElement={addElement}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          onDuplicateMode={setDuplicateMode}
-          duplicateMode={duplicateMode}
-        />
+        {/* Element Library - Only show in edit mode */}
+        {!isViewMode && (
+          <ElementLibraryPanel
+            onAddElement={addElement}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            onDuplicateMode={setDuplicateMode}
+            duplicateMode={duplicateMode}
+          />
+        )}
 
         {/* Canvas */}
         <RoomCanvas
@@ -620,30 +828,67 @@ export const RoomDesigner = ({ onSave, onClose, roomData }: RoomDesignerProps) =
           scale={scale}
           showGrid={showGrid}
           snapToGrid={snapToGrid}
-          duplicateMode={duplicateMode}
-          onMouseDown={handleCanvasMouseDown}
-          onMouseMove={handleCanvasMouseMove}
-          onMouseUp={handleCanvasMouseUp}
-          onElementSelect={handleElementSelect}
-          onElementsMove={handleElementsMove}
-          onElementsMoveComplete={handleElementsMoveComplete}
-          onElementRotate={rotateElement}
-          onElementDuplicate={handleElementDuplicate}
-          onElementDelete={deleteElement}
+          duplicateMode={duplicateMode && !isViewMode}
+          onMouseDown={isViewMode ? () => {} : handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove} // Keep for tooltips
+          onMouseUp={isViewMode ? () => {} : handleCanvasMouseUp}
+          onElementSelect={isViewMode ? () => {} : handleElementSelect}
+          onElementsMove={isViewMode ? () => {} : handleElementsMove}
+          onElementsMoveComplete={isViewMode ? () => {} : handleElementsMoveComplete}
+          onElementRotate={isViewMode ? () => {} : rotateElement}
+          onElementDuplicate={isViewMode ? () => {} : handleElementDuplicate}
+          onElementDelete={isViewMode ? () => {} : deleteElement}
           checkCollisions={checkCollisions}
           warnings={collisionWarnings}
         />
 
-        {/* Properties Panel */}
-        <PropertiesPanel
-          selectedElement={selectedElementData || (lastSelectedElement ? elements.find(el => el.id === lastSelectedElement) : null)}
-          onUpdateElement={updateElement}
-          onDeleteElement={deleteElement}
-          onRotateElement={rotateElement}
-          onDuplicateElement={duplicateElement}
-          hasCollision={selectedElementData ? checkCollisions(selectedElementData, selectedElementData.id) : false}
-          isLastSelected={!selectedElementData && !!lastSelectedElement}
-        />
+        {/* Properties Panel - Only show in edit mode */}
+        {!isViewMode && (
+          <PropertiesPanel
+            selectedElement={selectedElementData || (lastSelectedElement ? elements.find(el => el.id === lastSelectedElement) : null)}
+            onUpdateElement={updateElement}
+            onDeleteElement={deleteElement}
+            onRotateElement={rotateElement}
+            onDuplicateElement={duplicateElement}
+            hasCollision={selectedElementData ? checkCollisions(selectedElementData, selectedElementData.id) : false}
+            isLastSelected={!selectedElementData && !!lastSelectedElement}
+          />
+        )}
+        
+        {/* Bed Status Panel - Only show in view mode */}
+        {isViewMode && (
+          <div className="w-80 bg-white border-l border-gray-200 p-4 overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Bed Status Overview</h3>
+            <div className="space-y-3">
+              {elements.filter(el => el.type.includes('bed')).map(bed => (
+                <div key={bed.id} className="p-3 border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">{bed.id}</span>
+                    <div 
+                      className="w-4 h-4 rounded"
+                      style={{ backgroundColor: bed.color || '#10B981' }}
+                    ></div>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div>Status: <span className="font-medium">{bed.status || 'Available'}</span></div>
+                    {bed.occupantName && (
+                      <div>Occupant: <span className="font-medium">{bed.occupantName}</span></div>
+                    )}
+                    {bed.gender && bed.gender !== 'Any' && (
+                      <div>Gender: <span className="font-medium">{bed.gender}</span></div>
+                    )}
+                    {bed.bedDetails?.monthlyRate && (
+                      <div>Rate: <span className="font-medium">NPR {bed.bedDetails.monthlyRate.toLocaleString()}/month</span></div>
+                    )}
+                    {bed.bedDetails?.occupiedSince && (
+                      <div>Occupied since: <span className="font-medium">{new Date(bed.bedDetails.occupiedSince).toLocaleDateString()}</span></div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

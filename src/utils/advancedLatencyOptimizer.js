@@ -457,11 +457,18 @@ class AdvancedLatencyOptimizer {
         });
         
         if (response.ok) {
-          const data = await response.json();
-          this.setCache(endpoint, data, 600000); // 10 minutes for warmup
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            this.setCache(endpoint, data, 600000); // 10 minutes for warmup
+          } else {
+            console.warn('Cache warmup skipped (non-JSON response):', endpoint, 'Content-Type:', contentType);
+          }
+        } else {
+          console.warn('Cache warmup failed (HTTP error):', endpoint, response.status, response.statusText);
         }
       } catch (error) {
-        console.warn('Cache warmup failed:', endpoint, error);
+        console.warn('Cache warmup failed:', endpoint, error.message);
       }
     });
 
@@ -475,17 +482,31 @@ export const advancedLatencyOptimizer = new AdvancedLatencyOptimizer();
 
 // Initialize on load
 if (typeof window !== 'undefined') {
+  // Get the correct API base URL
+  const getApiBaseUrl = () => {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3001/hostel/api/v1';
+    } else if (hostname.includes('dev.')) {
+      return 'https://dev.kaha.com.np/hostel/api/v1';
+    } else {
+      return 'https://api.kaha.com.np/hostel/api/v1';
+    }
+  };
+
+  const apiBaseUrl = getApiBaseUrl();
+
   // Warm up critical caches
   advancedLatencyOptimizer.warmupCache([
-    '/api/students',
-    '/api/dashboard/stats',
-    '/api/ledger/summary'
+    `${apiBaseUrl}/students`,
+    `${apiBaseUrl}/dashboard/stats`,
+    `${apiBaseUrl}/ledger/summary`
   ]);
 
   // Add resource hints for critical resources
   advancedLatencyOptimizer.addResourceHints([
-    { type: 'preconnect', url: '/api' },
-    { type: 'prefetch', url: '/api/students' },
-    { type: 'prefetch', url: '/api/dashboard/stats' }
+    { type: 'preconnect', url: apiBaseUrl },
+    { type: 'prefetch', url: `${apiBaseUrl}/students` },
+    { type: 'prefetch', url: `${apiBaseUrl}/dashboard/stats` }
   ]);
 }

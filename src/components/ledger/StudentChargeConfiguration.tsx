@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { useAppContext } from "@/contexts/AppContext";
+import { useAppContext } from "@/contexts/SafeAppContext";
 import { studentService } from "@/services/studentService";
 import { billingService } from "@/services/billingService";
 import { 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, User, Bed, DollarSign, Calendar, CreditCard, LogOut, CheckCircle } from "lucide-react";
+import { Search, User, Bed, DollarSign, Calendar, CreditCard, LogOut, CheckCircle, Edit, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { monthlyInvoiceService } from "@/services/monthlyInvoiceService.js";
-import { ledgerService } from "@/services/ledgerService.js";
-import { checkoutService } from "@/services/checkoutService.js";
-import { mockData } from "@/data/mockData.js";
+import { useLedger } from "@/hooks/useLedger";
+import { checkoutApiService } from "@/services/checkoutApiService";
+import { useStudents } from "@/hooks/useStudents";
+import { Student as ApiStudent } from "@/types/api";
+import { CheckoutConfirmationDialog } from "./CheckoutConfirmationDialog";
 
 interface Student {
     id: string;
@@ -25,9 +27,7 @@ interface Student {
     laundryFee: number;
     foodFee: number;
     joinDate: string;
-    status: string;
-    isCheckedOut: boolean;
-    checkoutDate: string | null;
+    status: 'Active' | 'Inactive' | 'Suspended' | 'Graduated';
     currentBalance: number;
     totalPaid: number;
     totalDue: number;
@@ -63,7 +63,17 @@ interface CheckoutDialogProps {
 }
 
 const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: CheckoutDialogProps) => {
-    const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+    // Use real ledger API
+    const {
+        entries: ledgerEntries,
+        studentBalance,
+        entriesLoading,
+        balanceLoading,
+        fetchStudentLedger,
+        fetchStudentBalance,
+        createAdjustment
+    } = useLedger();
+
     const [currentMonthBilling, setCurrentMonthBilling] = useState<any>(null);
     const [totalDueAmount, setTotalDueAmount] = useState(0);
     const [allowCheckoutWithoutPayment, setAllowCheckoutWithoutPayment] = useState(false);
@@ -81,92 +91,22 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
         try {
             setLoading(true);
 
-            // Load existing ledger entries using ledger service
-            let studentLedger: LedgerEntry[] = [];
-
-            try {
-                // Try to get ledger by student ID directly
-                studentLedger = await ledgerService.getLedgerByStudentId(student.id);
-
-                // If no entries found, try with different ID formats
-                if (studentLedger.length === 0) {
-                    // Convert student_001 to STU001 format
-                    const altId = student.id.replace('student_', 'STU');
-                    studentLedger = await ledgerService.getLedgerByStudentId(altId);
-                }
-
-                // If still no entries, create some sample entries for demonstration
-                if (studentLedger.length === 0) {
-                    studentLedger = [
-                        {
-                            id: `LED${Date.now()}_1`,
-                            studentId: student.id,
-                            date: "2024-01-01",
-                            type: "Invoice",
-                            description: "Monthly fees - January 2024",
-                            referenceId: "INV001",
-                            debit: student.baseMonthlyFee + student.laundryFee + student.foodFee,
-                            credit: 0,
-                            remark: "Initial monthly invoice"
-                        },
-                        {
-                            id: `LED${Date.now()}_2`,
-                            studentId: student.id,
-                            date: "2024-01-15",
-                            type: "Payment",
-                            description: "Payment received - Cash",
-                            referenceId: "PAY001",
-                            debit: 0,
-                            credit: (student.baseMonthlyFee + student.laundryFee + student.foodFee) * 0.8,
-                            remark: "Partial payment"
-                        }
-                    ];
-                }
-            } catch (error) {
-                console.error('Error loading ledger data:', error);
-                // Create sample ledger entries if service fails
-                studentLedger = [
-                    {
-                        id: `LED${Date.now()}_1`,
-                        studentId: student.id,
-                        date: "2024-01-01",
-                        type: "Invoice",
-                        description: "Monthly fees - January 2024",
-                        referenceId: "INV001",
-                        debit: student.baseMonthlyFee + student.laundryFee + student.foodFee,
-                        credit: 0,
-                        remark: "Initial monthly invoice"
-                    },
-                    {
-                        id: `LED${Date.now()}_2`,
-                        studentId: student.id,
-                        date: "2024-01-15",
-                        type: "Payment",
-                        description: "Payment received - Cash",
-                        referenceId: "PAY001",
-                        debit: 0,
-                        credit: (student.baseMonthlyFee + student.laundryFee + student.foodFee) * 0.7,
-                        remark: "Partial payment"
-                    }
-                ];
-            }
-
-            setLedgerEntries(studentLedger);
+            // Load real ledger data using the API
+            await fetchStudentLedger(student.id);
+            await fetchStudentBalance(student.id);
 
             // Calculate current month's partial billing
             const today = new Date().toISOString().split('T')[0];
-            const monthlyFee = student.baseMonthlyFee + student.laundryFee + student.foodFee;
+            const monthlyFee = Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0);
 
             const currentMonthProration = monthlyInvoiceService.calculateCheckoutProration(monthlyFee, today);
             setCurrentMonthBilling(currentMonthProration);
 
-            // Calculate total ledger balance
-            const ledgerBalance = studentLedger.reduce((sum: number, entry: LedgerEntry) => {
-                return sum + (entry.debit || 0) - (entry.credit || 0);
-            }, 0);
+            // Use real balance from API
+            const currentBalance = studentBalance?.currentBalance || 0;
 
-            // Total due = existing ledger balance + current month's partial amount
-            const totalDue = ledgerBalance + currentMonthProration.amount;
+            // Total due = existing balance + current month's partial amount
+            const totalDue = currentBalance + currentMonthProration.amount;
             setTotalDueAmount(Math.max(0, totalDue));
             setPaymentAmount(Math.max(0, totalDue).toString());
 
@@ -186,36 +126,23 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
 
         try {
             const amount = parseFloat(paymentAmount);
-            const remark = paymentRemark || "Paid at checkout";
+            const description = paymentRemark || "Payment booked during checkout";
 
-            // Hit the ledger service to add payment entry
-            const paymentEntry = await ledgerService.bookCheckoutPayment(
-                student.id,
-                amount,
-                remark
-            );
-
-            // Create local entry for immediate UI update
-            const localPaymentEntry: LedgerEntry = {
-                id: `LED${Date.now()}`,
+            // Create credit adjustment for the payment
+            await createAdjustment({
                 studentId: student.id,
-                date: new Date().toISOString().split('T')[0],
-                type: "Payment",
-                description: "Payment booked during checkout",
-                referenceId: null,
-                debit: 0,
-                credit: amount,
-                remark: remark
-            };
+                amount: amount,
+                description: description,
+                type: 'credit'
+            });
 
-            setLedgerEntries(prev => [...prev, localPaymentEntry]);
+            // Refresh ledger data to show the new payment
+            await fetchStudentLedger(student.id);
+            await fetchStudentBalance(student.id);
 
-            // Recalculate total due
-            const newLedgerBalance = [...ledgerEntries, localPaymentEntry].reduce((sum, entry) => {
-                return sum + (entry.debit || 0) - (entry.credit || 0);
-            }, 0);
-
-            const newTotalDue = newLedgerBalance + (currentMonthBilling?.amount || 0);
+            // Recalculate total due with updated balance
+            const updatedBalance = studentBalance?.currentBalance || 0;
+            const newTotalDue = updatedBalance + (currentMonthBilling?.amount || 0);
             setTotalDueAmount(Math.max(0, newTotalDue));
 
             // Clear payment form
@@ -230,27 +157,27 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
         }
     };
 
-    const processCheckout = async () => {
+    const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+
+    const processCheckout = async (checkoutData?: any) => {
         try {
             const checkoutDate = new Date().toISOString().split('T')[0];
             const hasDues = totalDueAmount > 0;
 
-            if (hasDues && !allowCheckoutWithoutPayment) {
-                toast.error('Cannot checkout with outstanding dues. Please book payment first or enable "Allow Checkout Without Payment"');
+            if (hasDues && !allowCheckoutWithoutPayment && !checkoutData) {
+                // Show confirmation dialog instead of blocking
+                setShowConfirmationDialog(true);
                 return;
             }
 
-            // 1. Add partial month billing to ledger (always add current month's billing)
+            // 1. Add partial month billing to ledger if needed
             if (currentMonthBilling && currentMonthBilling.amount > 0) {
                 try {
-                    await ledgerService.addLedgerEntry({
+                    await createAdjustment({
                         studentId: student.id,
-                        type: "Invoice",
-                        description: `Partial month billing (${currentMonthBilling.daysCharged} days) - Checkout`,
-                        debit: currentMonthBilling.amount,
-                        credit: 0,
-                        referenceId: `CHECKOUT-${student.id}-${Date.now()}`,
-                        remark: `Student checkout, due till ${checkoutDate}`
+                        amount: currentMonthBilling.amount,
+                        description: `Partial month billing (${currentMonthBilling.daysCharged} days) - Checkout till ${checkoutDate}`,
+                        type: 'debit'
                     });
                     console.log('✅ Partial billing added to ledger');
                 } catch (error) {
@@ -258,71 +185,39 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                 }
             }
 
-            // 2. Process checkout through checkout service
-            const checkoutData = {
-                studentId: student.id,
+            // 2. Process checkout through REAL API
+            const checkoutRequest = {
                 checkoutDate: checkoutDate,
-                reason: "Student checkout",
-                notes: `Checkout processed with ${hasDues ? 'outstanding dues' : 'cleared dues'}`,
-                duesCleared: !hasDues,
-                hadOutstandingDues: hasDues,
-                outstandingAmount: totalDueAmount,
-                hitLedger: true,
+                clearRoom: checkoutData?.clearRoom ?? true,
+                refundAmount: checkoutData?.refundAmount ?? (totalDueAmount < 0 ? Math.abs(totalDueAmount) : 0),
+                deductionAmount: checkoutData?.deductionAmount ?? 0,
+                notes: checkoutData?.notes ?? `Checkout processed with ${hasDues ? 'outstanding dues' : 'cleared dues'}. Partial month billing: NPR ${currentMonthBilling?.amount || 0}`,
                 processedBy: "Admin"
             };
 
-            // Use checkout service to handle bed freeing and invoice stopping
-            const checkoutResult = await checkoutService.processCheckout(checkoutData);
-            console.log('✅ Checkout processed:', checkoutResult);
+            console.log('🚪 Processing checkout via API:', checkoutRequest);
+            const checkoutResult = await checkoutApiService.processCheckout(student.id, checkoutRequest);
+            console.log('✅ Checkout API response:', checkoutResult);
 
-            // 3. Update student status and track for dashboard if has dues
-            const updatedStudentData = {
-                isCheckedOut: true,
-                checkoutDate: checkoutDate,
-                status: hasDues ? 'Checked out with dues' : 'Checked out',
-                finalBalance: totalDueAmount,
-                bedFreed: true,
-                invoicesStopped: true
-            };
-
-            // 4. If student has dues, add to dashboard tracking
-            if (hasDues) {
-                const checkedOutWithDues = {
-                    studentId: student.id,
-                    studentName: student.name,
-                    roomNumber: student.roomNumber,
-                    checkoutDate: checkoutDate,
-                    outstandingDues: totalDueAmount,
-                    lastUpdated: new Date().toISOString(),
-                    status: 'pending_payment'
-                };
-
-                // Store in localStorage for dashboard display (in real app, this would be database)
-                const existingData = JSON.parse(localStorage.getItem('checkedOutWithDues') || '[]');
-                existingData.push(checkedOutWithDues);
-                localStorage.setItem('checkedOutWithDues', JSON.stringify(existingData));
-                console.log('✅ Student added to dashboard tracking for outstanding dues');
-            }
-
-            // 5. Complete checkout
+            // 3. Complete checkout
             onCheckoutComplete(student.id);
             onClose();
+            setShowConfirmationDialog(false);
 
-            // 6. Show appropriate success message
+            // 4. Show success message
             if (hasDues) {
                 toast.warning(
                     `⚠️ Student checked out with dues of NPR ${totalDueAmount.toLocaleString()}. 
-                    • Dues added to ledger
-                    • Bed ${student.roomNumber} freed
-                    • Monthly invoices stopped
-                    • Student will appear on dashboard until dues are cleared`,
+                    • Final settlement: NPR ${checkoutResult.netSettlement}
+                    • Room cleared and made available
+                    • Student status updated to inactive`,
                     { duration: 8000 }
                 );
             } else {
                 toast.success(
                     `✅ Student checked out successfully! 
-                    • All dues cleared
-                    • Bed ${student.roomNumber} freed
+                    • Final settlement: NPR ${checkoutResult.netSettlement}
+                    • Room cleared and made available
                     • Monthly invoices stopped`,
                     { duration: 6000 }
                 );
@@ -334,7 +229,7 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
         }
     };
 
-    if (loading) {
+    if (loading || entriesLoading || balanceLoading) {
         return (
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-center h-64">
@@ -342,16 +237,16 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                         <div className="relative">
                             <svg width="32" height="48" viewBox="0 0 55 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-pulse mx-auto">
                                 <g clipPath="url(#clip0_319_901)">
-                                    <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F"/>
-                                    <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F"/>
-                                    <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20"/>
-                                    <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#1295D0"/>
-                                    <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white"/>
-                                    <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20"/>
+                                    <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F" />
+                                    <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F" />
+                                    <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20" />
+                                    <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#1295D0" />
+                                    <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white" />
+                                    <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20" />
                                 </g>
                                 <defs>
                                     <clipPath id="clip0_319_901">
-                                        <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)"/>
+                                        <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)" />
                                     </clipPath>
                                 </defs>
                             </svg>
@@ -393,11 +288,17 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                         <CardTitle className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-5 w-5" />
-                                Existing Ledger
+                                Student Ledger View
                             </div>
-                            <Badge variant="outline" className="text-blue-600">
-                                {ledgerEntries.length} Entries
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-blue-600">
+                                    {ledgerEntries.length} Entries
+                                </Badge>
+                                <Button variant="outline" size="sm">
+                                    <Search className="h-4 w-4 mr-2" />
+                                    Search Ledger
+                                </Button>
+                            </div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -589,8 +490,8 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4 border-t">
                     <Button
-                        onClick={processCheckout}
-                        disabled={totalDueAmount > 0 && !allowCheckoutWithoutPayment}
+                        onClick={() => processCheckout()}
+                        disabled={false} // Always allow clicking to show confirmation
                         className="bg-[#1295D0] hover:bg-[#1295D0]/90 flex-1"
                     >
                         <LogOut className="h-4 w-4 mr-2" />
@@ -605,86 +506,205 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                     </Button>
                 </div>
             </div>
+
+            {/* Checkout Confirmation Dialog */}
+            <CheckoutConfirmationDialog
+                isOpen={showConfirmationDialog}
+                onClose={() => setShowConfirmationDialog(false)}
+                onConfirm={processCheckout}
+                student={{
+                    id: student.id,
+                    name: student.name,
+                    roomNumber: student.roomNumber,
+                    course: student.course,
+                    currentBalance: studentBalance?.currentBalance || 0,
+                    baseMonthlyFee: student.baseMonthlyFee,
+                    laundryFee: student.laundryFee,
+                    foodFee: student.foodFee
+                }}
+                totalDueAmount={totalDueAmount}
+                currentMonthBilling={currentMonthBilling}
+                loading={loading}
+            />
         </DialogContent>
     );
 };
 
-// Updated: 2025-01-08 - Simplified checkout with only checkout button
+// Updated: 2025-01-08 - API Integration with real Students API
 export const StudentCheckoutManagement = () => {
-    console.log('🔄 NEW StudentCheckoutManagement component loaded - Only Checkout Button!');
-    const [students, setStudents] = useState<Student[]>([]);
+    console.log('🔄 StudentCheckoutManagement component loaded with API integration');
+
+    // Use real Students API
+    const {
+        students: apiStudents,
+        loading: studentsLoading,
+        error: studentsError,
+        refreshData
+    } = useStudents();
+
     const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [loading, setLoading] = useState(true);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [showCheckoutDialog, setShowCheckoutDialog] = useState(false);
 
-    // Load students data
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [studentsPerPage] = useState(6); // 2x3 grid for better pagination visibility
+
+    // Filter state
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [roomFilter, setRoomFilter] = useState("");
+
+    // Transform API students to local Student format and filter active students
+    const transformedStudents: Student[] = useMemo(() => {
+        console.log('🔍 Raw API Students:', apiStudents.length, 'students');
+        console.log('🔍 Students with status=Active:', apiStudents.filter(s => s.status === 'Active').length);
+        console.log('🔍 Students with status=Inactive:', apiStudents.filter(s => s.status === 'Inactive').length);
+        console.log('🔍 Students with status=Suspended:', apiStudents.filter(s => s.status === 'Suspended').length);
+        console.log('🔍 Students with status=Graduated:', apiStudents.filter(s => s.status === 'Graduated').length);
+
+        return apiStudents
+            .filter(student => {
+                // Only show students with 'Active' status - these are the ones available for checkout
+                const isActive = student.status === 'Active';
+
+                console.log(`🔍 Student ${student.name} (${student.id}): status=${student.status}, showing=${isActive}`);
+                return isActive;
+            }) // Only active students
+            .map((student, index) => ({
+                ...student,
+                // Map API fields to local interface
+                address: student.address || '',
+                roomNumber: student.roomNumber || '',
+                course: student.course || '',
+                institution: student.institution || '',
+                guardianName: student.guardianName || '',
+                guardianPhone: student.guardianPhone || '',
+                emergencyContact: student.emergencyContact || student.guardianPhone || '',
+                baseMonthlyFee: student.baseMonthlyFee || 0,
+                laundryFee: student.laundryFee || 0,
+                foodFee: student.foodFee || 0,
+                joinDate: student.joinDate || student.enrollmentDate || new Date().toISOString().split('T')[0],
+                status: student.status || 'Active',
+                // Additional local properties for checkout
+                currentBalance: student.balance || 0,
+                totalPaid: 0,
+                totalDue: student.baseMonthlyFee || 0,
+                lastPaymentDate: '',
+                configurationDate: student.createdAt || new Date().toISOString(),
+                additionalCharges: []
+            }));
+    }, [apiStudents]);
+
+    // Update filtered students when search term, filters, or transformed students change
     useEffect(() => {
-        const loadStudents = async () => {
-            try {
-                // Use mock data directly
-                const activeStudents = mockData.students.filter((student: Student) =>
-                    student.status === 'active' && !student.isCheckedOut
-                );
+        let filtered = transformedStudents;
 
-                setStudents(activeStudents);
-                setFilteredStudents(activeStudents);
-            } catch (error) {
-                console.error('Error loading students:', error);
-                toast.error('Failed to load students data');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadStudents();
-    }, []);
-
-    // Filter students based on search
-    useEffect(() => {
-        if (!searchTerm) {
-            setFilteredStudents(students);
-        } else {
-            const filtered = students.filter(student =>
+        // Apply search filter
+        if (searchTerm) {
+            filtered = filtered.filter(student =>
                 student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())
+                student.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                student.course.toLowerCase().includes(searchTerm.toLowerCase())
             );
-            setFilteredStudents(filtered);
         }
-    }, [searchTerm, students]);
+
+        // Apply status filter
+        if (statusFilter !== "all") {
+            filtered = filtered.filter(student => student.status === statusFilter);
+        }
+
+        // Apply room filter
+        if (roomFilter) {
+            filtered = filtered.filter(student =>
+                student.roomNumber.toLowerCase().includes(roomFilter.toLowerCase())
+            );
+        }
+
+        setFilteredStudents(filtered);
+        setCurrentPage(1); // Reset to first page when filters change
+    }, [searchTerm, statusFilter, roomFilter, transformedStudents]);
+
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+    const startIndex = (currentPage - 1) * studentsPerPage;
+    const endIndex = startIndex + studentsPerPage;
+    const currentStudents = filteredStudents.slice(startIndex, endIndex);
+
+    // Format currency properly
+    const formatCurrency = (amount: number) => {
+        return `NPR ${amount.toLocaleString('en-NP', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
     const handleCheckoutClick = (student: Student) => {
         setSelectedStudent(student);
         setShowCheckoutDialog(true);
     };
 
-    const handleCheckoutComplete = (studentId: string) => {
-        // Remove student from checkout list (they're now checked out)
-        setStudents(prev => prev.filter(s => s.id !== studentId));
+    const handleCheckoutComplete = async (studentId: string) => {
+        console.log(`✅ Student ${studentId} checkout completed - refreshing data from API`);
+
+        // Immediately remove the student from local state to provide instant feedback
+        setFilteredStudents(prev => {
+            const updated = prev.filter(student => student.id !== studentId);
+            console.log(`🔄 Removed student ${studentId} from local state. Remaining: ${updated.length} students`);
+            return updated;
+        });
         setSelectedStudent(null);
 
-        console.log(`✅ Student ${studentId} removed from checkout list - checkout completed`);
+        // Show immediate success message
+        toast.success('Student checkout completed successfully!');
+
+        // Refresh data from API with multiple attempts to ensure consistency
+        const refreshWithRetry = async (attempt = 1, maxAttempts = 3) => {
+            try {
+                console.log(`🔄 Refreshing data from API (attempt ${attempt}/${maxAttempts})...`);
+                await refreshData();
+
+                // Verify the student status is changed to Inactive after checkout
+                const updatedStudent = apiStudents.find(s => s.id === studentId);
+                if (updatedStudent && updatedStudent.status === 'Active') {
+                    console.warn(`⚠️ Student ${studentId} still shows status as Active after checkout. Retrying...`);
+                    if (attempt < maxAttempts) {
+                        // Wait a bit longer and try again
+                        setTimeout(() => refreshWithRetry(attempt + 1, maxAttempts), 2000);
+                        return;
+                    }
+                }
+
+                console.log('✅ Student data refreshed from API after checkout');
+            } catch (error) {
+                console.error(`❌ Error refreshing student data after checkout (attempt ${attempt}):`, error);
+                if (attempt < maxAttempts) {
+                    setTimeout(() => refreshWithRetry(attempt + 1, maxAttempts), 1000);
+                } else {
+                    console.error('❌ Failed to refresh data after all attempts');
+                }
+            }
+        };
+
+        // Start the refresh process with a small delay to allow backend processing
+        setTimeout(() => refreshWithRetry(), 500);
     };
 
-    if (loading) {
+    if (studentsLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-center space-y-4">
                     <div className="relative">
                         <svg width="32" height="48" viewBox="0 0 55 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-pulse mx-auto">
                             <g clipPath="url(#clip0_319_901)">
-                                <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F"/>
-                                <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F"/>
-                                <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20"/>
-                                <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#1295D0"/>
-                                <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white"/>
-                                <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20"/>
+                                <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F" />
+                                <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F" />
+                                <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20" />
+                                <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#1295D0" />
+                                <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white" />
+                                <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20" />
                             </g>
                             <defs>
                                 <clipPath id="clip0_319_901">
-                                    <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)"/>
+                                    <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)" />
                                 </clipPath>
                             </defs>
                         </svg>
@@ -696,126 +716,219 @@ export const StudentCheckoutManagement = () => {
         );
     }
 
+    if (studentsError) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center space-y-4">
+                    <div className="text-red-500">
+                        <User className="h-12 w-12 mx-auto mb-3" />
+                        <p className="font-medium">Error loading students</p>
+                        <p className="text-sm text-gray-500">{studentsError}</p>
+                    </div>
+                    <Button onClick={refreshData} variant="outline">
+                        Try Again
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#231F20]">Student Checkout Management</h1>
-                    <p className="text-[#231F20]/70 mt-1">
-                        Complete student checkout process with ledger review and payment settlement
-                    </p>
+                    <h2 className="text-2xl font-bold text-gray-900">Student Checkout Management</h2>
                 </div>
-
-                {/* Stats */}
-                <div className="flex items-center gap-4">
-                    <Badge variant="outline" className="text-[#1295D0] border-[#1295D0]/30">
+                <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-blue-600">
                         {filteredStudents.length} Active Students
                     </Badge>
+                    <Badge variant="outline" className="text-green-600">
+                        Page {currentPage} of {totalPages}
+                    </Badge>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            console.log('🔄 Manual refresh triggered');
+                            refreshData();
+                        }}
+                        disabled={studentsLoading}
+                        className="flex items-center gap-2"
+                    >
+                        <svg
+                            className={`h-4 w-4 ${studentsLoading ? 'animate-spin' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                    </Button>
                 </div>
             </div>
 
-            {/* Search */}
-            <Card>
-                <CardContent className="pt-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                            placeholder="Search by name, ID, or room number..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+            {/* Search and Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                        placeholder="Search by name, ID, room, or course..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
+                <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Suspended">Suspended</option>
+                        <option value="Graduated">Graduated</option>
+                    </select>
+                </div>
+                <div className="relative">
+                    <Bed className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                        placeholder="Filter by room number..."
+                        value={roomFilter}
+                        onChange={(e) => setRoomFilter(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
+            </div>
 
-            {/* Students List */}
-            <div className="grid gap-4">
-                {filteredStudents.length === 0 ? (
-                    <Card>
-                        <CardContent className="pt-8 pb-8 text-center">
-                            <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Students Found</h3>
-                            <p className="text-gray-500">
-                                {searchTerm ? 'No students match your search criteria.' : 'All students have been checked out.'}
-                            </p>
-                        </CardContent>
-                    </Card>
-                ) : (
-                    filteredStudents.map((student) => (
-                        <Card key={student.id} className="hover:shadow-lg transition-shadow">
-                            <CardContent className="pt-6">
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-                                    {/* Student Info */}
-                                    <div className="lg:col-span-4">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-full flex items-center justify-center text-white font-bold">
-                                                {student.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold text-[#231F20]">{student.name}</h3>
-                                                <p className="text-sm text-gray-600">{student.id}</p>
-                                                <p className="text-xs text-gray-500">{student.course}</p>
-                                            </div>
+            {/* Students Grid */}
+            {filteredStudents.length === 0 ? (
+                <div className="text-center py-12">
+                    <User className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Students Found</h3>
+                    <p className="text-gray-500">
+                        {searchTerm || statusFilter !== "all" || roomFilter ? 'No students match your search criteria.' : 'All students have been checked out.'}
+                    </p>
+                </div>
+            ) : (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {currentStudents.map((student) => (
+                            <Card key={student.id} className="hover:shadow-lg transition-shadow">
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-full flex items-center justify-center text-white font-bold">
+                                            {student.name.charAt(0)}
                                         </div>
-                                    </div>
-
-                                    {/* Room Info */}
-                                    <div className="lg:col-span-2">
-                                        <div className="flex items-center space-x-2">
-                                            <Bed className="h-4 w-4 text-[#1295D0]" />
-                                            <div>
-                                                <p className="font-medium text-[#231F20]">{student.roomNumber}</p>
-                                                <p className="text-xs text-gray-500">Current Room</p>
-                                            </div>
+                                        <div className="flex-1">
+                                            <CardTitle className="text-lg">{student.name}</CardTitle>
+                                            <p className="text-sm text-gray-500">ID: {student.id}</p>
                                         </div>
+                                        <Badge
+                                            variant={student.status === 'Active' ? 'default' : 'secondary'}
+                                            className="text-xs"
+                                        >
+                                            {student.status}
+                                        </Badge>
                                     </div>
-
-                                    {/* Monthly Fee */}
-                                    <div className="lg:col-span-2">
-                                        <div className="flex items-center space-x-2">
-                                            <DollarSign className="h-4 w-4 text-green-500" />
-                                            <div>
-                                                <p className="font-bold text-green-600">
-                                                    NPR {(student.baseMonthlyFee + student.laundryFee + student.foodFee).toLocaleString()}
-                                                </p>
-                                                <p className="text-xs text-gray-500">Monthly Fee</p>
-                                            </div>
-                                        </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Bed className="h-4 w-4 text-gray-400" />
+                                        <span>Room {student.roomNumber}</span>
                                     </div>
-
-                                    {/* Current Balance */}
-                                    <div className="lg:col-span-2">
-                                        <div className="flex items-center space-x-2">
-                                            <Calendar className="h-4 w-4 text-orange-500" />
-                                            <div>
-                                                <p className={`font-bold ${student.currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                                    NPR {Math.abs(student.currentBalance).toLocaleString()}
-                                                </p>
-                                                <p className="text-xs text-gray-500">
-                                                    {student.currentBalance > 0 ? 'Outstanding' : 'Up to date'}
-                                                </p>
-                                            </div>
-                                        </div>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <User className="h-4 w-4 text-gray-400" />
+                                        <span>{student.course}</span>
                                     </div>
-
-                                    {/* Checkout Button */}
-                                    <div className="lg:col-span-2">
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <DollarSign className="h-4 w-4 text-gray-400" />
+                                        <span className="font-medium text-green-600">
+                                            {formatCurrency(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0))}/month
+                                        </span>
+                                    </div>
+                                    <div className="text-xs text-gray-500 space-y-1">
+                                        <div>Base: {formatCurrency(student.baseMonthlyFee)}</div>
+                                        <div>Laundry: {formatCurrency(student.laundryFee)}</div>
+                                        <div>Food: {formatCurrency(student.foodFee)}</div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Calendar className="h-4 w-4 text-gray-400" />
+                                        <span>Joined: {new Date(student.joinDate).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="pt-3 border-t flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                        >
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            Edit
+                                        </Button>
                                         <Button
                                             onClick={() => handleCheckoutClick(student)}
-                                            className="w-full bg-[#1295D0] hover:bg-[#1295D0]/90"
+                                            className="flex-1 bg-[#1295D0] hover:bg-[#1295D0]/90"
+                                            size="sm"
                                         >
                                             <LogOut className="h-4 w-4 mr-2" />
                                             Checkout
                                         </Button>
                                     </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">
+                                Showing {startIndex + 1} to {Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length} students
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Previous
+                                </Button>
+
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <Button
+                                            key={page}
+                                            variant={currentPage === page ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => setCurrentPage(page)}
+                                            className="w-8 h-8 p-0"
+                                        >
+                                            {page}
+                                        </Button>
+                                    ))}
                                 </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
-            </div>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Next
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
 
             {/* Checkout Dialog */}
             {selectedStudent && (
@@ -831,6 +944,8 @@ export const StudentCheckoutManagement = () => {
                     />
                 </Dialog>
             )}
+
+
         </div>
     );
 };

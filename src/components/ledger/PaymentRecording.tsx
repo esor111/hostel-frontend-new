@@ -7,31 +7,37 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLocation } from "react-router-dom";
-import { useAppContext } from "@/contexts/AppContext";
+import { usePayments } from "@/hooks/usePayments";
+import { useStudents } from "@/hooks/useStudents";
 import { useToast } from "@/hooks/use-toast";
-
-interface Payment {
-  id: string;
-  studentName: string;
-  room: string;
-  amount: number;
-  paymentMode: string;
-  referenceId?: string;
-  date: string;
-  appliedTo: string;
-  advanceBalance: number;
-}
+import { Loader2, RefreshCw, AlertCircle, CheckCircle, DollarSign } from "lucide-react";
+import { CreatePaymentDto, Payment } from "@/services/paymentsApiService";
 
 export const PaymentRecording = () => {
-  const { state } = useAppContext();
   const location = useLocation();
   const { toast } = useToast();
+  
+  // Hooks for API data
+  const { students, loading: studentsLoading, error: studentsError } = useStudents();
+  const { 
+    payments, 
+    loading: paymentsLoading, 
+    error: paymentsError, 
+    recordPayment, 
+    loadPayments,
+    paymentMethods 
+  } = usePayments({ loadOnMount: true });
+
+  // Form state
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMode, setPaymentMode] = useState("");
+  const [paymentMode, setPaymentMode] = useState<CreatePaymentDto['paymentMethod']>("Cash");
   const [referenceId, setReferenceId] = useState("");
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Handle URL parameters to auto-select student and show payment form
   useEffect(() => {
@@ -40,7 +46,7 @@ export const PaymentRecording = () => {
     const amountParam = params.get('amount');
     const typeParam = params.get('type');
     
-    if (studentParam && state.students.find(s => s.id === studentParam)) {
+    if (studentParam && students.find(s => s.id === studentParam)) {
       setSelectedStudent(studentParam);
       setShowPaymentForm(true);
       
@@ -51,168 +57,305 @@ export const PaymentRecording = () => {
       
       // Set default payment mode for outstanding dues
       if (typeParam === 'outstanding') {
-        setPaymentMode('cash');
+        setPaymentMode('Cash');
       }
       
-      const student = state.students.find(s => s.id === studentParam);
+      const student = students.find(s => s.id === studentParam);
       toast({
         title: "Payment Form Ready",
         description: `Payment form opened for ${student?.name}${amountParam ? ` with amount NPR ${Number(amountParam).toLocaleString()}` : ''}.`,
       });
     }
-  }, [location.search, state.students, toast]);
+  }, [location.search, students, toast]);
 
-  // Mock payment data
-  const [payments] = useState<Payment[]>([
-    {
-      id: "PAY-001",
-      studentName: "Ram Sharma",
-      room: "A-101",
-      amount: 10000,
-      paymentMode: "Cash",
-      date: "2024-03-05",
-      appliedTo: "March 2024 Invoice",
-      advanceBalance: 0
-    },
-    {
-      id: "PAY-002",
-      studentName: "Sita Poudel",
-      room: "B-205",
-      amount: 18000,
-      paymentMode: "eSewa",
-      referenceId: "ESW12345",
-      date: "2024-03-03",
-      appliedTo: "March 2024 Invoice",
-      advanceBalance: 2000
-    }
-  ]);
-
-  // Use real student data from context
-  const students = state.students.map(student => ({
+  // Transform students data for display
+  const studentsWithDues = students.map(student => ({
     id: student.id,
     name: student.name,
-    room: student.roomNumber,
+    room: student.roomNumber || 'N/A',
     outstandingDue: student.currentBalance || 0,
     advanceBalance: student.advanceBalance || 0
   }));
 
-  const paymentModes = [
-    { value: "cash", label: "💵 Cash" },
-    { value: "bank", label: "🏦 Bank Transfer" },
-    { value: "esewa", label: "📱 eSewa" },
-    { value: "khalti", label: "📱 Khalti" },
-    { value: "cheque", label: "📝 Cheque" }
+  // Payment method options
+  const paymentModeOptions = [
+    { value: "Cash" as const, label: "💵 Cash" },
+    { value: "Bank Transfer" as const, label: "🏦 Bank Transfer" },
+    { value: "Online" as const, label: "📱 Online Payment" },
+    { value: "UPI" as const, label: "📱 UPI" },
+    { value: "Mobile Wallet" as const, label: "📱 Mobile Wallet" },
+    { value: "Cheque" as const, label: "📝 Cheque" },
+    { value: "Card" as const, label: "💳 Card" }
   ];
 
-  const needsReference = paymentMode === "esewa" || paymentMode === "khalti" || paymentMode === "bank";
+  const needsReference = ["Bank Transfer", "Online", "UPI", "Mobile Wallet", "Cheque"].includes(paymentMode);
 
-  const handlePaymentSubmit = () => {
-    console.log("Payment submitted:", {
-      student: selectedStudent,
-      amount: paymentAmount,
-      mode: paymentMode,
-      reference: referenceId
-    });
-    setShowPaymentForm(false);
-    // Reset form
-    setSelectedStudent("");
-    setPaymentAmount("");
-    setPaymentMode("");
-    setReferenceId("");
+  const handlePaymentSubmit = async () => {
+    // Enhanced validation
+    const errors: string[] = [];
+    
+    if (!selectedStudent || !selectedStudent.trim()) {
+      errors.push("Please select a student");
+    }
+    
+    if (!paymentAmount || !paymentAmount.trim()) {
+      errors.push("Please enter payment amount");
+    } else {
+      const amount = parseFloat(paymentAmount);
+      if (isNaN(amount) || amount <= 0) {
+        errors.push("Payment amount must be a positive number");
+      }
+      if (amount > 1000000) {
+        errors.push("Payment amount seems too large. Please verify.");
+      }
+    }
+    
+    if (!paymentMode) {
+      errors.push("Please select payment method");
+    }
+
+    if (needsReference && (!referenceId || !referenceId.trim())) {
+      errors.push(`Please provide a reference ID for ${paymentMode} payments`);
+    }
+
+    // Show all validation errors at once
+    if (errors.length > 0) {
+      toast({
+        title: "Validation Errors",
+        description: errors.join(". "),
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    
+    try {
+      const amount = parseFloat(paymentAmount);
+      
+      const paymentData: CreatePaymentDto = {
+        studentId: selectedStudent.trim(),
+        amount: amount,
+        paymentMethod: paymentMode,
+        reference: referenceId?.trim() || undefined,
+        notes: notes?.trim() || undefined,
+        status: "Completed",
+        createdBy: "admin"
+      };
+
+      console.log('🔄 Recording payment:', paymentData);
+      
+      const recordedPayment = await recordPayment(paymentData);
+      
+      console.log('✅ Payment recorded successfully:', recordedPayment);
+      
+      // Refresh data after successful payment
+      await loadPayments();
+      
+      toast({
+        title: "Payment Recorded Successfully",
+        description: `Payment of NPR ${amount.toLocaleString()} recorded for ${studentsWithDues.find(s => s.id === selectedStudent)?.name || 'student'}. Ledger updated.`,
+      });
+
+      // Reset form and close modal
+      setShowPaymentForm(false);
+      setSelectedStudent("");
+      setPaymentAmount("");
+      setPaymentMode("Cash");
+      setReferenceId("");
+      setNotes("");
+      
+    } catch (error) {
+      console.error('❌ Payment recording failed:', error);
+      
+      // Enhanced error handling
+      let errorMessage = "Failed to record payment. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else if (error.message.includes('validation')) {
+          errorMessage = `Validation error: ${error.message}`;
+        } else if (error.message.includes('student')) {
+          errorMessage = "Student not found. Please refresh and try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast({
+        title: "Payment Recording Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // Loading and error states
+  const isLoading = studentsLoading || paymentsLoading;
+  const hasError = studentsError || paymentsError;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-gray-900">💰 Payment Recording</h2>
-        <Button onClick={() => setShowPaymentForm(true)}>
-          ➕ Record New Payment
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => loadPayments()}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={() => setShowPaymentForm(true)} disabled={isLoading}>
+            ➕ Record New Payment
+          </Button>
+        </div>
       </div>
 
+      {/* Error Alert */}
+      {hasError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <div className="font-medium">Error Loading Data:</div>
+              <div>{studentsError || paymentsError}</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  loadPayments();
+                  window.location.reload(); // Fallback for persistent errors
+                }}
+                className="mt-2"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry Loading
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mr-2" />
+            <span>Loading payment data...</span>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Outstanding Dues Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>🚨 Students with Outstanding Dues</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {students.filter(s => s.outstandingDue > 0).map((student) => (
-              <div key={student.id} className="p-4 border rounded-lg bg-red-50 border-red-200">
-                <div className="font-medium">{student.name}</div>
-                <div className="text-sm text-gray-600">Room: {student.room}</div>
-                <div className="text-lg font-bold text-red-600 mt-2">
-                  NPR {student.outstandingDue.toLocaleString()}
-                </div>
-                <Button 
-                  size="sm" 
-                  className="mt-2 w-full"
-                  onClick={() => {
-                    setSelectedStudent(student.id);
-                    setShowPaymentForm(true);
-                  }}
-                >
-                  💰 Record Payment
-                </Button>
+      {!isLoading && (
+        <Card>
+          <CardHeader>
+            <CardTitle>🚨 Students with Outstanding Dues</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {studentsWithDues.filter(s => s.outstandingDue > 0).length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                <p>No outstanding dues! All students are up to date.</p>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {studentsWithDues.filter(s => s.outstandingDue > 0).map((student) => (
+                  <div key={student.id} className="p-4 border rounded-lg bg-red-50 border-red-200">
+                    <div className="font-medium">{student.name}</div>
+                    <div className="text-sm text-gray-600">Room: {student.room}</div>
+                    <div className="text-lg font-bold text-red-600 mt-2">
+                      NPR {student.outstandingDue.toLocaleString()}
+                    </div>
+                    <Button 
+                      size="sm" 
+                      className="mt-2 w-full"
+                      onClick={() => {
+                        setSelectedStudent(student.id);
+                        setPaymentAmount(student.outstandingDue.toString());
+                        setShowPaymentForm(true);
+                      }}
+                    >
+                      💰 Record Payment
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Payments */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Payments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Payment ID</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Payment Mode</TableHead>
-                <TableHead>Reference</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Applied To</TableHead>
-                <TableHead>Advance Balance</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-medium">{payment.id}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{payment.studentName}</div>
-                      <div className="text-sm text-gray-500">Room: {payment.room}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-bold text-green-600">
-                    NPR {payment.amount.toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{payment.paymentMode}</Badge>
-                  </TableCell>
-                  <TableCell>{payment.referenceId || "-"}</TableCell>
-                  <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
-                  <TableCell>{payment.appliedTo}</TableCell>
-                  <TableCell>
-                    {payment.advanceBalance > 0 ? (
-                      <span className="text-blue-600 font-medium">
-                        NPR {payment.advanceBalance.toLocaleString()}
-                      </span>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {!isLoading && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Payments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {payments.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <DollarSign className="h-12 w-12 mx-auto mb-4" />
+                <p>No payments recorded yet.</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Payment ID</TableHead>
+                    <TableHead>Student</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Payment Method</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payments.slice(0, 10).map((payment) => {
+                    const student = students.find(s => s.id === payment.studentId);
+                    return (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium">{payment.id}</TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{payment.studentName || student?.name || 'Unknown'}</div>
+                            <div className="text-sm text-gray-500">
+                              Room: {student?.roomNumber || 'N/A'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-green-600">
+                          NPR {payment.amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{payment.paymentMethod}</Badge>
+                        </TableCell>
+                        <TableCell>{payment.reference || "-"}</TableCell>
+                        <TableCell>{new Date(payment.paymentDate).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={payment.status === 'Completed' ? 'default' : 
+                                   payment.status === 'Pending' ? 'secondary' : 
+                                   payment.status === 'Failed' ? 'destructive' : 'outline'}
+                          >
+                            {payment.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Payment Recording Form Modal */}
       {showPaymentForm && (
@@ -225,11 +368,11 @@ export const PaymentRecording = () => {
               <div>
                 <Label htmlFor="student">Select Student *</Label>
                 <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                  <SelectTrigger>
+                  <SelectTrigger className={!selectedStudent ? 'border-red-300' : ''}>
                     <SelectValue placeholder="Choose student" />
                   </SelectTrigger>
                   <SelectContent>
-                    {students.map((student) => (
+                    {studentsWithDues.length > 0 ? studentsWithDues.map((student) => (
                       <SelectItem key={student.id} value={student.id}>
                         {student.name} - Room {student.room}
                         {student.outstandingDue > 0 && (
@@ -238,9 +381,16 @@ export const PaymentRecording = () => {
                           </span>
                         )}
                       </SelectItem>
-                    ))}
+                    )) : (
+                      <SelectItem value="" disabled>
+                        No students available
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+                {!selectedStudent && (
+                  <p className="text-xs text-red-500 mt-1">Please select a student</p>
+                )}
               </div>
 
               <div>
@@ -248,20 +398,32 @@ export const PaymentRecording = () => {
                 <Input
                   id="amount"
                   type="number"
+                  min="1"
+                  max="1000000"
+                  step="0.01"
                   placeholder="Enter amount"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
+                  className={!paymentAmount || parseFloat(paymentAmount) <= 0 ? 'border-red-300' : ''}
                 />
+                {(!paymentAmount || parseFloat(paymentAmount) <= 0) && (
+                  <p className="text-xs text-red-500 mt-1">Please enter a valid amount</p>
+                )}
+                {selectedStudent && studentsWithDues.find(s => s.id === selectedStudent)?.outstandingDue > 0 && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Outstanding due: NPR {studentsWithDues.find(s => s.id === selectedStudent)?.outstandingDue.toLocaleString()}
+                  </p>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="mode">Payment Mode *</Label>
-                <Select value={paymentMode} onValueChange={setPaymentMode}>
+                <Label htmlFor="mode">Payment Method *</Label>
+                <Select value={paymentMode} onValueChange={(value) => setPaymentMode(value as CreatePaymentDto['paymentMethod'])}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
                   <SelectContent>
-                    {paymentModes.map((mode) => (
+                    {paymentModeOptions.map((mode) => (
                       <SelectItem key={mode.value} value={mode.value}>
                         {mode.label}
                       </SelectItem>
@@ -274,9 +436,11 @@ export const PaymentRecording = () => {
                 <div>
                   <Label htmlFor="reference">
                     Reference ID * 
-                    {paymentMode === "esewa" && " (eSewa Transaction ID)"}
-                    {paymentMode === "khalti" && " (Khalti Transaction ID)"}
-                    {paymentMode === "bank" && " (Bank Reference Number)"}
+                    {paymentMode === "Online" && " (Transaction ID)"}
+                    {paymentMode === "UPI" && " (UPI Transaction ID)"}
+                    {paymentMode === "Bank Transfer" && " (Bank Reference Number)"}
+                    {paymentMode === "Mobile Wallet" && " (Wallet Transaction ID)"}
+                    {paymentMode === "Cheque" && " (Cheque Number)"}
                   </Label>
                   <Input
                     id="reference"
@@ -286,6 +450,16 @@ export const PaymentRecording = () => {
                   />
                 </div>
               )}
+
+              <div>
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Input
+                  id="notes"
+                  placeholder="Additional notes about the payment"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
 
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h4 className="font-medium text-blue-800 mb-2">💡 Payment Application Rules:</h4>
@@ -297,14 +471,31 @@ export const PaymentRecording = () => {
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setShowPaymentForm(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowPaymentForm(false)}
+                  disabled={submitting}
+                >
                   Cancel
                 </Button>
                 <Button 
                   onClick={handlePaymentSubmit}
-                  disabled={!selectedStudent || !paymentAmount || !paymentMode || (needsReference && !referenceId)}
+                  disabled={
+                    submitting || 
+                    !selectedStudent || 
+                    !paymentAmount || 
+                    !paymentMode || 
+                    (needsReference && !referenceId)
+                  }
                 >
-                  💾 Record Payment
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Recording...
+                    </>
+                  ) : (
+                    <>💾 Record Payment</>
+                  )}
                 </Button>
               </div>
             </CardContent>

@@ -2,11 +2,15 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AppProvider } from "@/contexts/AppContext";
+import { AppProvider } from "@/contexts/SafeAppContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { SafeTooltipProvider } from "@/components/providers/SafeTooltipProvider";
 import { KahaLogo } from "@/components/common/KahaLogo";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import AuthGuard from "@/components/auth/AuthGuard";
+import AuthHeader from "@/components/auth/AuthHeader";
 
 // Lazy load components for better initial load performance
 const Landing = lazy(() => import("./pages/Landing"));
@@ -18,8 +22,12 @@ const RoomManagement = lazy(() => import("./pages/RoomManagement"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Attendance = lazy(() => import("./pages/Attendance"));
 const Notifications = lazy(() => import("./pages/Notifications"));
-const InactiveStudents = lazy(() => import("./pages/InactiveStudents"));
 
+const DashboardTest = lazy(() => import("./pages/DashboardTest"));
+const BillingDashboard = lazy(() => import("./pages/BillingDashboard"));
+const MonthlyBilling = lazy(() => import("./pages/MonthlyBilling"));
+
+const TestSafeContext = lazy(() => import("./pages/TestSafeContext"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Optimized QueryClient configuration
@@ -58,30 +66,30 @@ const LoadingFallback = ({ componentName }: { componentName?: string }) => (
 
 const App = () => {
   useEffect(() => {
-    // Clear any corrupted localStorage data first
+    console.log('🚀 Kaha Hostel Control Center starting...');
+    
+    // Clear any corrupted localStorage data
     try {
       localStorage.removeItem('clickPatterns');
-      console.log('Cleared corrupted localStorage data');
+      console.log('✅ Cleared corrupted localStorage data');
     } catch (error) {
       console.warn('Error clearing localStorage:', error);
     }
-
-    // Initialize mock data
-    import('@/utils/mockDataLoader.js').then(({ initializeMockData }) => {
-      initializeMockData();
-      console.log('App initialized with mock data');
-    });
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AppProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<LoadingFallback />}>
-              <Routes>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AppProvider>
+            <SafeTooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AuthGuard>
+                  <AuthHeader />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Routes>
                 <Route
                   path="/"
                   element={
@@ -162,11 +170,36 @@ const App = () => {
                     </Suspense>
                   }
                 />
+
                 <Route
-                  path="/inactive"
+                  path="/dashboard-test"
                   element={
-                    <Suspense fallback={<LoadingFallback componentName="Inactive Students" />}>
-                      <InactiveStudents />
+                    <Suspense fallback={<LoadingFallback componentName="Dashboard Test" />}>
+                      <DashboardTest />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/admin/billing-dashboard"
+                  element={
+                    <Suspense fallback={<LoadingFallback componentName="Billing Dashboard" />}>
+                      <BillingDashboard />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/admin/monthly-billing"
+                  element={
+                    <Suspense fallback={<LoadingFallback componentName="Monthly Billing" />}>
+                      <MonthlyBilling />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/test-safe"
+                  element={
+                    <Suspense fallback={<LoadingFallback componentName="Safe Context Test" />}>
+                      <TestSafeContext />
                     </Suspense>
                   }
                 />
@@ -179,12 +212,15 @@ const App = () => {
                     </Suspense>
                   }
                 />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </AppProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+                    </Routes>
+                  </Suspense>
+                </AuthGuard>
+              </BrowserRouter>
+            </SafeTooltipProvider>
+          </AppProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

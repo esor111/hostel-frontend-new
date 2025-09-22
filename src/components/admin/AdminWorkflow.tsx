@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { useAppContext } from '@/contexts/AppContext';
+import { useAppContext } from '@/contexts/SafeAppContext';
 import { useNavigation } from '@/hooks/useNavigation';
+import { useBookings } from '@/hooks/useBookings';
 import { monthlyBillingService } from '@/services/monthlyBillingService';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -76,7 +77,8 @@ export const AdminWorkflow = () => {
   // Calculate workflow progress
   const hostelConfigured = true; // Assume hostel is configured
   const roomsConfigured = true; // Assume rooms are configured
-  const hasBookings = state.bookingRequests && state.bookingRequests.length > 0;
+  const { bookingStats } = useBookings();
+  const hasBookings = bookingStats.totalBookings > 0;
   const hasStudents = state.students && state.students.length > 0;
   const studentsConfigured = state.students && state.students.filter(s => s.status === 'Active').length > 0;
   
@@ -288,7 +290,7 @@ export const AdminWorkflow = () => {
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">Pending Bookings</span>
-                  <span className="font-medium">{state.bookingRequests?.filter(b => b.status === 'Pending').length || 0}</span>
+                  <span className="font-medium">{bookingStats.pendingBookings}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">Current Month Invoices</span>

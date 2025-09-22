@@ -7,11 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Calendar, DollarSign, Users, Eye, Download, FileText, TrendingUp, Clock, AlertTriangle, Receipt } from "lucide-react";
-import { automatedBillingService } from "@/services/automatedBillingService.js";
-import { invoiceGenerationService } from "@/services/invoiceGenerationService.js";
-import { mockData } from "@/data/mockData.js";
+import { automatedBillingApiService } from "@/services/automatedBillingApiService";
+import { useAppContext } from "@/contexts/SafeAppContext";
 
 export const BillingManagement = () => {
+  const { state } = useAppContext();
   const [monthlyData, setMonthlyData] = useState([]);
   const [selectedMonthDetails, setSelectedMonthDetails] = useState(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -21,41 +21,53 @@ export const BillingManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load monthly invoice data
+  // Load monthly invoice data from real API
   useEffect(() => {
-    // Use mock data directly instead of calling service
+    loadRealBillingData();
+  }, []);
+
+  const loadRealBillingData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Create monthly summary data from mock invoices
-      const decemberInvoices = mockData.billingData.monthlyInvoices.filter(inv => inv.month === "December 2024");
-      const monthlySummary = [{
-        monthKey: "2024-12",
-        month: "December 2024",
-        totalInvoices: decemberInvoices.length,
-        totalAmount: decemberInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
-        students: mockData.students.filter(s => !s.isCheckedOut), // Active students
-        paidInvoices: decemberInvoices.filter(inv => inv.status === 'Paid').length,
-        pendingInvoices: decemberInvoices.filter(inv => inv.status !== 'Paid').length,
-        invoices: decemberInvoices
-      }];
-      setMonthlyData(monthlySummary);
+      // Get real billing stats and invoice data
+      const [billingStats, invoiceStats] = await Promise.all([
+        automatedBillingApiService.getBillingStats(),
+        automatedBillingApiService.getInvoiceStats()
+      ]);
+
+      // Get monthly invoice summary (you may need to implement this endpoint)
+      try {
+        const monthlySummary = await automatedBillingApiService.getMonthlyInvoiceSummary(12);
+        setMonthlyData(monthlySummary || []);
+      } catch (error) {
+        // Fallback: create summary from current data
+        const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const fallbackSummary = [{
+          monthKey: new Date().toISOString().slice(0, 7),
+          month: currentMonth,
+          totalInvoices: billingStats.currentMonthInvoices,
+          totalAmount: billingStats.currentMonthAmount,
+          students: state.students.filter(s => s.status === 'Active'),
+          paidInvoices: billingStats.paidInvoices,
+          pendingInvoices: billingStats.currentMonthInvoices - billingStats.paidInvoices,
+          invoices: []
+        }];
+        setMonthlyData(fallbackSummary);
+      }
+
       setBillingStats({
-        totalInvoices: mockData.billingData.monthlyInvoices.length,
-        totalAmount: mockData.billingData.monthlyInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
-        paidAmount: mockData.billingData.monthlyInvoices
-          .filter(inv => inv.status === 'Paid')
-          .reduce((sum, inv) => sum + inv.totalAmount, 0),
-        pendingAmount: mockData.billingData.monthlyInvoices
-          .filter(inv => inv.status !== 'Paid')
-          .reduce((sum, inv) => sum + inv.totalAmount, 0),
+        totalInvoices: invoiceStats?.totalInvoices || billingStats.currentMonthInvoices,
+        totalAmount: invoiceStats?.totalAmount || billingStats.currentMonthAmount,
+        paidAmount: invoiceStats?.paidAmount || 0,
+        pendingAmount: (invoiceStats?.totalAmount || billingStats.currentMonthAmount) - (invoiceStats?.paidAmount || 0),
         currentMonth: {
-          invoices: mockData.billingData.monthlyInvoices.length,
-          amount: mockData.billingData.monthlyInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
-          paid: mockData.billingData.monthlyInvoices.filter(inv => inv.status === 'Paid').length,
-          pending: mockData.billingData.monthlyInvoices.filter(inv => inv.status !== 'Paid').length,
-          students: mockData.students.filter(s => !s.isCheckedOut).length
+          invoices: billingStats.currentMonthInvoices,
+          amount: billingStats.currentMonthAmount,
+          paid: billingStats.paidInvoices,
+          pending: billingStats.currentMonthInvoices - billingStats.paidInvoices,
+          students: billingStats.configuredStudents
         },
         allTime: {
           averageMonthlyAmount: 75000,
@@ -69,33 +81,30 @@ export const BillingManagement = () => {
       setError(error.message);
       setLoading(false);
     }
-  }, []);
+  };
 
   // Removed loadMonthlyData function since we're using mock data directly
 
   // Removed loadBillingStats function since we're setting stats directly with mock data
 
-  const handleViewDetails = async (monthKey) => {
+  const handleViewDetails = async (monthKey: string) => {
     try {
-      // Filter invoices for the selected month
-      const monthInvoices = mockData.billingData.monthlyInvoices.filter(inv =>
-        inv.month === "December 2024"
-      );
+      // Get real invoice data for the selected month
+      const currentDate = new Date();
+      const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-      // Use mock data for month details
+      // Get current billing stats as a proxy for month details
+      const billingStats = await automatedBillingApiService.getBillingStats();
+
       const details = {
         monthKey,
-        month: "December 2024",
-        invoices: monthInvoices,
+        month: monthName,
+        invoices: [], // Would need a specific API endpoint to get invoices by month
         summary: {
-          totalInvoices: monthInvoices.length,
-          totalAmount: monthInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
-          paidAmount: monthInvoices
-            .filter(inv => inv.status === 'Paid')
-            .reduce((sum, inv) => sum + inv.totalAmount, 0),
-          pendingAmount: monthInvoices
-            .filter(inv => inv.status !== 'Paid')
-            .reduce((sum, inv) => sum + inv.totalAmount, 0)
+          totalInvoices: billingStats.currentMonthInvoices,
+          totalAmount: billingStats.currentMonthAmount,
+          paidAmount: 0, // Would need invoice details to calculate
+          pendingAmount: billingStats.currentMonthAmount
         }
       };
       setSelectedMonthDetails(details);
@@ -106,15 +115,15 @@ export const BillingManagement = () => {
     }
   };
 
-  const handleDownloadReport = (monthData) => {
+  const handleDownloadReport = (monthData: any) => {
     // In a real app, this would generate and download a PDF report
     toast.success(`Report for ${monthData.month} will be downloaded`);
   };
 
-  const handleViewStudentCharges = async (invoice) => {
+  const handleViewStudentCharges = async (invoice: any) => {
     try {
       // Find the student data to get their configured charges
-      const student = mockData.students.find(s => s.id === invoice.studentId);
+      const student = state.students.find(s => s.id === invoice.studentId);
       if (student) {
         const chargeDetails = {
           student: student,
@@ -155,16 +164,16 @@ export const BillingManagement = () => {
         <div className="relative">
           <svg width="48" height="72" viewBox="0 0 55 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-pulse">
             <g clipPath="url(#clip0_319_901)">
-              <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F"/>
-              <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F"/>
-              <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20"/>
-              <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#1295D0"/>
-              <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white"/>
-              <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20"/>
+              <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F" />
+              <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F" />
+              <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20" />
+              <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#1295D0" />
+              <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white" />
+              <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20" />
             </g>
             <defs>
               <clipPath id="clip0_319_901">
-                <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)"/>
+                <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)" />
               </clipPath>
             </defs>
           </svg>

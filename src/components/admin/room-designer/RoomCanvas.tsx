@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RotateCw, Copy, Trash2, Ruler, Grid3X3 } from "lucide-react";
 import { elementTypes } from "./ElementTypes";
+import { formatDimensionsAsFeet } from "@/utils/unitConversion";
 
 // Enhanced emoji mapping function for room elements
 const getElementEmoji = (elementType: string, properties?: any): string => {
@@ -92,12 +93,60 @@ const getFormattedElementName = (elementType: string, properties?: any): string 
   return baseName;
 };
 
+// Generate enhanced tooltip text for bed elements with API data
+const generateBedTooltip = (element: any): string => {
+  const parts: string[] = [];
+  
+  // Bed identifier
+  parts.push(`Bed: ${element.id}`);
+  
+  // Status
+  if (element.status) {
+    parts.push(`Status: ${element.status}`);
+  }
+  
+  // Occupant information
+  if (element.occupantName) {
+    parts.push(`Occupant: ${element.occupantName}`);
+  }
+  
+  // Gender restriction
+  if (element.gender && element.gender !== 'Any') {
+    parts.push(`Gender: ${element.gender}`);
+  }
+  
+  // Monthly rate
+  if (element.bedDetails?.monthlyRate) {
+    parts.push(`Rate: NPR ${element.bedDetails.monthlyRate.toLocaleString()}/month`);
+  }
+  
+  // Occupied since
+  if (element.bedDetails?.occupiedSince) {
+    const occupiedDate = new Date(element.bedDetails.occupiedSince);
+    parts.push(`Occupied since: ${occupiedDate.toLocaleDateString()}`);
+  }
+  
+  // Last cleaned
+  if (element.bedDetails?.lastCleaned) {
+    const cleanedDate = new Date(element.bedDetails.lastCleaned);
+    parts.push(`Last cleaned: ${cleanedDate.toLocaleDateString()}`);
+  }
+  
+  // Maintenance notes
+  if (element.bedDetails?.maintenanceNotes) {
+    parts.push(`Notes: ${element.bedDetails.maintenanceNotes}`);
+  }
+  
+  return parts.join('\n');
+};
+
 interface BunkLevel {
   id: string;
   position: 'top' | 'middle' | 'bottom';
   assignedTo?: string;
   bedId: string;
   status?: 'available' | 'booked' | 'occupied' | 'selected';
+  color?: string; // Add color property for API bed visualization
 }
 
 interface RoomElement {
@@ -109,6 +158,19 @@ interface RoomElement {
   height: number;
   rotation: number;
   zIndex: number;
+  // Enhanced properties for bed status visualization from API
+  status?: string; // Available, Occupied, Reserved, Maintenance
+  occupantId?: string | null;
+  occupantName?: string;
+  gender?: string;
+  color?: string; // Hex color for bed status
+  bedDetails?: {
+    bedNumber?: string;
+    monthlyRate?: number;
+    lastCleaned?: Date;
+    maintenanceNotes?: string;
+    occupiedSince?: Date;
+  };
   properties?: {
     bedType?: 'single' | 'bunk' | 'double' | 'kids';
     bedId?: string;
@@ -198,6 +260,9 @@ export const RoomCanvas = ({
   const lastRenderTime = useRef<number>(0);
   const targetFPS = 60;
   const frameInterval = 1000 / targetFPS;
+  
+  // 🔧 SAFEGUARD: Store the original clicked element to ensure only it moves
+  const originalClickedElementRef = useRef<string | null>(null);
 
   // Reasonable scale for better visibility without being too large
   const canvasScale = Math.max(scale * 2, 60);
@@ -297,107 +362,143 @@ export const RoomCanvas = ({
       ctx.fill();
       ctx.stroke();
 
-      // Clean professional bed design - Simple rectangular shape
+      // Clean professional bed design with API color visualization
       if (element.type === 'single-bed') {
-        // Get bed status for industry standard color coding
-        const bedStatus = element.properties?.status || 'available';
-        const statusColors = {
-          'available': '#E5E7EB',   // Light Gray - Industry standard for available
-          'selected': '#3B82F6',    // Blue - Industry standard for selected
-          'booked': '#F59E0B',      // Amber/Orange - Industry standard for booked
-          'occupied': '#EF4444'     // Red - Industry standard for occupied
-        };
+        // Use color from API if available, otherwise fall back to status-based colors
+        let bedColor = element.color;
+        if (!bedColor) {
+          const bedStatus = element.status || element.properties?.status || 'Available';
+          const statusColors = {
+            'Available': '#10B981', // Green
+            'Occupied': '#EF4444',  // Red
+            'Reserved': '#F59E0B',  // Yellow/Orange
+            'Maintenance': '#6B7280', // Gray
+            'Out_Of_Order': '#6B7280', // Gray
+            // Legacy status mapping
+            'available': '#10B981',
+            'selected': '#3B82F6',
+            'booked': '#F59E0B',
+            'occupied': '#EF4444'
+          };
+          bedColor = statusColors[bedStatus as keyof typeof statusColors] || '#10B981';
+        }
         
-        // Draw simple rectangular bed frame (matching your image)
-        ctx.fillStyle = statusColors[bedStatus as keyof typeof statusColors] || statusColors.available;
-        ctx.strokeStyle = '#000000';  // Black border like in your image
-        ctx.lineWidth = 3;  // Thicker border to match your design
+        // Draw simple rectangular bed frame with API color
+        ctx.fillStyle = bedColor;
+        ctx.strokeStyle = '#000000';  // Black border
+        ctx.lineWidth = 3;  // Thicker border
         ctx.fillRect(-width / 2, -height / 2, width, height);
         ctx.strokeRect(-width / 2, -height / 2, width, height);
         
-        // Simple rectangular pillow at head of bed (matching your image shape)
-        const pillowWidth = width * 0.8;  // Wider pillow to match your design
-        const pillowHeight = height * 0.15;  // Reduced pillow height
+        // Simple rectangular pillow at head of bed
+        const pillowWidth = width * 0.8;
+        const pillowHeight = height * 0.15;
         
         ctx.fillStyle = '#FFFFFF';  // White pillow
         ctx.strokeStyle = '#000000';  // Black border for pillow
         ctx.lineWidth = 2;
         
-        // Draw simple rectangular pillow (no rounded corners to match your image)
+        // Draw simple rectangular pillow
         ctx.fillRect(-pillowWidth / 2, -height / 2 + 8, pillowWidth, pillowHeight);
         ctx.strokeRect(-pillowWidth / 2, -height / 2 + 8, pillowWidth, pillowHeight);
         
-        // Add BOLD bed name inside the box (center of bed)
-        const bedLabel = element.properties?.bedLabel || element.properties?.bedId || 'Bed';
-        ctx.fillStyle = bedStatus === 'available' ? '#374151' : '#FFFFFF';
-        ctx.font = `bold ${Math.min(width * 0.15, height * 0.1, 16)}px Arial`;
+        // Add bed identifier and status
+        const bedLabel = element.id || element.properties?.bedLabel || element.properties?.bedId || 'Bed';
+        const statusText = element.status || element.properties?.status || '';
+        
+        // Bed identifier
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `bold ${Math.min(width * 0.12, height * 0.08, 14)}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(bedLabel, 0, height * 0.15);
+        ctx.fillText(bedLabel, 0, height * 0.1);
         
-        // Add checkmark for selected/booked beds
-        if (bedStatus === 'selected' || bedStatus === 'booked') {
+        // Status text (smaller)
+        if (statusText) {
           ctx.fillStyle = '#FFFFFF';
-          ctx.font = `bold ${Math.min(width * 0.2, height * 0.2, 20)}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('✓', 0, -height * 0.1);
+          ctx.font = `${Math.min(width * 0.08, height * 0.06, 10)}px Arial`;
+          ctx.fillText(statusText, 0, height * 0.25);
+        }
+        
+        // Occupant name if available
+        if (element.occupantName) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = `${Math.min(width * 0.07, height * 0.05, 9)}px Arial`;
+          const shortName = element.occupantName.length > 12 ? 
+            element.occupantName.substring(0, 12) + '...' : element.occupantName;
+          ctx.fillText(shortName, 0, height * 0.35);
         }
         
       } else if (element.type === 'bunk-bed') {
         const bunkLevels = element.properties?.bunkLevels || 2;
         const levels = element.properties?.levels || [];
         
-        // Draw each bunk level with same design as single beds
+        // Draw each bunk level with API color visualization
         const levelHeight = height / bunkLevels;
         
         for (let i = 0; i < bunkLevels; i++) {
           const levelY = -height / 2 + (i * levelHeight);
           const level = levels[i];
-          const bedStatus = level?.status || 'available';
           
-          const statusColors = {
-            'available': '#E5E7EB',   // Light Gray - Industry standard for available
-            'selected': '#3B82F6',    // Blue - Industry standard for selected
-            'booked': '#F59E0B',      // Amber/Orange - Industry standard for booked
-            'occupied': '#EF4444'     // Red - Industry standard for occupied
-          };
+          // Use color from API if available, otherwise fall back to status-based colors
+          let levelColor = level?.color;
+          if (!levelColor) {
+            const bedStatus = level?.status || 'Available';
+            const statusColors = {
+              'Available': '#10B981', // Green
+              'Occupied': '#EF4444',  // Red
+              'Reserved': '#F59E0B',  // Yellow/Orange
+              'Maintenance': '#6B7280', // Gray
+              'Out_Of_Order': '#6B7280', // Gray
+              // Legacy status mapping
+              'available': '#10B981',
+              'selected': '#3B82F6',
+              'booked': '#F59E0B',
+              'occupied': '#EF4444'
+            };
+            levelColor = statusColors[bedStatus as keyof typeof statusColors] || '#10B981';
+          }
           
-          // Fill bunk level with status color (same as single bed)
-          ctx.fillStyle = statusColors[bedStatus as keyof typeof statusColors] || statusColors.available;
+          // Fill bunk level with API color
+          ctx.fillStyle = levelColor;
           ctx.strokeStyle = '#374151';
           ctx.lineWidth = 2;
           ctx.fillRect(-width / 2, levelY, width, levelHeight);
           ctx.strokeRect(-width / 2, levelY, width, levelHeight);
           
-          // EXACT replica of single bed pillow - positioned on LEFT side
-          const pillowWidth = width * 0.8;  // EXACT same as single bed
-          const pillowHeight = height * 0.15;  // EXACT same proportion as single bed (not levelHeight)
+          // Pillow for each bunk level
+          const pillowWidth = width * 0.8;
+          const pillowHeight = height * 0.15;
           
-          ctx.fillStyle = '#FFFFFF';  // White pillow exactly like single bed
-          ctx.strokeStyle = '#000000';  // Black border exactly like single bed
-          ctx.lineWidth = 2;  // Same pillow border as single bed
+          ctx.fillStyle = '#FFFFFF';  // White pillow
+          ctx.strokeStyle = '#000000';  // Black border
+          ctx.lineWidth = 2;
           
           // Position pillow on LEFT side of each bunk level
-          const pillowX = -width / 2 + 8;  // Left side positioning with 8px margin
+          const pillowX = -width / 2 + 8;
           ctx.fillRect(pillowX, levelY + 8, pillowWidth, pillowHeight);
           ctx.strokeRect(pillowX, levelY + 8, pillowWidth, pillowHeight);
           
-          // Add BOLD level name inside each bunk level (B1, B2, etc.)
+          // Level label and status
           const levelLabel = `B${i + 1}`;
-          ctx.fillStyle = bedStatus === 'available' ? '#374151' : '#FFFFFF';
-          ctx.font = `bold ${Math.min(width * 0.12, levelHeight * 0.2, 14)}px Arial`;
+          const levelStatus = level?.status || 'Available';
+          
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = `bold ${Math.min(width * 0.1, levelHeight * 0.15, 12)}px Arial`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(levelLabel, 0, levelY + levelHeight * 0.6);
+          ctx.fillText(levelLabel, 0, levelY + levelHeight * 0.4);
           
-          // Add checkmark for selected/booked levels
-          if (bedStatus === 'selected' || bedStatus === 'booked') {
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = `bold ${Math.min(width * 0.15, levelHeight * 0.3, 14)}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('✓', 0, levelY + levelHeight * 0.35);
+          // Status text (smaller)
+          ctx.font = `${Math.min(width * 0.07, levelHeight * 0.1, 9)}px Arial`;
+          ctx.fillText(levelStatus, 0, levelY + levelHeight * 0.7);
+          
+          // Occupant name if available
+          if (level?.assignedTo) {
+            ctx.font = `${Math.min(width * 0.06, levelHeight * 0.08, 8)}px Arial`;
+            const shortName = level.assignedTo.length > 10 ? 
+              level.assignedTo.substring(0, 10) + '...' : level.assignedTo;
+            ctx.fillText(shortName, 0, levelY + levelHeight * 0.85);
           }
         }
         
@@ -545,11 +646,20 @@ export const RoomCanvas = ({
   };
 
   const getElementAtPosition = (x: number, y: number): RoomElement | null => {
+    // Sort by zIndex (highest first) to get the topmost element
     const sortedElements = [...elements].sort((a, b) => b.zIndex - a.zIndex);
-    return sortedElements.find(element =>
-      x >= element.x && x <= element.x + element.width &&
-      y >= element.y && y <= element.y + element.height
-    ) || null;
+    
+    // Find the first element that contains the click position with precise boundary checking
+    return sortedElements.find(element => {
+      // Use precise boundary checking without tolerance to prevent accidental selection
+      // This ensures only direct clicks on elements are registered
+      return (
+        x >= element.x && 
+        x <= (element.x + element.width) &&
+        y >= element.y && 
+        y <= (element.y + element.height)
+      );
+    }) || null;
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -569,10 +679,23 @@ export const RoomCanvas = ({
         return;
       }
 
-      onElementSelect(clickedElement.id, isMultiSelect);
+      // 🔧 FIXED: Simplified selection logic to prevent unintended multi-selection 🔧
+      if (!isMultiSelect) {
+        // Single selection - directly select only this element (this will clear others automatically)
+        onElementSelect(clickedElement.id, false);
+      } else {
+        // For multi-select, add to selection
+        onElementSelect(clickedElement.id, true);
+      }
 
-      // Start 🧈 ULTRA-SMOOTH BUTTER DRAGGING 🧈
+      // Start 🧈 ULTRA-SMOOTH BUTTER DRAGGING 🧈 with INDEPENDENT MOVEMENT
       if (!clickedElement.properties?.isLocked) {
+        // 🔧 SAFEGUARD: Store the original clicked element
+        originalClickedElementRef.current = clickedElement.id;
+        
+        // FORCE: Ensure ONLY this element is selected before starting drag
+        onElementSelect(clickedElement.id, false);
+        
         setIsDragging(true);
         setDraggedElementId(clickedElement.id);
         setDragStartTime(performance.now());
@@ -713,14 +836,33 @@ export const RoomCanvas = ({
       const deltaX = newX - currentElement.x;
       const deltaY = newY - currentElement.y;
       
-      // Apply movement with BUTTER-SMOOTH threshold
+      // 🔧 FIXED: Add collision detection to prevent overlapping 🔧
+      const testElement = {
+        ...currentElement,
+        x: newX,
+        y: newY
+      };
+      
+      // Check for collisions with other elements (excluding the current one)
+      const hasCollision = checkCollisions(testElement, draggedElementId);
+      
+      // Apply movement with BUTTER-SMOOTH threshold and collision prevention
       if (Math.abs(deltaX) > 0.0001 || Math.abs(deltaY) > 0.0001) {
-        // Use optimized state update for 60fps performance
-        onElementsMove([draggedElementId], deltaX, deltaY);
-        
-        // Update position tracking
-        lastPositionRef.current = { x: newX, y: newY };
-        lastRenderTime.current = currentTime;
+        if (!hasCollision) {
+          // Only move if no collision detected - INDEPENDENT MOVEMENT
+          // 🔧 ULTIMATE SAFEGUARD: Use the original clicked element, not any state that might have changed
+          const elementToMove = originalClickedElementRef.current || draggedElementId;
+          
+          // FORCE: Only move the specific dragged element, ignore selectedElements
+          onElementsMove([elementToMove], deltaX, deltaY);
+          
+          // Update position tracking
+          lastPositionRef.current = { x: newX, y: newY };
+          lastRenderTime.current = currentTime;
+        } else {
+          // If collision detected, don't move and show visual feedback
+          console.log('🚫 Collision detected - movement blocked');
+        }
       }
     } else {
       // Handle hover effects when not dragging (optimized)
@@ -730,12 +872,22 @@ export const RoomCanvas = ({
         setHoveredElement(hoveredEl?.id || null);
         
         if (hoveredEl) {
-          const elementName = getFormattedElementName(hoveredEl.type, hoveredEl.properties);
-          setTooltip({
-            x: e.clientX + 10,
-            y: e.clientY - 30,
-            text: elementName
-          });
+          // Show enhanced tooltip for bed elements with status information
+          if (hoveredEl.type.includes('bed') && (hoveredEl.status || hoveredEl.occupantName || hoveredEl.bedDetails)) {
+            const tooltipText = generateBedTooltip(hoveredEl);
+            setTooltip({
+              x: e.clientX + 10,
+              y: e.clientY - 10,
+              text: tooltipText
+            });
+          } else {
+            const elementName = getFormattedElementName(hoveredEl.type, hoveredEl.properties);
+            setTooltip({
+              x: e.clientX + 10,
+              y: e.clientY - 30,
+              text: elementName
+            });
+          }
           canvas.style.cursor = hoveredEl.properties?.isLocked ? 'not-allowed' : 'grab';
         } else {
           setTooltip(null);
@@ -814,6 +966,9 @@ export const RoomCanvas = ({
     setDragOffset(null);
     setLastMousePos(null);
     setDragStartTime(0);
+    
+    // 🔧 SAFEGUARD: Clear the original clicked element reference
+    originalClickedElementRef.current = null;
     
     // Clear all smoothing systems
     smoothingBuffer.current = [];
@@ -945,7 +1100,7 @@ export const RoomCanvas = ({
           </Badge>
           <Badge variant="secondary">
             <Ruler className="h-4 w-4 mr-2" />
-            {dimensions.length}m × {dimensions.width}m
+            {formatDimensionsAsFeet(dimensions.length, dimensions.width)}
           </Badge>
           <Badge variant="outline" className="bg-green-50 text-green-700">
             📦 {elements.length} elements

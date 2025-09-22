@@ -1,128 +1,215 @@
 
-import { mockData } from '../data/mockData.js';
-import { notificationService } from './notificationService.js';
-import { roomService } from './roomService.js';
-import { ledgerService } from './ledgerService.js';
+import { getEnvironmentConfig } from '../config/environment.ts';
 
-let students = [...mockData.students];
+const API_BASE_URL = getEnvironmentConfig().apiBaseUrl;
+
+// Helper function to handle API requests
+async function apiRequest(endpoint, options = {}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `HTTP ${response.status}: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    return data.data; // API returns data in { status, data } format
+  } catch (error) {
+    console.error("Student API Request Error:", error);
+    throw error;
+  }
+}
 
 export const studentService = {
-  // Get all students
-  async getStudents() {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([...students]), 100);
-    });
+  // Get all students with filtering and pagination
+  async getStudents(filters = {}) {
+    try {
+      console.log("👥 Fetching students from API...");
+      const queryParams = new URLSearchParams();
+
+      // Add filters as query parameters
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          queryParams.append(key, value);
+        }
+      });
+
+      const endpoint = `/students${
+        queryParams.toString() ? `?${queryParams.toString()}` : ""
+      }`;
+      const result = await apiRequest(endpoint);
+      console.log("✅ Students API response:", result);
+
+      // API may return either an array or an object with { items, pagination }
+      const items = Array.isArray(result)
+        ? result
+        : (result && Array.isArray(result.items) ? result.items : []);
+      return items;
+
+    } catch (error) {
+      console.error("❌ Error fetching students:", error);
+      throw error;
+    }
   },
 
   // Get student by ID
-  async getStudentById(id) {
-    return new Promise((resolve) => {
-      const student = students.find(s => s.id === id);
-      setTimeout(() => resolve(student), 100);
-    });
+  async getStudentById(studentId) {
+    try {
+      console.log(`👤 Fetching student ${studentId} from API...`);
+      const result = await apiRequest(`/students/${studentId}`);
+      console.log("✅ Student fetched successfully");
+      return result;
+    } catch (error) {
+      console.error("❌ Error fetching student:", error);
+      throw error;
+    }
   },
 
-  // Create new student (triggered by booking approval)
+  // Create new student
   async createStudent(studentData) {
-    return new Promise((resolve) => {
-      const newStudent = {
-        id: `STU${String(students.length + 1).padStart(3, '0')}`,
-        ...studentData,
-        enrollmentDate: new Date().toISOString().split('T')[0],
-        joiningDate: new Date().toISOString().split('T')[0],
-        status: 'Active',
-        currentBalance: 0,
-        advanceBalance: 0,
-        totalPaid: 0,
-        totalCharges: 0,
-        parentOccupation: 'Not specified',
-        bloodGroup: 'Not specified',
-        medicalConditions: 'None'
-      };
-      
-      students.push(newStudent);
-      
-      // Send welcome notification via Kaha App
-      const message = `Welcome to Kaha Hostel! Your profile has been created. Room ${newStudent.roomNumber} has been assigned to you.`;
-      console.log(`📱 Kaha App Notification sent to ${newStudent.name}:`, message);
-      
-      console.log('New student created:', newStudent);
-      setTimeout(() => resolve(newStudent), 100);
-    });
+    try {
+      console.log("👤 Creating new student via API...");
+      const result = await apiRequest("/students", {
+        method: "POST",
+        body: JSON.stringify(studentData),
+      });
+      console.log("✅ Student created successfully");
+      return result;
+    } catch (error) {
+      console.error("❌ Error creating student:", error);
+      throw error;
+    }
   },
 
-  // Update student information
-  async updateStudent(id, updates) {
-    return new Promise((resolve) => {
-      const index = students.findIndex(s => s.id === id);
-      if (index !== -1) {
-        students[index] = { ...students[index], ...updates };
-        setTimeout(() => resolve(students[index]), 100);
-      } else {
-        setTimeout(() => resolve(null), 100);
-      }
-    });
+  // Update student
+  async updateStudent(studentId, updateData) {
+    try {
+      console.log(`👤 Updating student ${studentId} via API...`);
+      const result = await apiRequest(`/students/${studentId}`, {
+        method: "PUT",
+        body: JSON.stringify(updateData),
+      });
+      console.log("✅ Student updated successfully");
+      return result;
+    } catch (error) {
+      console.error("❌ Error updating student:", error);
+      throw error;
+    }
   },
 
-  // Get students with outstanding dues
-  async getStudentsWithDues() {
-    return new Promise((resolve) => {
-      const studentsWithDues = students.filter(s => s.currentBalance > 0);
-      setTimeout(() => resolve(studentsWithDues), 100);
-    });
+  // Delete student
+  async deleteStudent(studentId) {
+    try {
+      console.log(`👤 Deleting student ${studentId} via API...`);
+      const result = await apiRequest(`/students/${studentId}`, {
+        method: "DELETE",
+      });
+      console.log("✅ Student deleted successfully");
+      return result;
+    } catch (error) {
+      console.error("❌ Error deleting student:", error);
+      throw error;
+    }
   },
 
   // Get student statistics
   async getStudentStats() {
-    return new Promise((resolve) => {
-      const stats = {
-        total: students.length,
-        active: students.filter(s => s.status === 'Active').length,
-        inactive: students.filter(s => s.status === 'Inactive').length,
-        totalDues: students.reduce((sum, s) => sum + (s.currentBalance || 0), 0),
-        totalAdvances: students.reduce((sum, s) => sum + (s.advanceBalance || 0), 0)
-      };
-      setTimeout(() => resolve(stats), 100);
-    });
+    try {
+      console.log("📊 Fetching student statistics from API...");
+      const result = await apiRequest("/students/stats");
+      console.log("✅ Student stats fetched successfully");
+      return result;
+    } catch (error) {
+      console.error("❌ Error fetching student stats:", error);
+      throw error;
+    }
+  },
+
+  // Get students with outstanding dues
+  async getStudentsWithDues() {
+    try {
+      console.log("💰 Fetching students with dues from API...");
+      const result = await this.getStudents({ hasDues: true });
+      return result;
+    } catch (error) {
+      console.error("❌ Error fetching students with dues:", error);
+      throw error;
+    }
   },
 
   // Search students
   async searchStudents(searchTerm) {
-    return new Promise((resolve) => {
-      const filteredStudents = students.filter(student => 
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setTimeout(() => resolve(filteredStudents), 100);
-    });
+    try {
+      console.log(`🔍 Searching students by term: ${searchTerm}`);
+      const result = await this.getStudents({ search: searchTerm });
+      return result;
+    } catch (error) {
+      console.error("❌ Error searching students:", error);
+      throw error;
+    }
   },
 
   // Checkout student
   async checkoutStudent(studentId) {
-    return new Promise((resolve) => {
-      const index = students.findIndex(s => s.id === studentId);
-      if (index !== -1) {
-        students[index] = { 
-          ...students[index], 
-          isCheckedOut: true,
-          checkoutDate: new Date().toISOString().split('T')[0],
-          status: 'Checked Out'
-        };
-        setTimeout(() => resolve(students[index]), 100);
-      } else {
-        setTimeout(() => resolve(null), 100);
-      }
-    });
+    try {
+      console.log(`🚪 Processing checkout for student ${studentId}...`);
+      const result = await apiRequest(`/students/${studentId}/checkout`, {
+        method: "POST",
+        body: JSON.stringify({ checkoutDate: new Date().toISOString() }),
+      });
+      console.log("✅ Student checkout processed successfully");
+      return result;
+    } catch (error) {
+      console.error("❌ Error processing student checkout:", error);
+      throw error;
+    }
   },
 
   // Get students who are checked out with dues
   async getCheckedOutStudentsWithDues() {
-    return new Promise((resolve) => {
-      const checkedOutWithDues = students.filter(student => 
-        student.isCheckedOut === true && 
-        (student.totalDue - student.totalPaid) > 0
-      );
-      setTimeout(() => resolve(checkedOutWithDues), 100);
-    });
+    try {
+      console.log("👥 Fetching checked out students with dues...");
+      const result = await this.getStudents({ 
+        status: 'Checked Out', 
+        hasDues: true 
+      });
+      return result;
+    } catch (error) {
+      console.error("❌ Error fetching checked out students with dues:", error);
+      throw error;
+    }
+  },
+
+  // Get active students only
+  async getActiveStudents() {
+    try {
+      console.log("👥 Fetching active students...");
+      const result = await this.getStudents({ status: 'Active' });
+      return result;
+    } catch (error) {
+      console.error("❌ Error fetching active students:", error);
+      throw error;
+    }
+  },
+
+  // Get inactive students only
+  async getInactiveStudents() {
+    try {
+      console.log("👥 Fetching inactive students...");
+      const result = await this.getStudents({ status: 'Inactive' });
+      return result;
+    } catch (error) {
+      console.error("❌ Error fetching inactive students:", error);
+      throw error;
+    }
   }
 };

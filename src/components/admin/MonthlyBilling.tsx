@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useAppContext } from '@/contexts/AppContext';
-import { monthlyBillingService } from '@/services/monthlyBillingService.js';
+import { useAppContext } from '@/contexts/SafeAppContext';
+import { automatedBillingApiService } from '@/services/automatedBillingApiService';
 import { 
   Calendar, 
   DollarSign, 
@@ -29,6 +29,8 @@ const MonthlyBillingComponent = () => {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [checkoutDate, setCheckoutDate] = useState('');
   const [refundCalculation, setRefundCalculation] = useState(null);
+  const [billingStats, setBillingStats] = useState(null);
+  const [studentsReady, setStudentsReady] = useState([]);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -43,7 +45,24 @@ const MonthlyBillingComponent = () => {
     setSelectedMonth(months[now.getMonth()]);
     setSelectedYear(now.getFullYear().toString());
     setCheckoutDate(now.toISOString().split('T')[0]);
+    
+    // Load billing data
+    loadBillingData();
   }, []);
+
+  const loadBillingData = async () => {
+    try {
+      const [stats, students] = await Promise.all([
+        automatedBillingApiService.getBillingStats(),
+        automatedBillingApiService.getStudentsReadyForBilling()
+      ]);
+      
+      setBillingStats(stats);
+      setStudentsReady(students);
+    } catch (error) {
+      console.error('Error loading billing data:', error);
+    }
+  };
 
   const handleGenerateMonthlyBills = async () => {
     if (!selectedMonth || !selectedYear) {
@@ -58,24 +77,30 @@ const MonthlyBillingComponent = () => {
     setIsGenerating(true);
 
     try {
-      const monthIndex = months.indexOf(selectedMonth) + 1;
-      const result = await monthlyBillingService.generateBulkMonthlyBills(monthIndex, parseInt(selectedYear));
+      const monthIndex = months.indexOf(selectedMonth);
+      const result = await automatedBillingApiService.generateMonthlyInvoices({
+        month: monthIndex,
+        year: parseInt(selectedYear),
+        dueDate: new Date(parseInt(selectedYear), monthIndex, 10).toISOString().split('T')[0] // 10th of the month
+      });
 
       setBillingResults(result);
 
       toast({
         title: 'Monthly Billing Complete',
-        description: `Generated ${result.successful.length} bills successfully. Total: NPR ${result.totalAmount.toLocaleString()}`,
+        description: `Generated ${result.generated} invoices successfully. Total: NPR ${result.totalAmount.toLocaleString()}`,
       });
 
-      if (result.failed.length > 0) {
+      if (result.failed > 0) {
         toast({
-          title: 'Some Bills Failed',
-          description: `${result.failed.length} bills failed to generate`,
+          title: 'Some Invoices Failed',
+          description: `${result.failed} invoices failed to generate`,
           variant: 'destructive'
         });
       }
 
+      // Refresh billing data
+      await loadBillingData();
       await refreshAllData();
 
     } catch (error) {
@@ -100,7 +125,14 @@ const MonthlyBillingComponent = () => {
     }
 
     try {
-      const refund = await monthlyBillingService.calculateCheckoutRefund(selectedStudent, checkoutDate);
+      // Get student details to calculate monthly fee
+      const student = activeStudents.find(s => s.id === selectedStudent);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      const monthlyFee = (student.baseMonthlyFee || 0) + (student.laundryFee || 0) + (student.foodFee || 0);
+      const refund = automatedBillingApiService.calculateCheckoutRefund(monthlyFee, checkoutDate);
       setRefundCalculation(refund);
 
       if (refund.refundAmount > 0) {
@@ -149,9 +181,10 @@ const MonthlyBillingComponent = () => {
   };
 
   const activeStudents = state.students.filter(s => s.status === 'Active');
-  const totalMonthlyRevenue = activeStudents.reduce((sum, student) => {
-    return sum + (student.baseMonthlyFee || 15000) + (student.laundryFee || 1500) + (student.foodFee || 4500);
-  }, 0);
+  const totalMonthlyRevenue = studentsReady.reduce((sum, student) => sum + (student.monthlyTotal || 0), 0) || 
+    activeStudents.reduce((sum, student) => {
+      return sum + (student.baseMonthlyFee || 15000) + (student.laundryFee || 1500) + (student.foodFee || 4500);
+    }, 0);
 
   return (
     <div className="space-y-6">
@@ -290,11 +323,21 @@ const MonthlyBillingComponent = () => {
                   <span className="font-medium text-green-800">Billing Complete</span>
                 </div>
                 <div className="text-sm text-green-700 space-y-1">
-                  <p>✅ Successful: {billingResults.successful.length} bills</p>
-                  {billingResults.failed.length > 0 && (
-                    <p>❌ Failed: {billingResults.failed.length} bills</p>
+                  <p>✅ Generated: {billingResults.generated} invoices</p>
+                  {billingResults.failed > 0 && (
+                    <p>❌ Failed: {billingResults.failed} invoices</p>
                   )}
                   <p>💰 Total Amount: NPR {billingResults.totalAmount.toLocaleString()}</p>
+                  {billingResults.errors && billingResults.errors.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-red-600">View Errors</summary>
+                      <div className="mt-1 text-xs text-red-600">
+                        {billingResults.errors.map((error, index) => (
+                          <p key={index}>• {error.studentName}: {error.error}</p>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               </div>
             )}

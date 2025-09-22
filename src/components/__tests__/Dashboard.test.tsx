@@ -10,7 +10,7 @@ vi.mock('../../hooks/useLanguage', () => ({
   }))
 }))
 
-vi.mock('../../contexts/AppContext', () => ({
+vi.mock('../../contexts/SafeAppContext', () => ({
   useAppContext: vi.fn(() => ({
     state: {
       students: [

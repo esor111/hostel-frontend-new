@@ -1,43 +1,29 @@
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, DollarSign, Calendar, Activity, BarChart3 } from "lucide-react";
-import { analyticsService } from "@/services/analyticsService";
+import { TrendingUp, Users, DollarSign, Calendar, BarChart3, UserPlus } from "lucide-react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export const Analytics = () => {
-  const [monthlyData, setMonthlyData] = useState([]);
-  const [guestTypeData, setGuestTypeData] = useState([]);
-  const [performanceMetrics, setPerformanceMetrics] = useState({});
-  const [collectionStats, setCollectionStats] = useState({});
-  const [trends, setTrends] = useState({});
-  const [loading, setLoading] = useState(true);
+  const {
+    monthlyData,
+    guestTypeData,
+    loading,
+    error,
+    refreshData
+  } = useAnalytics();
 
+  // Auto-refresh analytics data every 60 seconds
   useEffect(() => {
-    loadAnalyticsData();
-  }, []);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refreshData();
+      }
+    }, 60000);
 
-  const loadAnalyticsData = async () => {
-    try {
-      const [monthly, guestTypes, performance, collection, trendData] = await Promise.all([
-        analyticsService.getMonthlyRevenue(),
-        analyticsService.getGuestTypeData(),
-        analyticsService.getPerformanceMetrics(),
-        analyticsService.getCollectionStats(),
-        analyticsService.calculateTrends()
-      ]);
-
-      setMonthlyData(monthly);
-      setGuestTypeData(guestTypes);
-      setPerformanceMetrics(performance);
-      setCollectionStats(collection);
-      setTrends(trendData);
-    } catch (error) {
-      console.error('Error loading analytics data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => clearInterval(interval);
+  }, [refreshData]);
 
   if (loading) {
     return (
@@ -52,7 +38,29 @@ export const Analytics = () => {
     );
   }
 
-  const currentMonth = monthlyData[monthlyData.length - 1] || {};
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <div className="text-red-500 mb-2">
+              <BarChart3 className="h-12 w-12 mx-auto mb-2" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Analytics</h3>
+            <p className="text-gray-500 mb-4">{error}</p>
+            <button 
+              onClick={refreshData}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentMonth = monthlyData[monthlyData.length - 1] || { bookings: 0, occupancy: 0 };
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -72,17 +80,15 @@ export const Analytics = () => {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Average Monthly Revenue</p>
+                <p className="text-xs text-gray-500 mb-2">Total revenue earned per month on average</p>
                 <p className="text-2xl font-bold text-gray-900">
                   Rs {(monthlyData.reduce((sum, month) => sum + (month.revenue || 0), 0) / Math.max(monthlyData.length, 1)).toLocaleString()}
-                </p>
-                <p className={`text-sm mt-1 ${trends.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {trends.revenueGrowth >= 0 ? '+' : ''}{trends.revenueGrowth}% from last month
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-green-600" />
@@ -94,15 +100,13 @@ export const Analytics = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Average Monthly Bookings</p>
+                <p className="text-sm font-medium text-gray-600">Onboarded Users This Month</p>
+                <p className="text-xs text-gray-500 mb-2">New students who joined the hostel this month</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {Math.round(monthlyData.reduce((sum, month) => sum + (month.bookings || 0), 0) / Math.max(monthlyData.length, 1))}
-                </p>
-                <p className={`text-sm mt-1 ${trends.bookingGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {trends.bookingGrowth >= 0 ? '+' : ''}{trends.bookingGrowth}% from last month
+                  {currentMonth.bookings || 0}
                 </p>
               </div>
-              <Calendar className="h-8 w-8 text-blue-600" />
+              <UserPlus className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -111,28 +115,11 @@ export const Analytics = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avg Occupancy</p>
+                <p className="text-sm font-medium text-gray-600">Current Occupancy Rate</p>
+                <p className="text-xs text-gray-500 mb-2">Percentage of beds currently occupied</p>
                 <p className="text-2xl font-bold text-gray-900">{currentMonth.occupancy || 0}%</p>
-                <p className={`text-sm mt-1 ${trends.occupancyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {trends.occupancyGrowth >= 0 ? '+' : ''}{trends.occupancyGrowth}% from last month
-                </p>
               </div>
               <Users className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-violet-50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Collection Rate</p>
-                <p className="text-2xl font-bold text-gray-900">{collectionStats.collectionRate || 0}%</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Rs {collectionStats.totalCollected?.toLocaleString() || '0'} collected
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -146,6 +133,7 @@ export const Analytics = () => {
               <BarChart3 className="h-5 w-5 text-gray-600" />
               Monthly Revenue Trend
             </CardTitle>
+            <p className="text-sm text-gray-500">Track revenue performance across different months</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -163,9 +151,10 @@ export const Analytics = () => {
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-gray-600" />
-              Occupancy Rate Trend
+              <Calendar className="h-5 w-5 text-gray-600" />
+              Bookings Per Month Trend
             </CardTitle>
+            <p className="text-sm text-gray-500">Monitor new student onboarding trends over time</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -173,10 +162,10 @@ export const Analytics = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`${value}%`, 'Occupancy']} />
+                <Tooltip formatter={(value) => [`${value} bookings`, 'New Students']} />
                 <Line 
                   type="monotone" 
-                  dataKey="occupancy" 
+                  dataKey="bookings" 
                   stroke="#1295D0" 
                   strokeWidth={3}
                   dot={{ fill: '#1295D0', strokeWidth: 2, r: 4 }}
@@ -192,8 +181,9 @@ export const Analytics = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-gray-600" />
-              Guest Type Distribution
+              Student Status Distribution
             </CardTitle>
+            <p className="text-sm text-gray-500">Breakdown of students by their current status in the hostel</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -208,11 +198,11 @@ export const Analytics = () => {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {guestTypeData.map((entry, index) => (
+                  {guestTypeData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value, name) => [`${value} guests`, name]} />
+                <Tooltip formatter={(value, name) => [`${value} students`, name]} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -222,36 +212,26 @@ export const Analytics = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-gray-600" />
-              Performance Metrics
+              Occupancy Rate Trend
             </CardTitle>
+            <p className="text-sm text-gray-500">Track how occupancy rates change over different months</p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
-                <span className="font-medium">Average Daily Rate (ADR)</span>
-                <span className="text-xl font-bold text-blue-600">
-                  Rs {performanceMetrics.averageDailyRate?.toLocaleString() || '0'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                <span className="font-medium">Revenue Per Available Bed</span>
-                <span className="text-xl font-bold text-green-600">
-                  Rs {performanceMetrics.revenuePerBed?.toLocaleString() || '0'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg">
-                <span className="font-medium">Average Length of Stay</span>
-                <span className="text-xl font-bold text-orange-600">
-                  {performanceMetrics.averageLengthOfStay || '0'} days
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
-                <span className="font-medium">Repeat Guest Rate</span>
-                <span className="text-xl font-bold text-purple-600">
-                  {performanceMetrics.repeatGuestRate || '0'}%
-                </span>
-              </div>
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => [`${value}%`, 'Occupancy Rate']} />
+                <Line 
+                  type="monotone" 
+                  dataKey="occupancy" 
+                  stroke="#07A64F" 
+                  strokeWidth={3}
+                  dot={{ fill: '#07A64F', strokeWidth: 2, r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>

@@ -3,17 +3,23 @@ import { useState, useEffect, Suspense, lazy } from "react";
 import { Sidebar } from "@/components/ledger/Sidebar";
 import { Dashboard } from "@/components/ledger/Dashboard";
 import { PerformanceMonitor } from "@/components/common/PerformanceMonitor.tsx";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 // Lazy load heavy components for better performance
-const StudentManagement = lazy(() => import("@/components/ledger/StudentManagement").then(module => ({ default: module.StudentManagement })));
+const StudentManagement = lazy(() => 
+  import("@/components/ledger/StudentManagement").catch(err => {
+    console.error('Failed to load StudentManagement:', err);
+    return { default: () => <div>Error loading Student Management</div> };
+  })
+);
 const PaymentRecording = lazy(() => import("@/components/ledger/PaymentRecording").then(module => ({ default: module.PaymentRecording })));
 const StudentLedgerView = lazy(() => import("@/components/ledger/StudentLedgerView").then(module => ({ default: module.StudentLedgerView })));
 const DiscountManagement = lazy(() => import("@/components/ledger/DiscountManagement").then(module => ({ default: module.DiscountManagement })));
 const BillingManagement = lazy(() => import("@/components/ledger/BillingManagement").then(module => ({ default: module.BillingManagement })));
 const AdminCharging = lazy(() => import("@/components/ledger/AdminCharging").then(module => ({ default: module.AdminCharging })));
 const StudentCheckoutManagement = lazy(() => import("@/components/ledger/StudentCheckoutManagement").then(module => ({ default: module.StudentCheckoutManagement })));
+const ApiTestComponent = lazy(() => import("@/components/debug/ApiTestComponent").then(module => ({ default: module.ApiTestComponent })));
 
-import { useLanguage } from "@/hooks/useLanguage";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { KahaLogo } from "@/components/common/KahaLogo";
@@ -34,7 +40,7 @@ const SectionLoader = ({ sectionName }: { sectionName: string }) => (
 
 const Ledger = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const { language, translations } = useLanguage();
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -66,9 +72,11 @@ const Ledger = () => {
         return <Dashboard />;
       case "students":
         return (
-          <Suspense fallback={<SectionLoader sectionName="Student Management" />}>
-            <StudentManagement />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<SectionLoader sectionName="Student Management" />}>
+              <StudentManagement />
+            </Suspense>
+          </ErrorBoundary>
         );
       case "payments":
         return (
@@ -106,13 +114,26 @@ const Ledger = () => {
             <StudentCheckoutManagement />
           </Suspense>
         );
+      case "api-test":
+        return (
+          <Suspense fallback={<SectionLoader sectionName="API Test" />}>
+            <ApiTestComponent />
+          </Suspense>
+        );
+      case "debug-admin":
+        const DebugAdminCharges = lazy(() => import("@/debug-admin-charges"));
+        return (
+          <Suspense fallback={<SectionLoader sectionName="Debug Admin Charges" />}>
+            <DebugAdminCharges />
+          </Suspense>
+        );
       default:
         return <Dashboard />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex relative">
       {/* Ambient Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-[#07A64F]/10 to-[#1295D0]/10 rounded-full blur-3xl"></div>
@@ -218,7 +239,7 @@ const Ledger = () => {
         </div>
         
         {/* Premium Content Area */}
-        <div className="flex-1 p-8 bg-gradient-to-br from-white/50 via-slate-50/30 to-white/50 backdrop-blur-sm relative">
+        <div className="flex-1 p-8 bg-gradient-to-br from-white/50 via-slate-50/30 to-white/50 backdrop-blur-sm relative overflow-auto">
           {/* Content Background Pattern */}
           <div className="absolute inset-0 opacity-[0.02]" style={{
             backgroundImage: `radial-gradient(circle at 1px 1px, #07A64F 1px, transparent 0)`,

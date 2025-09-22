@@ -10,7 +10,7 @@ describe('billingService', () => {
       const result = billingService.calculateProratedAmount(monthlyAmount, enrollmentDate)
 
       expect(result).toHaveProperty('totalDaysInMonth')
-      expect(result).toHaveProperty('remainingDays')
+      expect(result).toHaveProperty('daysToCalculate')
       expect(result).toHaveProperty('proratedAmount')
       expect(result).toHaveProperty('isProrated')
       expect(result.isProrated).toBe(true)

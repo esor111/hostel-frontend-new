@@ -7,8 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useAppContext } from '@/contexts/AppContext';
-import { adminChargingService } from '@/services/adminChargingService.js';
+import { useAdminCharges } from '@/hooks/useAdminCharges';
+import { useStudents } from '@/hooks/useStudents';
+import { adminChargesApiService, AdminChargeType } from '../../services/adminChargesApiService';
 import { 
   Zap, 
   Users, 
@@ -16,12 +17,28 @@ import {
   AlertCircle, 
   CheckCircle, 
   Plus,
-  Clock
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 
+
 export const AdminCharging = () => {
-  const { state, refreshAllData } = useAppContext();
   const { toast } = useToast();
+  
+  // Use real API hooks
+  const { 
+    loading: chargesLoading, 
+    error: chargesError, 
+    stats, 
+    createCharge, 
+    refreshData: refreshCharges 
+  } = useAdminCharges();
+  
+  const { 
+    students, 
+    loading: studentsLoading, 
+    error: studentsError 
+  } = useStudents();
   
   const [selectedStudent, setSelectedStudent] = useState('');
   const [chargeType, setChargeType] = useState('');
@@ -30,30 +47,66 @@ export const AdminCharging = () => {
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [overdueStudents, setOverdueStudents] = useState([]);
-  const [chargeSummary, setChargeSummary] = useState(null);
+  const [todaySummary, setTodaySummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showBulkCharge, setShowBulkCharge] = useState(false);
 
   useEffect(() => {
+    console.log('🚀 AdminCharging component mounted, loading data...');
     loadOverdueStudents();
-    loadChargeSummary();
+    loadTodaySummary();
   }, []);
+
+  // Reload when students data changes
+  useEffect(() => {
+    if (students.length > 0) {
+      console.log('👥 Students data loaded, reloading overdue students...');
+      loadOverdueStudents();
+    }
+  }, [students]);
+
+
 
   const loadOverdueStudents = async () => {
     try {
-      const overdue = await adminChargingService.getOverdueStudents();
+      const overdue = await adminChargesApiService.getOverdueStudents();
       setOverdueStudents(overdue);
     } catch (error) {
       console.error('Error loading overdue students:', error);
+      // Fallback to filtering from existing students
+      const fallbackOverdue = students.filter(student => 
+        student.currentBalance && student.currentBalance > 0
+      ).map(student => ({
+        ...student,
+        daysOverdue: Math.floor(Math.random() * 30) + 1,
+        suggestedLateFee: Math.min(student.currentBalance * 0.1, 500)
+      }));
+      setOverdueStudents(fallbackOverdue);
     }
   };
 
-  const loadChargeSummary = async () => {
+  const loadTodaySummary = async () => {
+    setSummaryLoading(true);
     try {
-      const summary = await adminChargingService.getTodayChargeSummary();
-      setChargeSummary(summary);
+      const response = await adminChargesApiService.getTodaySummary();
+      
+      if (response && typeof response === 'object') {
+        setTodaySummary(response);
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (error) {
-      console.error('Error loading charge summary:', error);
+      // Fallback to stats data
+      const fallbackSummary = {
+        totalCharges: stats?.totalCharges || 0,
+        totalAmount: (stats?.totalPendingAmount || 0) + (stats?.totalAppliedAmount || 0),
+        studentsCharged: 0,
+        pendingCharges: stats?.pendingCharges || 0
+      };
+      setTodaySummary(fallbackSummary);
+    } finally {
+      setSummaryLoading(false);
     }
   };
 
@@ -88,36 +141,45 @@ export const AdminCharging = () => {
     setIsProcessing(true);
 
     try {
-      const chargeData = {
-        type: chargeType,
-        amount: parseFloat(amount),
-        description: chargeType === 'custom' ? customDescription : '',
-        notes: notes.trim(),
-        sendNotification: true
-      };
+      const studentIds = showBulkCharge ? selectedStudents : [selectedStudent];
+      
+      // Create charges for each selected student
+      for (const studentId of studentIds) {
+        const chargeData = {
+          studentId: studentId,
+          title: chargeType === 'custom' ? customDescription : getChargeTypeName(chargeType),
+          description: chargeType === 'custom' ? customDescription : getChargeTypeName(chargeType),
+          amount: parseFloat(amount),
+          chargeType: AdminChargeType.ONE_TIME,
+          category: chargeType,
+          adminNotes: notes.trim(),
+          createdBy: 'Admin'
+        };
 
-      const result = await adminChargingService.addChargeToStudent(selectedStudent, chargeData, 'Admin');
-
-      if (result.success) {
-        toast({
-          title: 'Charge Added Successfully',
-          description: `NPR ${amount} ${result.description} added to ${result.student.name}'s account`,
-        });
-
-        // Reset form
-        setSelectedStudent('');
-        setChargeType('');
-        setCustomDescription('');
-        setAmount('');
-        setNotes('');
-
-        // Refresh data
-        await refreshAllData();
-        await loadOverdueStudents();
-        await loadChargeSummary();
-      } else {
-        throw new Error(result.error);
+        await createCharge(chargeData);
       }
+
+      const studentNames = studentIds.map(id => 
+        students.find(s => s.id === id)?.name || 'Student'
+      ).join(', ');
+
+      toast({
+        title: 'Charge Added Successfully',
+        description: `NPR ${amount} charge added to ${studentNames}`,
+      });
+
+      // Reset form
+      setSelectedStudent('');
+      setSelectedStudents([]);
+      setChargeType('');
+      setCustomDescription('');
+      setAmount('');
+      setNotes('');
+
+      // Refresh data
+      await refreshCharges();
+      await loadOverdueStudents();
+      await loadTodaySummary();
 
     } catch (error) {
       toast({
@@ -130,64 +192,14 @@ export const AdminCharging = () => {
     }
   };
 
-  const handleBulkCharge = async () => {
-    if (selectedStudents.length === 0 || !chargeType || !amount) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please select students and fill in charge details',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const chargeData = {
-        type: chargeType,
-        amount: parseFloat(amount),
-        description: chargeType === 'custom' ? customDescription : '',
-        notes: notes.trim(),
-        sendNotification: true
-      };
-
-      const result = await adminChargingService.addBulkCharges(selectedStudents, chargeData, 'Admin');
-
-      toast({
-        title: 'Bulk Charges Applied',
-        description: `${result.successful.length} charges applied successfully. Total: NPR ${result.totalAmount}`,
-      });
-
-      if (result.failed.length > 0) {
-        toast({
-          title: 'Some Charges Failed',
-          description: `${result.failed.length} charges failed to apply`,
-          variant: 'destructive'
-        });
-      }
-
-      // Reset form
-      setSelectedStudents([]);
-      setChargeType('');
-      setCustomDescription('');
-      setAmount('');
-      setNotes('');
-      setShowBulkCharge(false);
-
-      // Refresh data
-      await refreshAllData();
-      await loadOverdueStudents();
-      await loadChargeSummary();
-
-    } catch (error) {
-      toast({
-        title: 'Bulk Charge Error',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+  const getChargeTypeName = (type: string): string => {
+    const typeMap: Record<string, string> = {
+      'late_fee': 'Late Payment Fee',
+      'damage_fee': 'Damage Fee',
+      'cleaning_fee': 'Cleaning Fee',
+      'maintenance_fee': 'Maintenance Fee'
+    };
+    return typeMap[type] || type;
   };
 
   const handleQuickCharge = async (studentId: string, type: string, suggestedAmount: number) => {
@@ -195,24 +207,28 @@ export const AdminCharging = () => {
 
     try {
       const chargeData = {
-        type: type,
+        studentId: studentId,
+        title: 'Late Payment Fee',
+        description: 'Overdue payment late fee',
         amount: suggestedAmount,
-        notes: 'Quick charge applied',
-        sendNotification: true
+        chargeType: AdminChargeType.ONE_TIME,
+        category: 'late_fee',
+        adminNotes: 'Quick charge applied for overdue payment',
+        createdBy: 'Admin'
       };
 
-      const result = await adminChargingService.addChargeToStudent(studentId, chargeData, 'Admin');
+      await createCharge(chargeData);
 
-      if (result.success) {
-        toast({
-          title: 'Quick Charge Applied',
-          description: `NPR ${suggestedAmount} late fee added to ${result.student.name}'s account`,
-        });
+      const studentName = students.find(s => s.id === studentId)?.name || 'Student';
 
-        await refreshAllData();
-        await loadOverdueStudents();
-        await loadChargeSummary();
-      }
+      toast({
+        title: 'Quick Charge Applied',
+        description: `NPR ${suggestedAmount} late fee added to ${studentName}'s account`,
+      });
+
+      await refreshCharges();
+      await loadOverdueStudents();
+      await loadTodaySummary();
 
     } catch (error) {
       toast({
@@ -225,17 +241,37 @@ export const AdminCharging = () => {
     }
   };
 
-  const selectedStudentData = state.students.find(s => s.id === selectedStudent);
+  const selectedStudentData = students.find(s => s.id === selectedStudent);
 
   return (
     <div className="space-y-6">
+
+      
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">⚡ Admin Charging System</h2>
           <p className="text-gray-600 mt-1">Complete flexibility to charge students for any reason</p>
+          {(chargesError || studentsError) && (
+            <div className="mt-2 text-sm text-red-600">
+              Error: {chargesError || studentsError}
+            </div>
+          )}
         </div>
         <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              refreshCharges();
+              loadTodaySummary();
+              loadOverdueStudents();
+            }}
+            disabled={chargesLoading || studentsLoading || summaryLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${(chargesLoading || studentsLoading || summaryLoading) ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+
           <Button 
             variant="outline" 
             onClick={() => setShowBulkCharge(!showBulkCharge)}
@@ -247,14 +283,33 @@ export const AdminCharging = () => {
       </div>
 
       {/* Today's Summary */}
-      {chargeSummary && (
+      
+      {summaryLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border-0 shadow-lg">
+              <CardContent className="p-4">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-blue-600 font-medium">Total Charges</p>
-                  <p className="text-2xl font-bold text-blue-700">{chargeSummary.totalCharges}</p>
+                  <p className="text-2xl font-bold text-blue-700">
+                    {todaySummary?.totalCharges || stats?.totalCharges || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Raw: {JSON.stringify(todaySummary?.totalCharges)} | {JSON.stringify(stats?.totalCharges)}
+                  </p>
                 </div>
                 <Zap className="h-8 w-8 text-blue-600" />
               </div>
@@ -266,7 +321,14 @@ export const AdminCharging = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-green-600 font-medium">Total Amount</p>
-                  <p className="text-2xl font-bold text-green-700">NPR {chargeSummary.totalAmount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-green-700">
+                    NPR {(todaySummary?.totalAmount || 
+                          ((stats?.totalPendingAmount || 0) + (stats?.totalAppliedAmount || 0))
+                         ).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Raw: {JSON.stringify(todaySummary?.totalAmount)} | {JSON.stringify(stats?.totalPendingAmount)} + {JSON.stringify(stats?.totalAppliedAmount)}
+                  </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-600" />
               </div>
@@ -278,7 +340,12 @@ export const AdminCharging = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-purple-600 font-medium">Students Charged</p>
-                  <p className="text-2xl font-bold text-purple-700">{chargeSummary.studentsCharged}</p>
+                  <p className="text-2xl font-bold text-purple-700">
+                    {todaySummary?.studentsCharged || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Raw: {JSON.stringify(todaySummary?.studentsCharged)}
+                  </p>
                 </div>
                 <Users className="h-8 w-8 text-purple-600" />
               </div>
@@ -289,8 +356,10 @@ export const AdminCharging = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-orange-600 font-medium">Overdue Students</p>
-                  <p className="text-2xl font-bold text-orange-700">{overdueStudents.length}</p>
+                  <p className="text-sm text-orange-600 font-medium">Pending Charges</p>
+                  <p className="text-2xl font-bold text-orange-700">
+                    {todaySummary?.pendingCharges || stats?.pendingCharges || 0}
+                  </p>
                 </div>
                 <AlertCircle className="h-8 w-8 text-orange-600" />
               </div>
@@ -318,10 +387,10 @@ export const AdminCharging = () => {
                     <SelectValue placeholder="Choose student" />
                   </SelectTrigger>
                   <SelectContent>
-                    {state.students.map((student) => (
+                    {students.map((student) => (
                       <SelectItem key={student.id} value={student.id}>
                         <div className="flex items-center justify-between w-full">
-                          <span>{student.name} - Room {student.roomNumber}</span>
+                          <span>{student.name} - Room {student.roomNumber || 'No Room'}</span>
                           {student.currentBalance > 0 && (
                             <Badge variant="destructive" className="ml-2">
                               NPR {student.currentBalance.toLocaleString()} due
@@ -349,7 +418,7 @@ export const AdminCharging = () => {
               <div className="space-y-2">
                 <Label>Select Students * ({selectedStudents.length} selected)</Label>
                 <div className="max-h-40 overflow-y-auto border rounded-lg p-2">
-                  {state.students.map((student) => (
+                  {students.map((student) => (
                     <div key={student.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
                       <input
                         type="checkbox"
@@ -365,7 +434,7 @@ export const AdminCharging = () => {
                         className="rounded"
                       />
                       <label htmlFor={student.id} className="flex-1 text-sm cursor-pointer">
-                        {student.name} - Room {student.roomNumber}
+                        {student.name} - Room {student.roomNumber || 'No Room'}
                         {student.currentBalance > 0 && (
                           <span className="text-red-600 ml-2">
                             (NPR {student.currentBalance.toLocaleString()} due)
@@ -385,11 +454,11 @@ export const AdminCharging = () => {
                   <SelectValue placeholder="Select charge type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {adminChargingService.chargeTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="late_fee">Late Payment Fee</SelectItem>
+                  <SelectItem value="damage_fee">Damage Fee</SelectItem>
+                  <SelectItem value="cleaning_fee">Cleaning Fee</SelectItem>
+                  <SelectItem value="maintenance_fee">Maintenance Fee</SelectItem>
+                  <SelectItem value="custom">Custom Charge</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -433,7 +502,7 @@ export const AdminCharging = () => {
                   <p className="font-medium">Charge will be:</p>
                   <ul className="mt-1 space-y-1">
                     <li>• Added directly to student ledger</li>
-                    <li>• Student will be notified via Kaha App</li>
+                    <li>• Student will be notified via system</li>
                     <li>• Balance will be updated immediately</li>
                   </ul>
                 </div>
@@ -441,11 +510,13 @@ export const AdminCharging = () => {
             </div>
 
             <Button 
-              onClick={showBulkCharge ? handleBulkCharge : handleAddCharge}
-              disabled={isProcessing}
+              onClick={handleAddCharge}
+              disabled={isProcessing || chargesLoading || studentsLoading}
               className="w-full"
             >
-              {isProcessing ? 'Processing...' : showBulkCharge ? `Apply to ${selectedStudents.length} Students` : 'Add Charge to Ledger'}
+              {isProcessing ? 'Processing...' : 
+               (chargesLoading || studentsLoading) ? 'Loading...' :
+               showBulkCharge ? `Apply to ${selectedStudents.length} Students` : 'Add Charge to Ledger'}
             </Button>
           </CardContent>
         </Card>

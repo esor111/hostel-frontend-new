@@ -222,7 +222,7 @@ export const bookingAcceptanceService = {
       try {
         const students = await studentService.getStudents();
         const pendingStudents = students.filter(student => 
-          student.status === 'Pending Configuration' && !student.isConfigured
+          (student.status === 'Pending Configuration' || student.status === 'Inactive') && !student.isConfigured
         );
 
         setTimeout(() => resolve(pendingStudents), 200);

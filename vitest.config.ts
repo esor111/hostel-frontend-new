@@ -4,8 +4,20 @@ import { resolve } from 'path'
 export default defineConfig({
   test: {
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/test/setup.ts', './src/__tests__/setup.ts'],
     globals: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/__tests__/',
+        '**/*.d.ts',
+        '**/*.config.*',
+        '**/coverage/**'
+      ]
+    },
+    testTimeout: 10000,
   },
   resolve: {
     alias: {

@@ -20,6 +20,7 @@ import {
   Maximize2,
   Camera
 } from "lucide-react";
+import { formatDimensionsAsFeet, formatMetersAsFeet } from "@/utils/unitConversion";
 
 interface DesignerToolbarProps {
   // History
@@ -228,7 +229,7 @@ export const DesignerToolbar = ({
             {/* Room Stats */}
             <div className="flex items-center gap-3 text-sm text-gray-600">
               <Badge variant="outline">
-                {roomDimensions.length}m × {roomDimensions.width}m × {roomDimensions.height}m
+                {formatDimensionsAsFeet(roomDimensions.length, roomDimensions.width)} × {formatMetersAsFeet(roomDimensions.height)}
               </Badge>
               <Badge variant="secondary">
                 {elementCount} elements

@@ -1,7 +1,7 @@
 
-import { 
-  Bed, 
-  DoorOpen, 
+import {
+  Bed,
+  DoorOpen,
   Square
 } from "lucide-react";
 
@@ -34,12 +34,12 @@ export interface ElementType {
 
 export const elementTypes: ElementType[] = [
   // BEDS CATEGORY
-  { 
-    type: 'single-bed', 
-    icon: Bed, 
+  {
+    type: 'single-bed',
+    icon: Bed,
     emoji: '🛏️',
-    label: 'Single Bed', 
-    color: '#3B82F6', 
+    label: 'Single Bed',
+    color: '#3B82F6',
     defaultSize: { width: 1.3, height: 3.1 },
     description: 'Standard single bed',
     category: 'beds',
@@ -47,48 +47,48 @@ export const elementTypes: ElementType[] = [
     popular: true,
     customizable: { bedType: true, orientation: true, size: true, bedId: true }
   },
-  { 
-    type: 'bunk-bed', 
-    icon: Bed, 
+  {
+    type: 'bunk-bed',
+    icon: Bed,
     emoji: '🛏️',
-    label: 'Bunk Bed', 
-    color: '#1E40AF', 
+    label: 'Bunk Bed',
+    color: '#1E40AF',
     defaultSize: { width: 2.6, height: 2.2 },
     description: 'Multi-level bunk bed with 2 or 3 levels - assign students to each level',
     category: 'beds',
     tags: ['sleep', 'bedroom', 'bunk', 'space-saving', 'multi-level'],
     popular: true,
-    customizable: { 
-      bedType: true, 
-      orientation: true, 
-      position: true, 
-      bedId: true, 
-      bunkLevels: true, 
-      levelAssignment: true 
+    customizable: {
+      bedType: true,
+      orientation: true,
+      position: true,
+      bedId: true,
+      bunkLevels: true,
+      levelAssignment: true
     }
   },
 
   // OPENINGS & STRUCTURE
-  { 
-    type: 'door', 
-    icon: DoorOpen, 
+  {
+    type: 'door',
+    icon: DoorOpen,
     emoji: '🚪',
-    label: 'Door', 
-    color: '#8B5CF6', 
-    defaultSize: { width: 1.9, height: 1.5 },
+    label: 'Door',
+    color: '#8B5CF6',
+    defaultSize: { width: 0.9, height: 2.1 }, // 🔧 FIXED: Realistic door size - 3ft wide x 7ft tall
     description: 'Room entrance with left/right hinge options',
     category: 'openings',
     tags: ['entrance', 'access', 'door'],
     popular: true,
     customizable: { hinge: true }
   },
-  { 
-    type: 'window', 
-    icon: Square, 
+  {
+    type: 'window',
+    icon: Square,
     emoji: '🪟',
-    label: 'Window', 
-    color: '#10B981', 
-    defaultSize: { width: 1.5, height: 0.3 },
+    label: 'Window',
+    color: '#10B981',
+    defaultSize: { width: 1.2, height: 1.2 }, // 🔧 FIXED: Realistic window size - 4ft x 4ft square window
     description: 'Natural light source with open/close toggle',
     category: 'openings',
     tags: ['light', 'view', 'window', 'ventilation'],

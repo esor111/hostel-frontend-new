@@ -1,0 +1,8 @@
+# Netlify redirects for SPA routing
+# This ensures all routes are handled by React Router
+
+# Main SPA redirect - must be last
+/*    /index.html   200
+
+# API proxy (if needed for CORS issues)
+# /api/*  https://dev.kaha.com.np/hostel/api/v1/:splat  200

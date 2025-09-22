@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { KahaLogo } from "@/components/ui/KahaLogo";
-import { useNavigate } from "react-router-dom";
+import { useSafeNavigation } from "@/hooks/useSafeNavigation";
 import {
   Search,
   Building2,
@@ -52,7 +52,7 @@ const Landing = () => {
     currentSystem: "",
     additionalInfo: ""
   });
-  const navigate = useNavigate();
+  const navigate = useSafeNavigation();
 
   // Intersection Observer for animations
   useEffect(() => {

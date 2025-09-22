@@ -30,12 +30,17 @@ export function useNavigation() {
     navigate(`/ledger?section=${section}`);
   };
 
+  const navigateTo = (path: string) => {
+    navigate(path);
+  };
+
   return {
     goToStudentLedger,
     goToStudentProfile,
     goToInvoices,
     goToPayments,
     goToBookings,
-    goToLedger
+    goToLedger,
+    navigateTo
   };
 }

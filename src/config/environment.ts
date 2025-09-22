@@ -29,7 +29,7 @@ export const ENVIRONMENT_CONFIGS: Record<Environment, EnvironmentConfig> = {
 };
 
 export const getEnvironmentConfig = (): EnvironmentConfig => {
-  const currentEnv = (import.meta.env.VITE_ENVIRONMENT as Environment) || 'localhost';
+  const currentEnv = (import.meta.env.VITE_ENVIRONMENT as Environment) || 'development';
   return ENVIRONMENT_CONFIGS[currentEnv];
 };
 
