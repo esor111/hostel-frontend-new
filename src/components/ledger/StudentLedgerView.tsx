@@ -257,6 +257,7 @@ export const StudentLedgerView = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-gray-900">📋 Student Ledger View</h2>
         <div className="flex space-x-2">
+
           <Button 
             variant="outline" 
             onClick={() => {
@@ -301,10 +302,11 @@ export const StudentLedgerView = () => {
               </Button>
             </>
           )}
+
         </div>
       </div>
 
-      {/* Student Selection */}
+      {/* Student Selection with Enhanced Search */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -317,6 +319,7 @@ export const StudentLedgerView = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+
           {/* Search Students */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -351,6 +354,7 @@ export const StudentLedgerView = () => {
               {students.length} student{students.length !== 1 ? 's' : ''} found
             </div>
           )}
+
         </CardContent>
       </Card>
 
@@ -506,6 +510,7 @@ export const StudentLedgerView = () => {
               )}
             </CardHeader>
             <CardContent>
+
               {entriesLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="text-center">
@@ -547,6 +552,7 @@ export const StudentLedgerView = () => {
                       <TableHead className="text-right">Debit</TableHead>
                       <TableHead className="text-right">Credit</TableHead>
                       <TableHead className="text-right">Balance</TableHead>
+
                     </TableRow>
                   </TableHeader>
                   <TableBody>

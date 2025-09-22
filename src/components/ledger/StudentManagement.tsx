@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+
 import { Search, User, Phone, Mail, CreditCard, Home, Settings, Edit, Bed, Users, CheckCircle, Plus, Trash2, DollarSign, AlertTriangle, Calendar, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -642,7 +644,9 @@ export const StudentManagement = () => {
   const [selectedStudent, setSelectedStudent] = useState<EnhancedStudent | null>(null);
   const [showChargeConfigDialog, setShowChargeConfigDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+
   const [showEditDialog, setShowEditDialog] = useState(false);
+
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -705,6 +709,7 @@ export const StudentManagement = () => {
     (student.institution && student.institution.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+
   // Pagination calculations for Student List & Management
   const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
   const startIndex = (currentPage - 1) * studentsPerPage;
@@ -717,10 +722,13 @@ export const StudentManagement = () => {
   const pendingEndIndex = pendingStartIndex + pendingStudentsPerPage;
   const paginatedPendingStudents = pendingStudents.slice(pendingStartIndex, pendingEndIndex);
 
+
   // Reset to first page when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
+
+
 
   // Configure charges
   const configureCharges = (student: EnhancedStudent) => {
@@ -1055,6 +1063,7 @@ export const StudentManagement = () => {
           {/* Students Table */}
           <Card>
             <CardHeader>
+
               <div className="flex justify-between items-center">
                 <CardTitle>Student List ({filteredStudents.length} students)</CardTitle>
                 {filteredStudents.length > studentsPerPage && (
@@ -1095,6 +1104,7 @@ export const StudentManagement = () => {
                                 </p>
                                 <p className="text-xs text-gray-400">{student.email}</p>
                               </div>
+
                             </div>
                           </TableCell>
                           <TableCell>
@@ -1131,6 +1141,7 @@ export const StudentManagement = () => {
                                 Total: ₹{(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0)).toLocaleString()}
                               </div>
                             </div>
+
                           </TableCell>
                           <TableCell>
                             {(student.currentBalance || 0) > 0 ? (
@@ -1216,7 +1227,7 @@ export const StudentManagement = () => {
 
                         <div className="flex items-center gap-1">
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                            <Button
+             <Button
                               key={page}
                               variant={currentPage === page ? "default" : "outline"}
                               size="sm"
@@ -1228,6 +1239,7 @@ export const StudentManagement = () => {
                             >
                               {page}
                             </Button>
+
                           ))}
                         </div>
 
@@ -1239,12 +1251,15 @@ export const StudentManagement = () => {
                           className="flex items-center gap-1"
                         >
                           Next
+
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
+
                   )}
                 </div>
+
               ) : (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 mx-auto text-gray-300 mb-4" />
@@ -1687,6 +1702,52 @@ export const StudentManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Footer Section */}
+      <Card className="mt-8 bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#07A64F] to-[#1295D0] flex items-center justify-center">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Student Management System</h3>
+                <p className="text-sm text-gray-600">
+                  Manage student records, configure charges, and track payments efficiently
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-[#07A64F]">{students.length}</div>
+              <div className="text-sm text-gray-600">Total Students</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {students.filter(s => s.isConfigured).length} Configured • {students.filter(s => !s.isConfigured).length} Pending
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-blue-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-gray-600">Active Students: </span>
+                <span className="font-medium">{students.filter(s => s.status === 'active').length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-red-600" />
+                <span className="text-gray-600">With Outstanding Dues: </span>
+                <span className="font-medium">{students.filter(s => s.currentBalance > 0).length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <span className="text-gray-600">Last Updated: </span>
+                <span className="font-medium">{new Date().toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

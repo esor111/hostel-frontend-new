@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, User, Calendar, CreditCard } from "lucide-react";
+
 import { dashboardApiService, DashboardStats, CheckedOutWithDues } from "@/services/dashboardApiService";
 
 
@@ -449,6 +450,9 @@ export const Dashboard = memo(() => {
           </CardContent>
         </Card>
       )}
+
+      {/* Checkout Without Payment Section */}
+      <CheckoutWithoutPayment />
     </div>
   );
 });
