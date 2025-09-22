@@ -24,7 +24,10 @@
     "optimize": "npm run lint:fix && npm run build:analyze",
     "clean": "rmdir /s /q dist node_modules\\.vite 2>nul || echo Cache cleared",
     "clean:full": "npm run clean && rmdir /s /q node_modules 2>nul && npm install",
-    "precommit": "npm run lint && npm run test:run"
+    "precommit": "npm run lint && npm run test:run",
+    "deploy:prepare": "node deploy.js",
+    "deploy:build": "npm run lint && npm run build",
+    "deploy:preview": "npm run build && npm run preview"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.33.0",
