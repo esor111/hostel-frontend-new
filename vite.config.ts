@@ -1,10 +1,23 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
+import * as path from "path";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  const plugins = [react()];
+  
+  // Only add lovable-tagger in development mode
+  if (mode === 'development') {
+    try {
+      const { componentTagger } = require("lovable-tagger");
+      plugins.push(componentTagger());
+    } catch (e) {
+      // lovable-tagger not available, continue without it
+      console.warn('lovable-tagger not available, skipping component tagging');
+    }
+  }
+
+  return {
   server: {
     host: "::",
     port: 8080,
@@ -14,10 +27,7 @@ export default defineConfig(({ mode }) => ({
     // Disable service worker in development
     middlewareMode: false
   },
-  plugins: [
-    react(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+  plugins,
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -122,4 +132,5 @@ export default defineConfig(({ mode }) => ({
     __PROD__: mode === 'production',
     __VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0')
   }
-}));
+  };
+});
