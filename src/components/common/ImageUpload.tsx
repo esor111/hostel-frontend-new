@@ -21,6 +21,7 @@ interface PreviewImage {
   uploaded: boolean;
   uploadedData?: UploadedImage;
   error?: string;
+  showStatus?: boolean;
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -38,7 +39,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const totalImages = existingImages.length + previewImages.length;
   const canAddMore = totalImages < maxImages;
 
-  const handleFileSelect = useCallback((files: FileList | null) => {
+  const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     const fileArray = Array.from(files);
@@ -58,6 +59,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }));
 
     setPreviewImages(prev => [...prev, ...newPreviewImages]);
+
+    // Auto-upload immediately after selection
+    setTimeout(() => {
+      autoUploadImages(newPreviewImages);
+    }, 100);
   }, [maxImages, totalImages]);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -75,6 +81,83 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     e.stopPropagation();
   }, []);
 
+  // Auto-upload function for immediate upload after selection
+  const autoUploadImages = async (imagesToUpload: PreviewImage[]) => {
+    if (imagesToUpload.length === 0) return;
+
+    setUploading(true);
+
+    try {
+      // Mark images as uploading
+      setPreviewImages(prev => prev.map(img => 
+        imagesToUpload.some(uploadImg => uploadImg.file === img.file) 
+          ? { ...img, uploading: true, error: undefined } 
+          : img
+      ));
+
+      // Upload all selected images
+      const filesToUpload = imagesToUpload.map(img => img.file);
+      const uploadedResults = await ImageUploadService.uploadImages(filesToUpload);
+
+      // Update preview images with upload results
+      setPreviewImages(prev => {
+        const updated = prev.map((img) => {
+          const uploadIndex = imagesToUpload.findIndex(uploadImg => uploadImg.file === img.file);
+          if (uploadIndex !== -1 && uploadedResults[uploadIndex]) {
+            console.log(`✅ Auto-uploaded image:`, img.file.name);
+            return {
+              ...img,
+              uploading: false,
+              uploaded: true,
+              uploadedData: uploadedResults[uploadIndex],
+              error: undefined,
+            };
+          }
+          return img;
+        });
+        
+        return updated;
+      });
+
+      // Combine existing images with newly uploaded images
+      const allImageUrls = [
+        ...existingImages,
+        ...uploadedResults.map(img => img.fileUrl),
+      ];
+
+      onImagesUploaded(allImageUrls);
+      
+      // Show success message but auto-hide it quickly
+      toast.success(`${uploadedResults.length} image(s) uploaded!`, { duration: 2000 });
+      
+      // Auto-hide success status after 3 seconds
+      setTimeout(() => {
+        setPreviewImages(prev => prev.map(img => 
+          img.uploaded ? { ...img, showStatus: false } : img
+        ));
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Auto-upload error:', error);
+      
+      // Mark failed uploads
+      setPreviewImages(prev => prev.map(img => 
+        imagesToUpload.some(uploadImg => uploadImg.file === img.file) 
+          ? { 
+              ...img, 
+              uploading: false, 
+              uploaded: false,
+              error: error instanceof Error ? error.message : 'Upload failed' 
+            } 
+          : img
+      ));
+      
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const uploadImages = async () => {
     const unuploadedImages = previewImages.filter(img => !img.uploaded && !img.uploading);
     
@@ -83,70 +166,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       return;
     }
 
-    setUploading(true);
-
-    try {
-      // Mark images as uploading
-      setPreviewImages(prev => prev.map(img => 
-        unuploadedImages.includes(img) ? { ...img, uploading: true, error: undefined } : img
-      ));
-
-      // Upload all unuploaded images
-      const filesToUpload = unuploadedImages.map(img => img.file);
-      const uploadedResults = await ImageUploadService.uploadImages(filesToUpload);
-
-      // Update preview images with upload results - use a more explicit approach
-      setPreviewImages(prev => {
-        const updated = prev.map((img) => {
-          const unuploadedIndex = unuploadedImages.findIndex(unuploaded => unuploaded === img);
-          if (unuploadedIndex !== -1 && uploadedResults[unuploadedIndex]) {
-            // This image was successfully uploaded
-            console.log(`✅ Marking image as uploaded:`, img.file.name);
-            return {
-              ...img,
-              uploading: false,
-              uploaded: true,
-              uploadedData: uploadedResults[unuploadedIndex],
-              error: undefined,
-            };
-          }
-          return img;
-        });
-        
-        console.log('📊 Updated preview images state:', updated.map(img => ({
-          name: img.file.name,
-          uploading: img.uploading,
-          uploaded: img.uploaded,
-          error: img.error
-        })));
-        
-        return updated;
-      });
-
-      // Combine existing images with newly uploaded images (extract URLs only)
-      const allImageUrls = [
-        ...existingImages,
-        ...uploadedResults.map(img => img.fileUrl),
-      ];
-
-      onImagesUploaded(allImageUrls);
-      
-      toast.success(`Successfully uploaded ${uploadedResults.length} image(s)!`);
-    } catch (error) {
-      console.error('Upload error:', error);
-      
-      // Mark failed uploads - ensure we clear the uploading state
-      setPreviewImages(prev => prev.map(img => 
-        unuploadedImages.includes(img) ? { 
-          ...img, 
-          uploading: false, 
-          uploaded: false, // Explicitly set to false on error
-          error: error instanceof Error ? error.message : 'Upload failed' 
-        } : img
-      ));
-    } finally {
-      setUploading(false);
-    }
+    await autoUploadImages(unuploadedImages);
   };
 
   const removePreviewImage = (index: number) => {
@@ -280,23 +300,25 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       {previewImages.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-medium text-gray-700">New Images</h4>
-            {hasUnuploadedImages && (
+            <h4 className="text-sm font-medium text-gray-700">Images</h4>
+            {/* Only show upload button if there are failed uploads that need retry */}
+            {previewImages.some(img => img.error && !img.uploaded) && (
               <Button
                 onClick={uploadImages}
                 disabled={uploading || disabled}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
+                variant="outline"
+                className="text-red-600 border-red-200 hover:bg-red-50"
               >
                 {uploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
+                    Retrying...
                   </>
                 ) : (
                   <>
                     <Upload className="h-4 w-4 mr-2" />
-                    Upload All
+                    Retry Failed
                   </>
                 )}
               </Button>
@@ -352,13 +374,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                     )}
                   </div>
                   
-                  {/* Status Badge */}
+                  {/* Status Badge - Only show for uploading or failed states */}
                   <div className="mt-1">
-                    {image.uploaded ? (
-                      <Badge variant="default" className="text-xs bg-green-600">
-                        Uploaded
-                      </Badge>
-                    ) : image.uploading ? (
+                    {image.uploading ? (
                       <Badge variant="secondary" className="text-xs">
                         Uploading...
                       </Badge>
@@ -366,11 +384,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                       <Badge variant="destructive" className="text-xs">
                         Failed
                       </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs">
-                        Ready
+                    ) : image.uploaded && image.showStatus !== false ? (
+                      <Badge variant="default" className="text-xs bg-green-600">
+                        ✓ Uploaded
                       </Badge>
-                    )}
+                    ) : null}
                   </div>
                   
                   {/* Error Message */}
