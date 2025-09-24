@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { studentService } from '@/services/studentService';
-import { bookingService } from '@/services/bookingService';
+import { bookingApiService } from '@/services/bookingApiService';
 import { ledgerService } from '@/services/ledgerService';
 import { invoiceService } from '@/services/invoiceService';
 
@@ -139,7 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const [students, bookings, invoices] = await Promise.all([
         studentService.getStudents(),
-        bookingService.getBookingRequests(),
+        bookingApiService.getAllBookings(),
         invoiceService.getInvoices()
       ]);
       
@@ -154,13 +154,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const approveBooking = async (bookingId: string, roomAssignment: string): Promise<boolean> => {
+  const approveBooking = async (bookingId: string, roomAssignment: string = ''): Promise<boolean> => {
     try {
-      const result = await bookingService.approveBookingRequest(bookingId, roomAssignment);
-      if (result) {
+      const result = await bookingApiService.approveBooking(bookingId, 'admin');
+      if (result && result.success) {
         dispatch({ type: 'UPDATE_BOOKING_STATUS', payload: { id: bookingId, status: 'Approved' } });
-        dispatch({ type: 'ADD_STUDENT', payload: result.student });
-        await refreshAllData(); // Refresh to get the latest invoices
+        // Refresh data to get updated bookings and any new students
+        await refreshAllData();
         return true;
       }
       return false;

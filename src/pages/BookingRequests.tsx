@@ -65,6 +65,16 @@ const BookingRequests = () => {
 
   // Filter bookings based on search, status, and type
   useEffect(() => {
+    // Debug logging
+    console.log('BookingRequests: bookings data:', bookings, 'Type:', typeof bookings, 'IsArray:', Array.isArray(bookings));
+    
+    // Ensure bookings is an array before filtering
+    if (!Array.isArray(bookings)) {
+      console.warn('BookingRequests: bookings is not an array, setting empty array');
+      setFilteredBookings([]);
+      return;
+    }
+    
     let filtered = bookings;
     
     if (searchTerm) {
@@ -79,9 +89,9 @@ const BookingRequests = () => {
           ? (booking as unknown as MultiGuestBooking).contactPhone 
           : (booking as BookingRequest).phone;
           
-        return contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               contactEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               contactPhone.includes(searchTerm);
+        return contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               contactEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               contactPhone?.includes(searchTerm);
       });
     }
     
@@ -102,10 +112,11 @@ const BookingRequests = () => {
   }, [bookings, searchTerm, statusFilter, typeFilter, isMultiGuestBooking]);
 
   // Calculate pagination
-  const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
+  const safeFilteredBookings = Array.isArray(filteredBookings) ? filteredBookings : [];
+  const totalPages = Math.ceil(safeFilteredBookings.length / bookingsPerPage);
   const startIndex = (currentPage - 1) * bookingsPerPage;
   const endIndex = startIndex + bookingsPerPage;
-  const currentBookings = filteredBookings.slice(startIndex, endIndex);
+  const currentBookings = safeFilteredBookings.slice(startIndex, endIndex);
 
   const handleApproveClick = (booking: BookingRequest | MultiGuestBooking) => {
     setBookingToApprove(booking);
@@ -234,7 +245,7 @@ const BookingRequests = () => {
           </div>
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="text-blue-600">
-              {filteredBookings.length} Total Requests
+              {safeFilteredBookings.length} Total Requests
             </Badge>
             {totalPages > 1 && (
               <Badge variant="outline" className="text-green-600">
@@ -349,10 +360,10 @@ const BookingRequests = () => {
         <Card>
           <CardHeader>
             <CardTitle>
-              Booking Requests ({filteredBookings.length})
+              Booking Requests ({safeFilteredBookings.length})
               {totalPages > 1 && (
                 <span className="text-sm font-normal text-gray-500 ml-2">
-                  - Showing {startIndex + 1} to {Math.min(endIndex, filteredBookings.length)} of {filteredBookings.length}
+                  - Showing {startIndex + 1} to {Math.min(endIndex, safeFilteredBookings.length)} of {safeFilteredBookings.length}
                 </span>
               )}
             </CardTitle>
@@ -520,7 +531,7 @@ const BookingRequests = () => {
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-6 pt-4 border-t">
                 <div className="text-sm text-gray-500">
-                  Showing {startIndex + 1} to {Math.min(endIndex, filteredBookings.length)} of {filteredBookings.length} booking requests
+                  Showing {startIndex + 1} to {Math.min(endIndex, safeFilteredBookings.length)} of {safeFilteredBookings.length} booking requests
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

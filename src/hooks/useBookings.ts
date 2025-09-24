@@ -104,15 +104,20 @@ export const useBookings = (initialFilters?: BookingFilters): UseBookingsReturn 
         bookingApiService.getAllBookings().catch(err => {
           console.warn('All bookings failed:', err);
           return [];
+        }).then(result => {
+          // Ensure result is always an array
+          const safeResult = Array.isArray(result) ? result : [];
+          console.log('useBookings: getAllBookings result:', safeResult);
+          return safeResult;
         }),
         bookingApiService.getMultiGuestBookings(filters).catch(err => {
           console.warn('Multi-guest bookings failed:', err);
           return [];
-        }),
+        }).then(result => Array.isArray(result) ? result : []),
         bookingApiService.getPendingBookings().catch(err => {
           console.warn('Pending bookings failed:', err);
           return [];
-        }),
+        }).then(result => Array.isArray(result) ? result : []),
         bookingApiService.getBookingStats().catch(err => {
           console.warn('Booking stats failed:', err);
           return {
@@ -132,7 +137,7 @@ export const useBookings = (initialFilters?: BookingFilters): UseBookingsReturn 
       ]);
 
       // Apply client-side filtering if needed
-      let filteredBookings = allBookingsResult;
+      let filteredBookings = Array.isArray(allBookingsResult) ? allBookingsResult : [];
       
       if (filters?.status) {
         filteredBookings = filteredBookings.filter(booking => 
