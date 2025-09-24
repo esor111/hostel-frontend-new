@@ -8,7 +8,8 @@ const requiredDeps = [
   'autoprefixer',
   'postcss',
   'tailwindcss',
-  'vite'
+  'vite',
+  'axios'
 ];
 
 console.log('Checking required dependencies...');
