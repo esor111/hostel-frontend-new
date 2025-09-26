@@ -73,9 +73,9 @@ export const RoomConfiguration = () => {
   };
 
   const handleToggleRoomStatus = async (roomId: string) => {
-    const room = rooms.find(r => r.id === roomId)
-    coif(room) {
-      const noom.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    const room = rooms.find(r => r.id === roomId);
+    if (room) {
+      const newStatus = room.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
 
       // Check if room has occupants when trying to deactivate
       if (newStatus === "INACTIVE" && room.occupancy > 0) {
@@ -338,7 +338,7 @@ export const RoomConfiguration = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleToggleRoomStatus(room.id)}
-                          className={`h-8 w-8 p-0 ${room.str(room.id)}IVE"
+                          className={`h-8 w-8 p-0 ${room.status === "ACTIVE"
                             ? "text-green-600 hover:text-green-700 hover:bg-green-50"
                             : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"
                             }`}
