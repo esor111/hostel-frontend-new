@@ -18,13 +18,30 @@ export const roomsApiService = {
       console.log('✅ Rooms API response:', response);
       
       // The apiService already extracts the data, so response is the actual result
+      let rooms = [];
       if (response && response.items) {
-        return response.items; // Direct access to items
+        rooms = response.items; // Direct access to items
       } else if (Array.isArray(response)) {
-        return response; // Fallback for direct array response
+        rooms = response; // Fallback for direct array response
       } else {
-        return []; // Empty array if no items found
+        rooms = []; // Empty array if no items found
       }
+
+      // Parse layout data for each room (same as getRoomById)
+      rooms = rooms.map(room => {
+        if (room.layout && typeof room.layout === 'string') {
+          try {
+            room.layout = JSON.parse(room.layout);
+            console.log(`🎨 Parsed layout for room ${room.id}:`, room.layout);
+          } catch (error) {
+            console.warn(`Failed to parse room layout for room ${room.id}:`, error);
+            room.layout = null;
+          }
+        }
+        return room;
+      });
+
+      return rooms;
     } catch (error) {
       console.error('❌ Error fetching rooms:', error);
       throw error;

@@ -50,6 +50,11 @@ export const RoomLayoutViewer = ({ layout, roomName, roomId, onRefresh }: RoomLa
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { refreshData } = useRooms();
 
+  // Debug layout data
+  console.log('🎨 RoomLayoutViewer received layout:', layout);
+  console.log('📏 Layout dimensions:', layout?.dimensions);
+  console.log('🧩 Layout elements:', layout?.elements);
+
   const handleZoom = (delta: number) => {
     setScale(Math.max(10, Math.min(50, scale + delta)));
   };

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Bed, Plus, Edit, Trash2, Users, Layout, Eye, Loader2, Image as ImageIcon } from "lucide-react";
+import { Bed, Plus, Edit, Trash2, Users, Layout, Eye, Loader2, Image as ImageIcon, Power } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "sonner";
 import { RoomDesigner } from "./RoomDesigner";
@@ -72,7 +72,28 @@ export const RoomConfiguration = () => {
     }
   };
 
+  const handleToggleRoomStatus = async (roomId: string) => {
+    const room = rooms.find(r => r.id === roomId)
+    coif(room) {
+      const noom.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
 
+      // Check if room has occupants when trying to deactivate
+      if (newStatus === "INACTIVE" && room.occupancy > 0) {
+        toast.error("Cannot deactivate room with current occupants. Please move students first.");
+        return;
+      }
+
+      try {
+        await updateRoom(roomId, { status: newStatus });
+        toast.success(`Room "${room.name}" is now ${newStatus.toLowerCase()}`);
+        // Refresh data to show updated status
+        refreshData();
+      } catch (error) {
+        console.error('Error updating room status:', error);
+        toast.error("Failed to update room status.");
+      }
+    }
+  };
 
   const openRoomDesigner = (roomId: string) => {
     setSelectedRoomForDesign(roomId);
@@ -117,11 +138,11 @@ export const RoomConfiguration = () => {
     const hasLayout = room?.layout && (room.layout.dimensions || room.layout.elements);
 
     if (hasLayout) {
-      console.log('📐 Viewing room layout:', room.layout);
+      console.log('✅ Layout found - opening viewer');
       setSelectedRoomForView(roomId);
       setShowLayoutViewer(true);
     } else {
-      console.log('❌ No layout found for room:', room?.layout);
+      console.log('❌ No valid layout found');
       toast.info("Please configure the room layout first using the Layout Designer", {
         description: "Click the Layout button to design your room",
         duration: 4000,
@@ -137,6 +158,11 @@ export const RoomConfiguration = () => {
   const closeRoomBedViewer = () => {
     setShowRoomViewer(false);
     setSelectedRoomForBedView(null);
+  };
+
+  const closeLayoutViewer = () => {
+    setShowLayoutViewer(false);
+    setSelectedRoomForView(null);
   };
 
 
@@ -308,6 +334,18 @@ export const RoomConfiguration = () => {
 
                       {/* Quick Actions */}
                       <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleToggleRoomStatus(room.id)}
+                          className={`h-8 w-8 p-0 ${room.str(room.id)}IVE"
+                            ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                            : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                            }`}
+                          title={room.status === "ACTIVE" ? "Deactivate room" : "Activate room"}
+                        >
+                          <Power className="h-4 w-4" />
+                        </Button>
                         {room.layout && (
                           <Button
                             size="sm"
@@ -475,7 +513,7 @@ export const RoomConfiguration = () => {
       })()}
 
       {/* Layout Viewer Dialog */}
-      <Dialog open={showLayoutViewer} onOpenChange={setShowLayoutViewer}>
+      <Dialog open={showLayoutViewer} onOpenChange={closeLayoutViewer}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
