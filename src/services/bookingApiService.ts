@@ -85,7 +85,7 @@ export class BookingApiService {
 
   // Confirm multi-guest booking
   async confirmMultiGuestBooking(bookingId: string, processedBy: string = 'admin'): Promise<ApprovalResult> {
-    return apiService.post<ApprovalResult>(`/booking-requests/${bookingId}/confirm`, {
+    return apiService.post<ApprovalResult>(`/booking-requests/multi-guest/${bookingId}/confirm`, {
       processedBy
     });
   }
@@ -178,7 +178,9 @@ export class BookingApiService {
 
   // Utility methods
   isMultiGuestBooking(booking: BookingRequest | MultiGuestBooking): boolean {
-    return 'totalGuests' in booking && booking.totalGuests > 1;
+    // Check if it's a multi-guest booking entity (has contactName, contactEmail, contactPhone)
+    // Even if totalGuests is 1, it's still a multi-guest booking entity
+    return 'contactName' in booking && 'contactEmail' in booking && 'contactPhone' in booking;
   }
 
   isSingleGuestBooking(booking: BookingRequest | MultiGuestBooking): boolean {

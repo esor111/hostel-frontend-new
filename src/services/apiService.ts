@@ -75,6 +75,8 @@ export class ApiService {
         }
 
         // Handle different NestJS response formats
+        // Check for paginated response with items array
+        if (data.data?.items !== undefined) return data.data.items;
         if (data.data !== undefined) return data.data;
         if (data.result !== undefined) return data.result;
         if (data.stats !== undefined) return data.stats;
