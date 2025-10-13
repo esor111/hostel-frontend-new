@@ -1,10 +1,11 @@
 import { MainLayout } from "@/components/layout/MainLayout";
-import { AddRoomForm } from "@/components/admin/AddRoomForm";
+import { AddRoomWizard } from "@/components/admin/AddRoomWizard";
+// import { AddRoomForm } from "@/components/admin/AddRoomForm"; // Old form - kept for reference
 
 const AddRoom = () => {
   return (
     <MainLayout activeTab="rooms">
-      <AddRoomForm />
+      <AddRoomWizard />
     </MainLayout>
   );
 };

@@ -58,7 +58,7 @@ export const AddRoomForm = () => {
 
     const [formData, setFormData] = useState<RoomFormData>({
         name: roomData?.name || "",
-        roomNumber: roomData?.roomNumber || (isEditing ? "" : generateRoomNumber(roomData?.floorNumber || 1)),
+        roomNumber: roomData?.roomNumber || "", // Empty by default, will auto-generate on submit if needed
         type: roomData?.type || "Dormitory",
         bedCount: roomData?.bedCount || roomData?.capacity || 1,
         gender: roomData?.gender || "Mixed",
@@ -106,10 +106,7 @@ export const AddRoomForm = () => {
             return;
         }
 
-        if (!formData.roomNumber.trim()) {
-            toast.error("Please enter a room number");
-            return;
-        }
+        // Room number is now optional - will auto-generate if empty
 
         if (formData.bedCount < 1) {
             toast.error("Bed count must be at least 1");
@@ -126,10 +123,13 @@ export const AddRoomForm = () => {
             return;
         }
 
+        // Auto-generate room number if empty
+        const finalRoomNumber = formData.roomNumber.trim() || generateRoomNumber(formData.floorNumber);
+
         try {
             const roomPayload = {
                 name: formData.name,
-                roomNumber: formData.roomNumber,
+                roomNumber: finalRoomNumber, // Use auto-generated if empty
                 type: formData.type,
                 capacity: formData.bedCount,
                 rent: formData.baseRate,
@@ -209,12 +209,12 @@ export const AddRoomForm = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Room Number *</Label>
+                                    <Label>Room Number (Optional)</Label>
                                     <div className="flex gap-2">
                                         <Input
                                             value={formData.roomNumber}
                                             onChange={(e) => handleInputChange('roomNumber', e.target.value)}
-                                            placeholder="Auto-generated"
+                                            placeholder="Leave empty to auto-generate"
                                             className="flex-1"
                                         />
                                         {!isEditing && (
@@ -223,12 +223,15 @@ export const AddRoomForm = () => {
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => handleInputChange('roomNumber', generateRoomNumber(formData.floorNumber))}
-                                                title="Generate new room number"
+                                                title="Generate room number"
                                             >
                                                 🔄
                                             </Button>
                                         )}
                                     </div>
+                                    <p className="text-xs text-gray-500">
+                                        💡 Leave empty to auto-generate when creating room
+                                    </p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Room Type *</Label>
@@ -246,11 +249,20 @@ export const AddRoomForm = () => {
                                 <div className="space-y-2">
                                     <Label>Bed Count *</Label>
                                     <Input
-                                        type="number"
-                                        value={formData.bedCount}
-                                        onChange={(e) => handleInputChange('bedCount', parseInt(e.target.value) || 1)}
-                                        min="1"
-                                        max="20"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={formData.bedCount === 0 ? '' : formData.bedCount}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                            handleInputChange('bedCount', value === '' ? 0 : parseInt(value));
+                                        }}
+                                        onBlur={(e) => {
+                                            if (e.target.value === '' || formData.bedCount === 0) {
+                                                handleInputChange('bedCount', 1);
+                                            }
+                                        }}
+                                        placeholder="e.g., 4"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -269,21 +281,38 @@ export const AddRoomForm = () => {
                                 <div className="space-y-2">
                                     <Label>Floor Number *</Label>
                                     <Input
-                                        type="number"
-                                        value={formData.floorNumber}
-                                        onChange={(e) => handleInputChange('floorNumber', parseInt(e.target.value) || 1)}
-                                        min="1"
-                                        max="50"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={formData.floorNumber === 0 ? '' : formData.floorNumber}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                            handleInputChange('floorNumber', value === '' ? 0 : parseInt(value));
+                                        }}
+                                        onBlur={(e) => {
+                                            if (e.target.value === '' || formData.floorNumber === 0) {
+                                                handleInputChange('floorNumber', 1);
+                                            }
+                                        }}
                                         placeholder="e.g., 2"
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Base Monthly Rate (NPR) *</Label>
                                     <Input
-                                        type="number"
-                                        value={formData.baseRate}
-                                        onChange={(e) => handleInputChange('baseRate', parseInt(e.target.value) || 12000)}
-                                        min="1000"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={formData.baseRate === 0 ? '' : formData.baseRate}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                            handleInputChange('baseRate', value === '' ? 0 : parseInt(value));
+                                        }}
+                                        onBlur={(e) => {
+                                            if (e.target.value === '' || formData.baseRate === 0) {
+                                                handleInputChange('baseRate', 12000);
+                                            }
+                                        }}
                                         placeholder="e.g., 15000"
                                     />
                                 </div>
