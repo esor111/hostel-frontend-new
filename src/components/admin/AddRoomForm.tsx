@@ -56,6 +56,17 @@ export const AddRoomForm = () => {
         return `${floorNumber}${String(Math.floor(Math.random() * 100)).padStart(2, '0')}-${timestamp}`;
     };
 
+    // Helper function to extract amenity names from API response
+    const extractAmenityNames = (amenities: any[]): string[] => {
+        if (!amenities || amenities.length === 0) return [];
+        // If amenities are objects with 'name' property, extract names
+        if (typeof amenities[0] === 'object' && amenities[0].name) {
+            return amenities.map(a => a.name);
+        }
+        // If already strings, return as is
+        return amenities;
+    };
+
     const [formData, setFormData] = useState<RoomFormData>({
         name: roomData?.name || "",
         roomNumber: roomData?.roomNumber || "", // Empty by default, will auto-generate on submit if needed
@@ -64,7 +75,7 @@ export const AddRoomForm = () => {
         gender: roomData?.gender || "Mixed",
         baseRate: roomData?.baseRate || roomData?.rent || 12000,
         floorNumber: roomData?.floorNumber || 1,
-        amenities: roomData?.amenities || [],
+        amenities: extractAmenityNames(roomData?.amenities || []),
         description: roomData?.description || "",
         images: roomData?.images || [],
         layout: roomData?.layout || null
