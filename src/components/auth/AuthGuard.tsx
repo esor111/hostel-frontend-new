@@ -3,9 +3,9 @@
  * Handles routing based on authentication state
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import Login from '../../pages/Login';
 import BusinessSelection from '../../pages/BusinessSelection';
 import { Loader2 } from 'lucide-react';
 import { KahaLogo } from '../common/KahaLogo';
@@ -47,6 +47,15 @@ const ErrorScreen = ({ error }: { error: string }) => (
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const { state } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Redirect to login if user is not authenticated
+    if (state.authState === 'unauthenticated') {
+      navigate('/login', { replace: true, state: { from: location.pathname } });
+    }
+  }, [state.authState, navigate, location.pathname]);
 
   // Show loading screen while checking authentication
   if (state.authState === 'loading') {
@@ -58,9 +67,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return <ErrorScreen error={state.error} />;
   }
 
-  // Show login page if user is not authenticated
+  // Redirect to login if user is not authenticated (handled by useEffect, but keep as fallback)
   if (state.authState === 'unauthenticated') {
-    return <Login />;
+    return <LoadingScreen />;
   }
 
   // Show business selection if user is authenticated but hasn't selected a business

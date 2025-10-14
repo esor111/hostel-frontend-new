@@ -630,6 +630,18 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
   const handleCanvasMouseUp = () => {};
 
   const saveLayout = () => {
+    console.log('🎨 RoomDesigner - Saving layout');
+    console.log('📐 Dimensions:', dimensions);
+    console.log('📋 Elements count:', elements.length);
+    console.log('📋 Elements details:', elements.map(e => ({
+      id: e.id,
+      type: e.type,
+      x: e.x,
+      y: e.y,
+      width: e.width,
+      height: e.height
+    })));
+    
     const layout = {
       dimensions,
       elements,
@@ -637,6 +649,14 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
       createdAt: new Date().toISOString(),
       warnings: collisionWarnings
     };
+    
+    console.log('✅ Layout object created:', {
+      hasDimensions: !!layout.dimensions,
+      hasElements: !!layout.elements,
+      elementsCount: layout.elements?.length || 0,
+      hasTheme: !!layout.theme
+    });
+    
     onSave(layout);
     toast.success("Room layout saved successfully!");
   };

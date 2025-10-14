@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,9 @@ export const AddRoomWizard = () => {
     const [searchParams] = useSearchParams();
     const [currentStep, setCurrentStep] = useState(1);
     const [showRoomDesigner, setShowRoomDesigner] = useState(false);
-    
+
     const { createRoom, updateRoom, refreshData } = useRooms();
-    
+
     const isEditing = location.state?.isEditing || false;
     const roomData = location.state?.roomData || null;
     const editRoomId = searchParams.get('edit');
@@ -78,6 +78,15 @@ export const AddRoomWizard = () => {
         layout: roomData?.layout || null
     });
 
+    // Monitor layout state changes
+    useEffect(() => {
+        console.log('🔍 Form state changed - layout:', formData.layout ? 'EXISTS' : 'NULL');
+        if (formData.layout) {
+            console.log('📐 Layout elements:', formData.layout.elements?.length || 0);
+            console.log('📏 Layout dimensions:', formData.layout.dimensions);
+        }
+    }, [formData.layout]);
+
     const roomTypes = ["Dormitory", "Private", "Capsule"];
     const genderOptions = ["Mixed", "Male", "Female"];
     const availableAmenities = [
@@ -101,9 +110,40 @@ export const AddRoomWizard = () => {
     };
 
     const handleSaveLayout = (layout: any) => {
-        setFormData(prev => ({ ...prev, layout }));
+        console.log('💾 Saving layout to form state:', layout);
+        console.log('📐 Layout elements:', layout.elements?.length || 0);
+        console.log('📏 Layout dimensions:', layout.dimensions);
+
+        // Validate layout before saving
+        if (!layout.elements || layout.elements.length === 0) {
+            toast.error("Layout has no elements. Please add beds or furniture.");
+            return;
+        }
+
+        if (!layout.dimensions) {
+            toast.error("Layout is missing dimensions. Please set room dimensions.");
+            return;
+        }
+
+        // Save to localStorage as backup
+        try {
+            localStorage.setItem('pendingRoomLayout', JSON.stringify(layout));
+            console.log('✅ Layout backed up to localStorage');
+        } catch (error) {
+            console.warn('Failed to backup layout to localStorage:', error);
+        }
+
+        setFormData(prev => {
+            const newState = { ...prev, layout };
+            console.log('✅ Form state updated with layout');
+            console.log('📊 Updated form data:', { ...newState, layout: '...' }); // Don't log full layout
+            return newState;
+        });
+
         setShowRoomDesigner(false);
-        toast.success("Room layout saved successfully!");
+        toast.success("Room layout saved successfully!", {
+            description: `${layout.elements.length} elements saved`
+        });
     };
 
     // Validation for each step
@@ -125,7 +165,7 @@ export const AddRoomWizard = () => {
             toast.error(validation.message);
             return;
         }
-        
+
         if (currentStep < STEPS.length) {
             setCurrentStep(currentStep + 1);
         }
@@ -147,15 +187,56 @@ export const AddRoomWizard = () => {
         // Auto-generate room number if empty
         const finalRoomNumber = formData.roomNumber.trim() || generateRoomNumber(formData.floorNumber);
 
-        // Warn if no layout
-        if (!formData.layout) {
+        // Try to recover layout from localStorage if missing
+        let finalLayout = formData.layout;
+        if (!finalLayout) {
+            try {
+                const savedLayout = localStorage.getItem('pendingRoomLayout');
+                if (savedLayout) {
+                    finalLayout = JSON.parse(savedLayout);
+                    console.log('🔄 Recovered layout from localStorage');
+                    toast.info('Layout recovered from backup');
+                }
+            } catch (error) {
+                console.warn('Failed to recover layout from localStorage:', error);
+            }
+        }
+
+        // Validate layout if it exists
+        if (finalLayout) {
+            if (!finalLayout.elements || finalLayout.elements.length === 0) {
+                toast.error("Layout has no elements. Please redesign the layout or skip it.");
+                return;
+            }
+
+            if (!finalLayout.dimensions) {
+                toast.error("Layout is missing dimensions. Please redesign the layout.");
+                return;
+            }
+
+            console.log('✅ Layout validation passed:', {
+                elements: finalLayout.elements.length,
+                dimensions: finalLayout.dimensions,
+                theme: finalLayout.theme?.name || 'Default'
+            });
+        } else {
             toast.warning("Room will be created without a layout. You can add it later.");
+        }
+
+        console.log('📤 Submitting room with layout:', !!finalLayout);
+        if (finalLayout) {
+            console.log('📐 Layout to submit:', {
+                hasElements: !!finalLayout.elements,
+                elementCount: finalLayout.elements?.length || 0,
+                hasDimensions: !!finalLayout.dimensions,
+                hasTheme: !!finalLayout.theme
+            });
         }
 
         try {
             const roomPayload = {
                 name: formData.name,
-                roomNumber: finalRoomNumber, // Use auto-generated if empty
+                roomNumber: finalRoomNumber,
                 type: formData.type,
                 capacity: formData.bedCount,
                 rent: formData.baseRate,
@@ -165,15 +246,34 @@ export const AddRoomWizard = () => {
                 images: formData.images,
                 isActive: true,
                 description: formData.description,
-                layout: formData.layout
+                layout: finalLayout // Use finalLayout (recovered if needed)
             };
+
+            console.log('📤 Final room payload:', { ...roomPayload, layout: finalLayout ? 'EXISTS' : 'NULL' });
+
+            // Log detailed layout structure before sending
+            if (finalLayout) {
+                console.log('🔍 DETAILED LAYOUT STRUCTURE BEFORE SENDING:');
+                console.log('  - dimensions:', finalLayout.dimensions);
+                console.log('  - elements:', finalLayout.elements);
+                console.log('  - elements count:', finalLayout.elements?.length || 0);
+                console.log('  - theme:', finalLayout.theme);
+                console.log('  - Full layout object:', JSON.stringify(finalLayout, null, 2));
+            }
 
             if (isEditing && (editRoomId || roomData?.id)) {
                 await updateRoom(editRoomId || roomData.id, roomPayload);
                 toast.success("Room updated successfully!");
             } else {
+                console.log('🚀 Calling createRoom with payload...');
                 await createRoom(roomPayload);
                 toast.success("Room created successfully!");
+            }
+
+            // Clear localStorage after successful submit
+            if (finalLayout) {
+                localStorage.removeItem('pendingRoomLayout');
+                console.log('🗑️ Cleared layout backup from localStorage');
             }
 
             refreshData();
@@ -218,15 +318,15 @@ export const AddRoomWizard = () => {
                             const Icon = step.icon;
                             const isActive = currentStep === step.id;
                             const isCompleted = currentStep > step.id;
-                            
+
                             return (
                                 <div key={step.id} className="flex items-center flex-1">
                                     <div className="flex flex-col items-center flex-1">
                                         <div className={`
                                             w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all
-                                            ${isCompleted ? 'bg-green-500 border-green-500 text-white' : 
-                                              isActive ? 'bg-blue-600 border-blue-600 text-white' : 
-                                              'bg-gray-100 border-gray-300 text-gray-400'}
+                                            ${isCompleted ? 'bg-green-500 border-green-500 text-white' :
+                                                isActive ? 'bg-blue-600 border-blue-600 text-white' :
+                                                    'bg-gray-100 border-gray-300 text-gray-400'}
                                         `}>
                                             {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                                         </div>
@@ -451,7 +551,7 @@ export const AddRoomWizard = () => {
                                     <p className="text-gray-600 mb-4">
                                         {formData.layout ? "Layout configured successfully!" : "No layout designed yet"}
                                     </p>
-                                    
+
                                     <Button
                                         onClick={() => setShowRoomDesigner(true)}
                                         size="lg"
@@ -464,12 +564,48 @@ export const AddRoomWizard = () => {
 
                                 {formData.layout && (
                                     <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                                        <div className="text-sm text-green-700 font-medium mb-2">✓ Layout Configured</div>
-                                        <div className="text-xs text-green-600 space-y-1">
-                                            <div>Dimensions: {formData.layout.dimensions?.length}ft × {formData.layout.dimensions?.width}ft</div>
-                                            <div>Elements: {formData.layout.elements?.length || 0} items placed</div>
-                                            <div>Theme: {formData.layout.theme?.name || 'Default'}</div>
+                                        <div className="text-sm text-green-700 font-semibold mb-3 flex items-center gap-2">
+                                            <Check className="h-4 w-4" />
+                                            Layout Saved Successfully
                                         </div>
+                                        <div className="text-xs text-green-600 space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">Dimensions:</span>
+                                                <span>{formData.layout.dimensions?.length}ft × {formData.layout.dimensions?.width}ft × {formData.layout.dimensions?.height}ft</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">Total Elements:</span>
+                                                <span>{formData.layout.elements?.length || 0} items</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">Beds:</span>
+                                                <span>{formData.layout.elements?.filter(e => e.type?.includes('bed')).length || 0} beds</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">Furniture:</span>
+                                                <span>{formData.layout.elements?.filter(e => !e.type?.includes('bed')).length || 0} items</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">Theme:</span>
+                                                <span>{formData.layout.theme?.name || 'Default'}</span>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="mt-3 w-full"
+                                            onClick={() => {
+                                                console.log('🔍 Current layout state:', formData.layout);
+                                                console.log('📐 Layout elements:', formData.layout.elements);
+                                                console.log('📏 Layout dimensions:', formData.layout.dimensions);
+                                                console.log('🎨 Layout theme:', formData.layout.theme);
+                                                toast.info('Layout details logged to console', {
+                                                    description: 'Open browser console (F12) to see full layout data'
+                                                });
+                                            }}
+                                        >
+                                            🔍 Inspect Layout Data
+                                        </Button>
                                     </div>
                                 )}
 

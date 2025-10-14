@@ -73,15 +73,9 @@ export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps>
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-600">Preferred Room</Label>
-                <Badge variant="outline">{booking.preferredRoom}</Badge>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-600">Check-in Date</Label>
-                <p className="text-sm">{new Date(booking.checkInDate).toLocaleDateString()}</p>
-              </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-600">Preferred Room</Label>
+              <Badge variant="outline">{booking.preferredRoom}</Badge>
             </div>
           </div>
         </div>

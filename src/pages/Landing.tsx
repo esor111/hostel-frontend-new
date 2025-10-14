@@ -188,8 +188,8 @@ const Landing = () => {
   ];
 
   const handleLogin = () => {
-    // Navigate to demo hostel dashboard
-    navigate('/admin');
+    // Navigate to login page
+    navigate('/login');
   };
 
   const handleSearch = () => {

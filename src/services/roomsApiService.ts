@@ -79,11 +79,27 @@ export const roomsApiService = {
   async createRoom(roomData: any) {
     try {
       console.log('🏠 Creating new room via API...');
-      console.log('📤 Room data:', roomData);
+      console.log('📤 Room data received:', JSON.stringify(roomData, null, 2));
 
       // Transform layout data if present
       if (roomData.layout) {
         console.log('🎨 Layout data detected - Transforming for backend');
+        console.log('📐 Original layout structure:', {
+          hasElements: !!roomData.layout.elements,
+          elementsCount: roomData.layout.elements?.length || 0,
+          hasDimensions: !!roomData.layout.dimensions,
+          hasTheme: !!roomData.layout.theme
+        });
+        
+        // Log all elements before filtering
+        if (roomData.layout.elements) {
+          console.log('📋 All elements before filtering:', roomData.layout.elements.map(e => ({
+            id: e.id,
+            type: e.type,
+            x: e.x,
+            y: e.y
+          })));
+        }
         
         // Extract bed positions from elements
         const bedPositions = roomData.layout.elements?.filter(e =>
@@ -99,6 +115,8 @@ export const roomsApiService = {
           properties: bed.properties
         })) || [];
 
+        console.log(`🛏️ Extracted ${bedPositions.length} bed positions:`, bedPositions);
+
         // Extract furniture layout from elements
         const furnitureLayout = roomData.layout.elements?.filter(e =>
           e.type !== 'single-bed' && e.type !== 'bunk-bed'
@@ -112,6 +130,8 @@ export const roomsApiService = {
           rotation: furniture.rotation
         })) || [];
 
+        console.log(`🪑 Extracted ${furnitureLayout.length} furniture items:`, furnitureLayout);
+
         // Keep the original structure but add the extracted data
         roomData.layout = {
           ...roomData.layout, // Keep original layout data
@@ -121,10 +141,19 @@ export const roomsApiService = {
         };
 
         console.log('🔄 Transformed layout for backend:', JSON.stringify(roomData.layout, null, 2));
+        console.log('📊 Final layout summary:', {
+          bedPositions: bedPositions.length,
+          furnitureLayout: furnitureLayout.length,
+          totalElements: roomData.layout.elements?.length || 0
+        });
+      } else {
+        console.log('⚠️ No layout data in roomData');
       }
 
+      console.log('📤 Sending to backend - Final payload:', JSON.stringify(roomData, null, 2));
       const response = await apiService.post('/rooms', roomData);
       console.log('✅ Room created successfully');
+      console.log('📥 Backend response:', response);
       return response; // apiService already extracts the data
     } catch (error) {
       console.error('❌ Error creating room:', error);

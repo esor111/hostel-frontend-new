@@ -14,6 +14,7 @@ import AuthHeader from "@/components/auth/AuthHeader";
 
 // Lazy load components for better initial load performance
 const Landing = lazy(() => import("./pages/Landing"));
+const Login = lazy(() => import("./pages/Login"));
 const Index = lazy(() => import("./pages/Index"));
 const Ledger = lazy(() => import("./pages/Ledger"));
 const HostelProfile = lazy(() => import("./pages/HostelProfile"));
@@ -87,143 +88,193 @@ const App = () => {
               <Toaster />
               <Sonner />
               <BrowserRouter>
-                <AuthGuard>
-                  <AuthHeader />
-                  <Suspense fallback={<LoadingFallback />}>
-                    <Routes>
-                <Route
-                  path="/"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Landing" />}>
-                      <Landing />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Admin Dashboard" />}>
-                      <Index />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/hostel"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Hostel Profile" />}>
-                      <HostelProfile />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/bookings"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Booking Requests" />}>
-                      <BookingRequests />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/rooms"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Room Management" />}>
-                      <RoomManagement />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/addroom"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Add Room" />}>
-                      <AddRoom />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/ledger"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Ledger" />}>
-                      <Ledger />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/checkout"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Checkout" />}>
-                      <Ledger />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/analytics"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Analytics" />}>
-                      <Analytics />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/attendance"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Attendance" />}>
-                      <Attendance />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/notifications"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Notifications" />}>
-                      <Notifications />
-                    </Suspense>
-                  }
-                />
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
+                    {/* Public Routes - No Authentication Required */}
+                    <Route
+                      path="/"
+                      element={
+                        <Suspense fallback={<LoadingFallback componentName="Landing" />}>
+                          <Landing />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/login"
+                      element={
+                        <Suspense fallback={<LoadingFallback componentName="Login" />}>
+                          <Login />
+                        </Suspense>
+                      }
+                    />
 
-                <Route
-                  path="/dashboard-test"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Dashboard Test" />}>
-                      <DashboardTest />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/admin/billing-dashboard"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Billing Dashboard" />}>
-                      <BillingDashboard />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/admin/monthly-billing"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Monthly Billing" />}>
-                      <MonthlyBilling />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/test-safe"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="Safe Context Test" />}>
-                      <TestSafeContext />
-                    </Suspense>
-                  }
-                />
+                    {/* Protected Routes - Authentication Required */}
+                    <Route
+                      path="/admin"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Admin Dashboard" />}>
+                            <Index />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/hostel"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Hostel Profile" />}>
+                            <HostelProfile />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/bookings"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Booking Requests" />}>
+                            <BookingRequests />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/rooms"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Room Management" />}>
+                            <RoomManagement />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/addroom"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Add Room" />}>
+                            <AddRoom />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/ledger"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Ledger" />}>
+                            <Ledger />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/checkout"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Checkout" />}>
+                            <Ledger />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/analytics"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Analytics" />}>
+                            <Analytics />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/attendance"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Attendance" />}>
+                            <Attendance />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/notifications"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Notifications" />}>
+                            <Notifications />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/dashboard-test"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Dashboard Test" />}>
+                            <DashboardTest />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/admin/billing-dashboard"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Billing Dashboard" />}>
+                            <BillingDashboard />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/admin/monthly-billing"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Monthly Billing" />}>
+                            <MonthlyBilling />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/test-safe"
+                      element={
+                        <AuthGuard>
+                          <AuthHeader />
+                          <Suspense fallback={<LoadingFallback componentName="Safe Context Test" />}>
+                            <TestSafeContext />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
 
-                <Route
-                  path="*"
-                  element={
-                    <Suspense fallback={<LoadingFallback componentName="404 Page" />}>
-                      <NotFound />
-                    </Suspense>
-                  }
-                />
-                    </Routes>
-                  </Suspense>
-                </AuthGuard>
+                    {/* 404 Route */}
+                    <Route
+                      path="*"
+                      element={
+                        <Suspense fallback={<LoadingFallback componentName="404 Page" />}>
+                          <NotFound />
+                        </Suspense>
+                      }
+                    />
+                  </Routes>
+                </Suspense>
               </BrowserRouter>
             </SafeTooltipProvider>
           </AppProvider>

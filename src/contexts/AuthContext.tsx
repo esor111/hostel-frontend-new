@@ -139,7 +139,7 @@ export interface AuthContextType {
   getApiToken: () => string | null;
   
   // Business management
-  refreshBusinesses: () => Promise<void>;
+  refreshBusinesses: (params?: { name?: string; page?: number; take?: number }) => Promise<{ data: Business[]; total: number; page: number; totalPages: number }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -159,11 +159,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🔐 Starting login process...');
       
       // Step 1: Login and get businesses
-      const businesses = await authService.authenticateUser(credentials);
+      const result = await authService.authenticateUser(credentials);
       
       // Update state
       dispatch({ type: 'LOGIN_SUCCESS', payload: { userToken: authService.getUserToken()! } });
-      dispatch({ type: 'SET_BUSINESSES', payload: businesses });
+      dispatch({ type: 'SET_BUSINESSES', payload: Array.isArray(result) ? result : result.data });
       
       console.log('✅ Login successful, fetched businesses');
     } catch (error) {
@@ -210,18 +210,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CLEAR_BUSINESS_SELECTION' });
   };
 
-  const refreshBusinesses = async (): Promise<void> => {
+  const refreshBusinesses = async (params?: { name?: string; page?: number; take?: number }): Promise<{ data: Business[]; total: number; page: number; totalPages: number }> => {
     if (!state.userToken) {
       throw new Error('No user token available');
     }
 
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const businesses = await authService.fetchBusinesses();
-      dispatch({ type: 'SET_BUSINESSES', payload: businesses });
+      const result = await authService.fetchBusinesses(params);
+      dispatch({ type: 'SET_BUSINESSES', payload: result.data });
+      return result;
     } catch (error) {
       console.error('❌ Failed to refresh businesses:', error);
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to refresh businesses' });
+      throw error;
     }
   };
 
@@ -270,8 +272,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If we have a user token but no businesses, fetch them
         if (tokens.userToken && state.availableBusinesses.length === 0) {
           try {
-            const businesses = await authService.fetchBusinesses();
-            dispatch({ type: 'SET_BUSINESSES', payload: businesses });
+            const result = await authService.fetchBusinesses();
+            dispatch({ type: 'SET_BUSINESSES', payload: result.data });
           } catch (error) {
             console.warn('Failed to fetch businesses during initialization:', error);
             // Don't fail initialization if business fetch fails

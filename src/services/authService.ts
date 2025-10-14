@@ -93,17 +93,27 @@ class AuthService {
   /**
    * Step 2: Fetch User's Businesses (Hostels)
    * Call GET /businesses/my with user token
+   * Supports search and pagination
    */
-  async fetchBusinesses(): Promise<Business[]> {
+  async fetchBusinesses(params?: { name?: string; page?: number; take?: number }): Promise<{ data: Business[]; total: number; page: number; totalPages: number }> {
     const userToken = this.getUserToken();
     if (!userToken) {
       throw new Error('No user token available. Please login first.');
     }
 
     try {
-      console.log('🏢 Fetching user businesses...');
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      if (params?.name) queryParams.append('name', params.name);
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.take) queryParams.append('take', params.take.toString());
       
-      const response = await fetch(`${this.KAHA_MAIN_API_BASE}/businesses/my`, {
+      const queryString = queryParams.toString();
+      const url = `${this.KAHA_MAIN_API_BASE}/businesses/my${queryString ? `?${queryString}` : ''}`;
+      
+      console.log('🏢 Fetching user businesses:', url);
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${userToken}`,
@@ -115,10 +125,29 @@ class AuthService {
         throw new Error(`Failed to fetch businesses: ${response.status} ${response.statusText}`);
       }
 
-      const data: BusinessesResponse = await response.json();
+      const responseData: any = await response.json();
       
-      console.log(`✅ Fetched ${data.data.length} businesses`);
-      return data.data;
+      // Handle both old format (just array) and new format (with pagination)
+      if (Array.isArray(responseData.data)) {
+        const businesses = responseData.data;
+        console.log(`✅ Fetched ${businesses.length} businesses`);
+        
+        return {
+          data: businesses,
+          total: responseData.total || businesses.length,
+          page: responseData.page || params?.page || 1,
+          totalPages: responseData.totalPages || 1
+        };
+      } else {
+        // Fallback for old API format
+        const businesses = responseData.data || [];
+        return {
+          data: businesses,
+          total: businesses.length,
+          page: 1,
+          totalPages: 1
+        };
+      }
     } catch (error) {
       console.error('❌ Failed to fetch businesses:', error);
       throw error;
