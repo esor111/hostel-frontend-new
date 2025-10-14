@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { KahaLogo } from "@/components/ui/KahaLogo";
 import { useSafeNavigation } from "@/hooks/useSafeNavigation";
+import { useBusinesses } from "@/hooks/useBusinesses";
 import {
   Search,
   Building2,
@@ -180,12 +181,20 @@ const Landing = () => {
     { icon: Globe, label: "Multi-Platform", description: "Web, mobile & tablet support" }
   ];
 
-  const sampleHostels = [
-    { name: "Himalayan Backpackers", location: "Thamel, Kathmandu", rating: 4.8, rooms: 25 },
-    { name: "Mountain View Lodge", location: "Pokhara", rating: 4.6, rooms: 18 },
-    { name: "Heritage Hostel", location: "Bhaktapur", rating: 4.9, rooms: 32 },
-    { name: "Everest Base Hostel", location: "Namche Bazaar", rating: 4.7, rooms: 15 }
-  ];
+  // Real API integration for hostels
+  const {
+    businesses: hostels,
+    loading: hostelsLoading,
+    error: hostelsError,
+    hasMore: hasMoreHostels,
+    loadMore: loadMoreHostels,
+    refresh: refreshHostels,
+    loadingMore: loadingMoreHostels,
+  } = useBusinesses({
+    categoryId: "8d4c71ac-b5f2-4019-8414-fdc01ecaf8c4", // Hostel category ID
+    initialLimit: 10,
+    loadMoreLimit: 10,
+  });
 
   const handleLogin = () => {
     // Navigate to login page
@@ -653,10 +662,10 @@ const Landing = () => {
                       <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl mt-3 shadow-2xl z-10">
                         <div className="p-6">
                           <p className="text-sm text-gray-600 mb-4 font-medium">Suggested hostels:</p>
-                          {sampleHostels.filter(h => h.name.toLowerCase().includes(searchQuery.toLowerCase())).map((hostel, idx) => (
-                            <div key={idx} className="flex items-center gap-3 p-3 hover:bg-gray-50/80 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02]">
+                          {hostels.filter(h => h.name.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5).map((hostel) => (
+                            <div key={hostel.id} className="flex items-center gap-3 p-3 hover:bg-gray-50/80 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02]">
                               <Building2 className="h-5 w-5 text-[#1295D0]" />
-                              <span className="text-base font-medium">{hostel.name} - {hostel.location}</span>
+                              <span className="text-base font-medium">{hostel.name} - {hostel.address}</span>
                             </div>
                           ))}
                         </div>
@@ -684,99 +693,208 @@ const Landing = () => {
                 <p className="text-base md:text-lg text-gray-600 text-center mb-8 max-w-2xl mx-auto font-light">
                   Join hundreds of successful hostels already using our platform
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {sampleHostels.map((hostel, index) => (
-                    <Card
-                      key={index}
-                      className="group relative bg-white/90 backdrop-blur-sm border-2 border-gray-100/50 hover:border-[#1295D0]/30 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 cursor-pointer rounded-2xl overflow-hidden"
-                      onClick={() => console.log(`Viewing ${hostel.name}`)}
-                    >
-                      {/* Animated gradient background */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#07A64F]/0 via-[#1295D0]/0 to-[#07A64F]/0 group-hover:from-[#07A64F]/5 group-hover:via-[#1295D0]/5 group-hover:to-[#07A64F]/5 transition-all duration-700"></div>
-
-                      {/* Top accent bar */}
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#07A64F] to-[#1295D0] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
-
-                      <CardContent className="p-6 relative z-10">
-                        {/* Header with icon and name */}
-                        <div className="flex items-start gap-3 mb-4">
-                          <div className="flex-shrink-0 p-3 bg-gradient-to-br from-[#07A64F]/10 to-[#1295D0]/10 group-hover:from-[#07A64F]/20 group-hover:to-[#1295D0]/20 rounded-xl transition-all duration-300 group-hover:scale-110">
-                            <Building2 className="h-6 w-6 text-[#1295D0] group-hover:text-[#07A64F] transition-colors duration-300" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-lg text-gray-900 group-hover:text-[#1295D0] transition-colors duration-300 truncate">
-                              {hostel.name}
-                            </h4>
-                            <div className="flex items-center gap-1 mt-1">
-                              <MapPin className="h-4 w-4 text-gray-400 group-hover:text-[#07A64F] transition-colors duration-300" />
-                              <p className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors duration-300 truncate">
-                                {hostel.location}
-                              </p>
+                {/* Loading State */}
+                {hostelsLoading && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[...Array(8)].map((_, index) => (
+                      <Card key={index} className="bg-white/90 backdrop-blur-sm border-2 border-gray-100/50 shadow-lg rounded-2xl overflow-hidden">
+                        <CardContent className="p-6">
+                          <div className="animate-pulse">
+                            <div className="flex items-start gap-3 mb-4">
+                              <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+                              <div className="flex-1">
+                                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-
-                        {/* Rating and rooms info */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2 bg-yellow-50 group-hover:bg-yellow-100 px-3 py-1.5 rounded-full transition-colors duration-300">
-                            <Star className="h-4 w-4 text-yellow-500 fill-current group-hover:scale-110 transition-transform duration-300" />
-                            <span className="text-sm font-bold text-gray-900">{hostel.rating}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-gray-500 group-hover:text-gray-700 transition-colors duration-300">
-                            <Users className="h-4 w-4" />
-                            <span className="text-sm font-medium">{hostel.rooms} rooms</span>
-                          </div>
-                        </div>
-
-                        {/* Interactive rating bar */}
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-gray-600 group-hover:text-gray-700 transition-colors duration-300">
-                              Guest Satisfaction
-                            </span>
-                            <span className="text-xs font-bold text-[#07A64F] opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                              {Math.round((hostel.rating / 5) * 100)}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                            <div
-                              className="bg-gradient-to-r from-[#07A64F] to-[#1295D0] h-2 rounded-full transition-all duration-1000 shadow-sm transform scale-x-0 group-hover:scale-x-100 origin-left"
-                              style={{ '--tw-scale-x': `${(hostel.rating / 5)}` } as React.CSSProperties}
-                            ></div>
-                          </div>
-                        </div>
-
-                        {/* Status indicators */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-[#07A64F] rounded-full animate-pulse"></div>
-                            <span className="text-xs font-medium text-gray-600 group-hover:text-[#07A64F] transition-colors duration-300">
-                              Active on
-                            </span>
-                            <KahaLogo size="sm" className="group-hover:scale-110 transition-transform duration-300" />
-                          </div>
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                            <ArrowRight className="h-4 w-4 text-[#1295D0] transform group-hover:translate-x-1 transition-transform duration-300" />
-                          </div>
-                        </div>
-
-                        {/* Additional info that appears on hover - no overlap */}
-                        <div className="border-t border-gray-100 pt-3 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="h-3 w-3 text-[#07A64F]" />
-                              <span className="text-gray-600 font-medium">Verified Partner</span>
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+                              <div className="h-4 bg-gray-200 rounded w-20"></div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <TrendingUp className="h-3 w-3 text-[#1295D0]" />
-                              <span className="text-gray-600 font-medium">Growing</span>
-                            </div>
+                            <div className="h-2 bg-gray-200 rounded mb-4"></div>
+                            <div className="h-8 bg-gray-200 rounded"></div>
                           </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {/* Error State */}
+                {hostelsError && (
+                  <div className="text-center py-12">
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md mx-auto">
+                      <p className="text-red-600 font-medium mb-2">Failed to load hostels</p>
+                      <p className="text-red-500 text-sm mb-4">{hostelsError}</p>
+                      <Button 
+                        onClick={refreshHostels}
+                        variant="outline" 
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                      >
+                        Try Again
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Hostels Grid */}
+                {!hostelsLoading && !hostelsError && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {hostels.map((hostel) => (
+                        <Card
+                          key={hostel.id}
+                          className="group relative bg-white/90 backdrop-blur-sm border-2 border-gray-100/50 hover:border-[#1295D0]/30 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 cursor-pointer rounded-2xl overflow-hidden"
+                          onClick={() => console.log(`Viewing ${hostel.name}`)}
+                        >
+                          {/* Animated gradient background */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-[#07A64F]/0 via-[#1295D0]/0 to-[#07A64F]/0 group-hover:from-[#07A64F]/5 group-hover:via-[#1295D0]/5 group-hover:to-[#07A64F]/5 transition-all duration-700"></div>
+
+                          {/* Top accent bar */}
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#07A64F] to-[#1295D0] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+
+                          <CardContent className="p-6 relative z-10">
+                            {/* Hostel Image */}
+                            <div className="mb-4 relative overflow-hidden rounded-xl">
+                              <img 
+                                src={hostel.avatar || hostel.coverImage || '/placeholder-hostel.jpg'} 
+                                alt={hostel.name}
+                                className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-500"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/placeholder-hostel.jpg';
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            </div>
+
+                            {/* Header with icon and name */}
+                            <div className="flex items-start gap-3 mb-4">
+                              <div className="flex-shrink-0 p-3 bg-gradient-to-br from-[#07A64F]/10 to-[#1295D0]/10 group-hover:from-[#07A64F]/20 group-hover:to-[#1295D0]/20 rounded-xl transition-all duration-300 group-hover:scale-110">
+                                <Building2 className="h-6 w-6 text-[#1295D0] group-hover:text-[#07A64F] transition-colors duration-300" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-lg text-gray-900 group-hover:text-[#1295D0] transition-colors duration-300 truncate">
+                                  {hostel.name}
+                                </h4>
+                                <div className="flex items-center gap-1 mt-1">
+                                  <MapPin className="h-4 w-4 text-gray-400 group-hover:text-[#07A64F] transition-colors duration-300" />
+                                  <p className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors duration-300 truncate">
+                                    {hostel.address}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Rating and category info */}
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-2 bg-yellow-50 group-hover:bg-yellow-100 px-3 py-1.5 rounded-full transition-colors duration-300">
+                                <Star className="h-4 w-4 text-yellow-500 fill-current group-hover:scale-110 transition-transform duration-300" />
+                                <span className="text-sm font-bold text-gray-900">{hostel.rating || 4.5}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-gray-500 group-hover:text-gray-700 transition-colors duration-300">
+                                <Badge variant="secondary" className="text-xs">
+                                  {hostel.category.name}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            {/* Interactive rating bar */}
+                            <div className="mb-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-gray-600 group-hover:text-gray-700 transition-colors duration-300">
+                                  Guest Satisfaction
+                                </span>
+                                <span className="text-xs font-bold text-[#07A64F] opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                  {Math.round(((hostel.rating || 4.5) / 5) * 100)}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="bg-gradient-to-r from-[#07A64F] to-[#1295D0] h-2 rounded-full transition-all duration-1000 shadow-sm transform scale-x-0 group-hover:scale-x-100 origin-left"
+                                  style={{ '--tw-scale-x': `${((hostel.rating || 4.5) / 5)}` } as React.CSSProperties}
+                                ></div>
+                              </div>
+                            </div>
+
+                            {/* Status indicators */}
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-[#07A64F] rounded-full animate-pulse"></div>
+                                <span className="text-xs font-medium text-gray-600 group-hover:text-[#07A64F] transition-colors duration-300">
+                                  Active on
+                                </span>
+                                <KahaLogo size="sm" className="group-hover:scale-110 transition-transform duration-300" />
+                              </div>
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                <ArrowRight className="h-4 w-4 text-[#1295D0] transform group-hover:translate-x-1 transition-transform duration-300" />
+                              </div>
+                            </div>
+
+                            {/* Kaha ID Badge */}
+                            <div className="mb-4">
+                              <Badge variant="outline" className="text-xs font-mono bg-gradient-to-r from-[#07A64F]/10 to-[#1295D0]/10 border-[#1295D0]/30">
+                                ID: {hostel.kahaId}
+                              </Badge>
+                            </div>
+
+                            {/* Additional info that appears on hover */}
+                            <div className="border-t border-gray-100 pt-3 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
+                              <div className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-3 w-3 text-[#07A64F]" />
+                                  <span className="text-gray-600 font-medium">Verified Partner</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <TrendingUp className="h-3 w-3 text-[#1295D0]" />
+                                  <span className="text-gray-600 font-medium">Growing</span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {/* See More Button */}
+                    {hasMoreHostels && (
+                      <div className="text-center mt-12">
+                        <Button
+                          onClick={loadMoreHostels}
+                          disabled={loadingMoreHostels}
+                          className="bg-gradient-to-r from-[#07A64F] to-[#1295D0] hover:from-[#07A64F]/90 hover:to-[#1295D0]/90 text-white px-8 py-4 font-semibold shadow-xl hover:shadow-2xl hover:scale-105 transform transition-all duration-300 rounded-xl"
+                        >
+                          {loadingMoreHostels ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                              Loading More...
+                            </>
+                          ) : (
+                            <>
+                              See More Hostels
+                              <ArrowRight className="ml-2 h-5 w-5" />
+                            </>
+                          )}
+                        </Button>
+                        <p className="text-sm text-gray-600 mt-3">
+                          Showing {hostels.length} hostels • {hasMoreHostels ? 'More available' : 'All loaded'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* No More Results */}
+                    {!hasMoreHostels && hostels.length > 0 && (
+                      <div className="text-center mt-12">
+                        <div className="bg-gradient-to-r from-[#07A64F]/10 to-[#1295D0]/10 rounded-xl p-6 max-w-md mx-auto">
+                          <CheckCircle className="h-8 w-8 text-[#07A64F] mx-auto mb-3" />
+                          <p className="text-gray-700 font-medium">You've seen all available hostels!</p>
+                          <p className="text-sm text-gray-600 mt-2">
+                            Total: {hostels.length} hostels using Kaha platform
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
