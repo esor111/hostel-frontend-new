@@ -1,11 +1,47 @@
 import { apiService } from './apiService';
 
+// Helper function to get hostelId from auth context
+const getHostelId = (): string | null => {
+  try {
+    // Get the selected business from localStorage (auth service stores it separately)
+    const selectedBusinessData = localStorage.getItem('kaha_selected_business');
+    console.log('🔍 DEBUG: Raw selectedBusiness from localStorage:', selectedBusinessData);
+    
+    if (selectedBusinessData) {
+      const selectedBusiness = JSON.parse(selectedBusinessData);
+      console.log('🔍 DEBUG: Parsed selectedBusiness:', selectedBusiness);
+      console.log('🔍 DEBUG: selectedBusiness.id:', selectedBusiness.id);
+      
+      const hostelId = selectedBusiness.id;
+      console.log('🏨 DEBUG: Using hostelId from selected business:', hostelId);
+      return hostelId;
+    }
+    
+    console.warn('⚠️ DEBUG: No selected business found in localStorage');
+    return null;
+  } catch (error) {
+    console.error('❌ DEBUG: Failed to get hostelId from auth context:', error);
+    return null;
+  }
+};
+
+// Enhanced rooms API service that automatically includes hostelId in requests
+
 export const roomsApiService = {
   // Get all rooms
-  async getRooms(filters = {}) {
+  async getRooms(filters = {}, hostelId?: string) {
     try {
       console.log('🏠 Fetching rooms from API...');
       const queryParams = new URLSearchParams();
+
+      // CRITICAL: Add hostelId to query parameters
+      const effectiveHostelId = hostelId || getHostelId();
+      if (effectiveHostelId) {
+        queryParams.append('hostelId', effectiveHostelId);
+        console.log('🏨 Added hostelId to query:', effectiveHostelId);
+      } else {
+        console.warn('⚠️ No hostelId provided or found in auth context');
+      }
 
       // Add filters as query parameters
       Object.entries(filters).forEach(([key, value]) => {
@@ -14,9 +50,10 @@ export const roomsApiService = {
         }
       });
 
+      console.log('📤 Final query params:', Object.fromEntries(queryParams));
       const response = await apiService.get('/rooms', Object.fromEntries(queryParams));
       console.log('✅ Rooms API response:', response);
-      
+
       // The apiService already extracts the data, so response is the actual result
       let rooms = [];
       if (response && response.items) {
@@ -49,10 +86,19 @@ export const roomsApiService = {
   },
 
   // Get room by ID
-  async getRoomById(id: string) {
+  async getRoomById(id: string, hostelId?: string) {
     try {
       console.log(`🏠 Fetching room ${id} from API...`);
-      const response = await apiService.get(`/rooms/${id}`);
+
+      // Add hostelId to query parameters
+      const queryParams = new URLSearchParams();
+      const effectiveHostelId = hostelId || getHostelId();
+      if (effectiveHostelId) {
+        queryParams.append('hostelId', effectiveHostelId);
+        console.log('🏨 Added hostelId to room by ID query:', effectiveHostelId);
+      }
+
+      const response = await apiService.get(`/rooms/${id}`, Object.fromEntries(queryParams));
       console.log('✅ Room fetched successfully:', response);
 
       // The apiService already extracts the data, so response is the actual room data
@@ -90,7 +136,7 @@ export const roomsApiService = {
           hasDimensions: !!roomData.layout.dimensions,
           hasTheme: !!roomData.layout.theme
         });
-        
+
         // Log all elements before filtering
         if (roomData.layout.elements) {
           console.log('📋 All elements before filtering:', roomData.layout.elements.map(e => ({
@@ -100,7 +146,7 @@ export const roomsApiService = {
             y: e.y
           })));
         }
-        
+
         // Extract bed positions from elements
         const bedPositions = roomData.layout.elements?.filter(e =>
           e.type === 'single-bed' || e.type === 'bunk-bed'
@@ -237,12 +283,21 @@ export const roomsApiService = {
   },
 
   // Get available rooms
-  async getAvailableRooms() {
+  async getAvailableRooms(hostelId?: string) {
     try {
       console.log('🏠 Fetching available rooms from API...');
-      const response = await apiService.get('/rooms/available');
+
+      // Add hostelId to query parameters
+      const queryParams = new URLSearchParams();
+      const effectiveHostelId = hostelId || getHostelId();
+      if (effectiveHostelId) {
+        queryParams.append('hostelId', effectiveHostelId);
+        console.log('🏨 Added hostelId to available rooms query:', effectiveHostelId);
+      }
+
+      const response = await apiService.get('/rooms/available', Object.fromEntries(queryParams));
       console.log('✅ Available rooms fetched successfully');
-      
+
       // The apiService already extracts the data
       if (response && response.items) {
         return response.items;
@@ -258,10 +313,19 @@ export const roomsApiService = {
   },
 
   // Get room statistics
-  async getRoomStats() {
+  async getRoomStats(hostelId?: string) {
     try {
       console.log('📊 Fetching room statistics from API...');
-      const response = await apiService.get('/rooms/stats');
+
+      // Add hostelId to query parameters
+      const queryParams = new URLSearchParams();
+      const effectiveHostelId = hostelId || getHostelId();
+      if (effectiveHostelId) {
+        queryParams.append('hostelId', effectiveHostelId);
+        console.log('🏨 Added hostelId to room stats query:', effectiveHostelId);
+      }
+
+      const response = await apiService.get('/rooms/stats', Object.fromEntries(queryParams));
       console.log('✅ Room stats fetched successfully');
       return response; // apiService already extracts the data
     } catch (error) {

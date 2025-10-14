@@ -529,8 +529,55 @@ export const RoomCanvas = ({
         ctx.fillText('Door', 0, 0);
         
       } else if (element.type === 'window') {
-        // Draw window as green rectangle
-        ctx.fillStyle = '#10B981';
+        // Draw realistic window with frame and glass panels
+        
+        // Window frame (outer border)
+        ctx.fillStyle = '#8B5A2B'; // Brown window frame
+        ctx.strokeStyle = '#654321';
+        ctx.lineWidth = 3;
+        ctx.fillRect(-width / 2, -height / 2, width, height);
+        ctx.strokeRect(-width / 2, -height / 2, width, height);
+        
+        // Glass area (inner)
+        const frameThickness = Math.min(width, height) * 0.1;
+        const glassWidth = width - (frameThickness * 2);
+        const glassHeight = height - (frameThickness * 2);
+        
+        // Glass background (light blue with transparency effect)
+        ctx.fillStyle = '#E0F2FE'; // Light blue glass
+        ctx.fillRect(-glassWidth / 2, -glassHeight / 2, glassWidth, glassHeight);
+        
+        // Window cross dividers (mullions)
+        ctx.strokeStyle = '#8B5A2B';
+        ctx.lineWidth = 2;
+        
+        // Vertical divider
+        ctx.beginPath();
+        ctx.moveTo(0, -glassHeight / 2);
+        ctx.lineTo(0, glassHeight / 2);
+        ctx.stroke();
+        
+        // Horizontal divider
+        ctx.beginPath();
+        ctx.moveTo(-glassWidth / 2, 0);
+        ctx.lineTo(glassWidth / 2, 0);
+        ctx.stroke();
+        
+        // Add window reflection effect (diagonal lines)
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.6;
+        
+        // Diagonal reflection lines
+        for (let i = 0; i < 3; i++) {
+          const offset = (i - 1) * (glassWidth * 0.2);
+          ctx.beginPath();
+          ctx.moveTo(-glassWidth / 2 + offset, -glassHeight / 2);
+          ctx.lineTo(-glassWidth / 2 + offset + glassWidth * 0.3, glassHeight / 2);
+          ctx.stroke();
+        }
+        
+        ctx.globalAlpha = 1; // Reset transparency
         ctx.strokeStyle = '#6B7280';
         ctx.lineWidth = 2;
         ctx.fillRect(-width / 2, -height / 2, width, height);

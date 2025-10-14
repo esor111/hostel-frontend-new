@@ -2,7 +2,7 @@
 import {
   Bed,
   DoorOpen,
-  Square
+  RectangleHorizontal
 } from "lucide-react";
 
 export interface ElementType {
@@ -84,14 +84,14 @@ export const elementTypes: ElementType[] = [
   },
   {
     type: 'window',
-    icon: Square,
+    icon: RectangleHorizontal,
     emoji: '🪟',
     label: 'Window',
     color: '#10B981',
     defaultSize: { width: 1.2, height: 1.2 }, // 🔧 FIXED: Realistic window size - 4ft x 4ft square window
-    description: 'Natural light source with open/close toggle',
+    description: 'Natural light source with frame, glass panels, and reflection effects',
     category: 'openings',
-    tags: ['light', 'view', 'window', 'ventilation'],
+    tags: ['light', 'view', 'window', 'ventilation', 'glass', 'frame'],
     popular: true,
     customizable: { size: true, openClose: true }
   }
