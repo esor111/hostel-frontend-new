@@ -44,9 +44,9 @@ export const AddRoomWizard = () => {
 
     const { createRoom, updateRoom, refreshData, getRoomById } = useRooms();
 
+    const editRoomId = searchParams.get('edit');
     const isEditing = location.state?.isEditing || !!editRoomId;
     const roomData = location.state?.roomData || null;
-    const editRoomId = searchParams.get('edit');
 
     const generateRoomNumber = (floorNumber: number = 1) => {
         const timestamp = Date.now().toString().slice(-4);
