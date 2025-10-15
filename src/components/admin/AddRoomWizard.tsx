@@ -49,8 +49,10 @@ export const AddRoomWizard = () => {
     const roomData = location.state?.roomData || null;
 
     const generateRoomNumber = (floorNumber: number = 1) => {
-        const timestamp = Date.now().toString().slice(-4);
-        return `${floorNumber}${String(Math.floor(Math.random() * 100)).padStart(2, '0')}-${timestamp}`;
+        // Generate a sequential room number in format: R-{floor}{room}
+        // Example: R-101, R-102, R-201, etc.
+        const roomNum = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+        return `R-${floorNumber}${roomNum}`;
     };
 
     // Helper function to extract amenity names from API response
