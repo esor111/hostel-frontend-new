@@ -156,6 +156,13 @@ export const AddRoomWizard = () => {
             if (formData.floorNumber < 1) return { valid: false, message: "Floor number must be at least 1" };
             return { valid: true };
         }
+        if (step === 2) {
+            // Layout design validation - require layout to be designed (mandatory)
+            if (!formData.layout || formData.layout.skipped) {
+                return { valid: false, message: "Room layout design is required. Please design the room layout before proceeding." };
+            }
+            return { valid: true };
+        }
         return { valid: true };
     };
 
@@ -202,26 +209,27 @@ export const AddRoomWizard = () => {
             }
         }
 
-        // Validate layout if it exists
-        if (finalLayout) {
-            if (!finalLayout.elements || finalLayout.elements.length === 0) {
-                toast.error("Layout has no elements. Please redesign the layout or skip it.");
-                return;
-            }
-
-            if (!finalLayout.dimensions) {
-                toast.error("Layout is missing dimensions. Please redesign the layout.");
-                return;
-            }
-
-            console.log('✅ Layout validation passed:', {
-                elements: finalLayout.elements.length,
-                dimensions: finalLayout.dimensions,
-                theme: finalLayout.theme?.name || 'Default'
-            });
-        } else {
-            toast.warning("Room will be created without a layout. You can add it later.");
+        // Validate layout (now mandatory)
+        if (!finalLayout) {
+            toast.error("Room layout is required. Please design the room layout first.");
+            return;
         }
+
+        if (!finalLayout.elements || finalLayout.elements.length === 0) {
+            toast.error("Layout has no elements. Please add beds and furniture to the layout.");
+            return;
+        }
+
+        if (!finalLayout.dimensions) {
+            toast.error("Layout is missing dimensions. Please set room dimensions in the layout designer.");
+            return;
+        }
+
+        console.log('✅ Layout validation passed:', {
+            elements: finalLayout.elements.length,
+            dimensions: finalLayout.dimensions,
+            theme: finalLayout.theme?.name || 'Default'
+        });
 
         console.log('📤 Submitting room with layout:', !!finalLayout);
         if (finalLayout) {
@@ -299,9 +307,18 @@ export const AddRoomWizard = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" onClick={() => navigate("/rooms")}>
+                    <Button 
+                        variant="ghost" 
+                        onClick={() => {
+                            if (currentStep > 1) {
+                                setCurrentStep(currentStep - 1);
+                            } else {
+                                navigate("/rooms");
+                            }
+                        }}
+                    >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Rooms
+                        {currentStep > 1 ? `Back to ${STEPS[currentStep - 2]?.name}` : "Back to Rooms"}
                     </Button>
                     <div>
                         <h2 className="text-2xl font-bold">{isEditing ? "Edit Room" : "Add New Room"}</h2>
@@ -542,14 +559,14 @@ export const AddRoomWizard = () => {
                                 <Alert>
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertDescription>
-                                        Design your room layout to visualize bed placement and furniture arrangement. This step is optional but recommended for better room management.
+                                        Design your room layout to visualize bed placement and furniture arrangement. This step is required to proceed to the next step.
                                     </AlertDescription>
                                 </Alert>
 
                                 <div className="text-center py-8">
                                     <LayoutIcon className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                                     <p className="text-gray-600 mb-4">
-                                        {formData.layout ? "Layout configured successfully!" : "No layout designed yet"}
+                                        {formData.layout ? "Layout configured successfully!" : "Design your room layout to proceed"}
                                     </p>
 
                                     <Button
@@ -611,7 +628,7 @@ export const AddRoomWizard = () => {
 
                                 <Alert variant="default" className="bg-blue-50 border-blue-200">
                                     <AlertDescription className="text-blue-700">
-                                        💡 Tip: You can skip this step and add the layout later if needed.
+                                        💡 Tip: Use the layout designer to place beds, furniture, and define room dimensions. This helps with room management and guest visualization.
                                     </AlertDescription>
                                 </Alert>
                             </CardContent>
@@ -673,7 +690,9 @@ export const AddRoomWizard = () => {
                                         </div>
                                         <div>
                                             <div className="text-gray-600">Layout</div>
-                                            <div className="font-medium">{formData.layout ? '✓ Configured' : '✗ Not configured'}</div>
+                                            <div className="font-medium">
+                                                {formData.layout ? '✓ Configured' : '✗ Not configured'}
+                                            </div>
                                         </div>
                                         <div>
                                             <div className="text-gray-600">Images</div>

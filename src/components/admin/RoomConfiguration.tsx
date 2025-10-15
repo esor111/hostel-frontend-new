@@ -14,6 +14,7 @@ import { RoomLayoutViewer } from "./RoomLayoutViewer";
 import { useRooms } from "@/hooks/useRooms";
 import { useNavigate } from "react-router-dom";
 import ImageUpload from "@/components/common/ImageUpload";
+import { formatDimensionsAsFeet } from "@/utils/unitConversion";
 
 export const RoomConfiguration = () => {
   const { translations } = useLanguage();
@@ -417,7 +418,7 @@ export const RoomConfiguration = () => {
                       <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
                         <div className="text-sm text-purple-700 font-medium mb-1">Room Layout</div>
                         <div className="text-sm text-gray-600">
-                          {room.layout.dimensions?.length}ft × {room.layout.dimensions?.width}ft
+                          {formatDimensionsAsFeet(room.layout.dimensions?.length || 0, room.layout.dimensions?.width || 0)}
                           <br />
                           {room.layout.elements?.length || 0} elements configured
                         </div>

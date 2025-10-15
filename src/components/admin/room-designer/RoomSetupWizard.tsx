@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, Sparkles, CheckCircle } from "lucide-react";
+import { feetToMeters, metersToFeet } from "@/utils/unitConversion";
 
 interface RoomDimensions {
   length: number;
@@ -28,9 +29,19 @@ interface RoomSetupWizardProps {
 }
 
 export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProps) => {
-  const [dimensions, setDimensions] = useState<RoomDimensions>(
-    initialData?.dimensions || { length: 10, width: 10, height: 10 }
-  );
+  // Convert initial meter values to feet for display, or use default feet values
+  const [dimensions, setDimensions] = useState<RoomDimensions>(() => {
+    if (initialData?.dimensions) {
+      // Convert existing meter values to feet for editing
+      return {
+        length: Math.round(metersToFeet(initialData.dimensions.length) * 10) / 10,
+        width: Math.round(metersToFeet(initialData.dimensions.width) * 10) / 10,
+        height: Math.round(metersToFeet(initialData.dimensions.height) * 10) / 10
+      };
+    }
+    // Default values in feet
+    return { length: 32.8, width: 32.8, height: 32.8 }; // ~10m converted to feet
+  });
   
   const defaultTheme: RoomTheme = {
     name: 'Modern',
@@ -39,7 +50,13 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
   };
 
   const handleComplete = () => {
-    onComplete({ dimensions, theme: initialData?.theme || defaultTheme });
+    // Convert feet dimensions back to meters for storage
+    const dimensionsInMeters = {
+      length: feetToMeters(dimensions.length),
+      width: feetToMeters(dimensions.width),
+      height: feetToMeters(dimensions.height)
+    };
+    onComplete({ dimensions: dimensionsInMeters, theme: initialData?.theme || defaultTheme });
   };
 
   const isValidDimensions = () => {
