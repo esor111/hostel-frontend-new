@@ -93,52 +93,8 @@ const getFormattedElementName = (elementType: string, properties?: any): string 
   return baseName;
 };
 
-// Generate enhanced tooltip text for bed elements with API data
-const generateBedTooltip = (element: any): string => {
-  const parts: string[] = [];
-  
-  // Bed identifier
-  parts.push(`Bed: ${element.id}`);
-  
-  // Status
-  if (element.status) {
-    parts.push(`Status: ${element.status}`);
-  }
-  
-  // Occupant information
-  if (element.occupantName) {
-    parts.push(`Occupant: ${element.occupantName}`);
-  }
-  
-  // Gender restriction
-  if (element.gender && element.gender !== 'Any') {
-    parts.push(`Gender: ${element.gender}`);
-  }
-  
-  // Monthly rate
-  if (element.bedDetails?.monthlyRate) {
-    parts.push(`Rate: NPR ${element.bedDetails.monthlyRate.toLocaleString()}/month`);
-  }
-  
-  // Occupied since
-  if (element.bedDetails?.occupiedSince) {
-    const occupiedDate = new Date(element.bedDetails.occupiedSince);
-    parts.push(`Occupied since: ${occupiedDate.toLocaleDateString()}`);
-  }
-  
-  // Last cleaned
-  if (element.bedDetails?.lastCleaned) {
-    const cleanedDate = new Date(element.bedDetails.lastCleaned);
-    parts.push(`Last cleaned: ${cleanedDate.toLocaleDateString()}`);
-  }
-  
-  // Maintenance notes
-  if (element.bedDetails?.maintenanceNotes) {
-    parts.push(`Notes: ${element.bedDetails.maintenanceNotes}`);
-  }
-  
-  return parts.join('\n');
-};
+// Tooltip generation function removed - tooltips disabled to prevent UI obstruction
+// (Previously generated tooltip text for bed elements with API data)
 
 interface BunkLevel {
   id: string;
@@ -247,7 +203,7 @@ export const RoomCanvas = ({
   const [isDragging, setIsDragging] = useState(false);
   const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
   const [hoveredElement, setHoveredElement] = useState<string | null>(null);
-  const [tooltip, setTooltip] = useState<{ x: number, y: number, text: string } | null>(null);
+  // Tooltip removed - was causing UI obstruction issues
   const [dragOffset, setDragOffset] = useState<{ x: number, y: number } | null>(null);
   const [lastMousePos, setLastMousePos] = useState<{ x: number, y: number } | null>(null);
   // 🧈 ULTRA-SMOOTH BUTTER DRAG SYSTEM STATE 🧈
@@ -919,25 +875,9 @@ export const RoomCanvas = ({
         setHoveredElement(hoveredEl?.id || null);
         
         if (hoveredEl) {
-          // Show enhanced tooltip for bed elements with status information
-          if (hoveredEl.type.includes('bed') && (hoveredEl.status || hoveredEl.occupantName || hoveredEl.bedDetails)) {
-            const tooltipText = generateBedTooltip(hoveredEl);
-            setTooltip({
-              x: e.clientX + 10,
-              y: e.clientY - 10,
-              text: tooltipText
-            });
-          } else {
-            const elementName = getFormattedElementName(hoveredEl.type, hoveredEl.properties);
-            setTooltip({
-              x: e.clientX + 10,
-              y: e.clientY - 30,
-              text: elementName
-            });
-          }
+          // Tooltip removed - was causing UI obstruction issues
           canvas.style.cursor = hoveredEl.properties?.isLocked ? 'not-allowed' : 'grab';
         } else {
-          setTooltip(null);
           canvas.style.cursor = 'crosshair';
         }
       }
@@ -1050,7 +990,7 @@ export const RoomCanvas = ({
       handleCanvasMouseUp();
     }
     setHoveredElement(null);
-    setTooltip(null);
+    // Tooltip removed
     
     // Reset cursor
     const canvas = canvasRef.current;
@@ -1234,15 +1174,7 @@ export const RoomCanvas = ({
           </div>
         </div>
 
-        {/* Tooltip */}
-        {tooltip && (
-          <div
-            className="fixed z-50 bg-gray-900 text-white text-sm px-3 py-2 rounded shadow-lg pointer-events-none"
-            style={{ left: tooltip.x, top: tooltip.y }}
-          >
-            {tooltip.text}
-          </div>
-        )}
+        {/* Tooltip removed - was causing UI obstruction issues */}
       </div>
 
       {/* Context Menu */}

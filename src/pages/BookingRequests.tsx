@@ -376,6 +376,7 @@ const BookingRequests = () => {
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Contact Details</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Type & Guests</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Check-in Date</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Room/Bed</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
                   </tr>
@@ -383,7 +384,7 @@ const BookingRequests = () => {
                 <tbody>
                   {currentBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-gray-500">
+                      <td colSpan={7} className="py-8 text-center text-gray-500">
                         {searchTerm || statusFilter !== 'all' ? 'No bookings match your filters' : 'No booking requests found'}
                       </td>
                     </tr>
@@ -446,6 +447,25 @@ const BookingRequests = () => {
                           </td>
                           <td className="py-3 px-4 text-sm">
                             {checkInDate ? new Date(checkInDate).toLocaleDateString() : 'Not specified'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="text-sm">
+                              {booking.assignedRoom ? (
+                                <div>
+                                  <p className="font-medium text-gray-900">{assignedRoom?.name || booking.assignedRoom}</p>
+                                  {assignedRoom?.roomNumber && (
+                                    <p className="text-xs text-gray-500">Room: {assignedRoom.roomNumber}</p>
+                                  )}
+                                  {isMultiGuest && (booking as MultiGuestBooking).guests && (
+                                    <p className="text-xs text-gray-500">
+                                      {(booking as MultiGuestBooking).guests.filter(g => g.bedId).length} beds assigned
+                                    </p>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-xs">Not assigned</span>
+                              )}
+                            </div>
                           </td>
                           <td className="py-3 px-4">
                             <Badge className={getStatusColor(booking.status)}>

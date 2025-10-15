@@ -10,15 +10,20 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
-import { BookingRequest } from '@/types/api';
+import { BookingRequest, MultiGuestBooking } from '@/types/api';
 
 interface BookingConfirmationDialogProps {
-  booking: BookingRequest | null;
+  booking: BookingRequest | MultiGuestBooking | null;
   open: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   loading?: boolean;
 }
+
+// Type guard to check if booking is MultiGuestBooking
+const isMultiGuestBooking = (booking: BookingRequest | MultiGuestBooking): booking is MultiGuestBooking => {
+  return 'totalGuests' in booking && 'contactName' in booking;
+};
 
 export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps> = ({
   booking,
@@ -28,6 +33,13 @@ export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps>
   loading = false,
 }) => {
   if (!booking) return null;
+
+  // Extract data based on booking type
+  const isMultiGuest = isMultiGuestBooking(booking);
+  const studentName = isMultiGuest ? booking.contactName : booking.name;
+  const email = isMultiGuest ? booking.contactEmail : booking.email;
+  const phone = isMultiGuest ? booking.contactPhone : booking.phone;
+  const preferredRoom = booking.preferredRoom || 'Not specified';
 
   return (
     <Dialog open={open} onOpenChange={onCancel}>
@@ -53,8 +65,10 @@ export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm font-medium text-gray-600">Student Name</Label>
-                <p className="text-sm font-medium">{booking.name}</p>
+                <Label className="text-sm font-medium text-gray-600">
+                  {isMultiGuest ? 'Contact Name' : 'Student Name'}
+                </Label>
+                <p className="text-sm font-medium">{studentName}</p>
               </div>
               <div>
                 <Label className="text-sm font-medium text-gray-600">Booking ID</Label>
@@ -65,17 +79,27 @@ export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-sm font-medium text-gray-600">Email</Label>
-                <p className="text-sm">{booking.email}</p>
+                <p className="text-sm">{email || 'Not provided'}</p>
               </div>
               <div>
                 <Label className="text-sm font-medium text-gray-600">Phone</Label>
-                <p className="text-sm">{booking.phone}</p>
+                <p className="text-sm">{phone || 'Not provided'}</p>
               </div>
             </div>
             
-            <div>
-              <Label className="text-sm font-medium text-gray-600">Preferred Room</Label>
-              <Badge variant="outline">{booking.preferredRoom}</Badge>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Preferred Room</Label>
+                <Badge variant="outline">{preferredRoom}</Badge>
+              </div>
+              {isMultiGuest && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Total Guests</Label>
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                    {(booking as MultiGuestBooking).totalGuests} guests
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
         </div>

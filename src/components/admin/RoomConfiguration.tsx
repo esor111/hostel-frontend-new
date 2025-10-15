@@ -296,15 +296,7 @@ export const RoomConfiguration = () => {
 
                     {/* Action Buttons Overlay */}
                     <div className="absolute bottom-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleViewLayout(room.id)}
-                        className="h-8 w-8 p-0 bg-white/90 hover:bg-white"
-                        title={room.layout ? "View room layout" : "Configure layout first"}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      {/* Eye icon removed - layout viewer disabled */}
                       <Button
                         size="sm"
                         variant="secondary"
@@ -358,15 +350,7 @@ export const RoomConfiguration = () => {
                             <Bed className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleViewLayout(room.id)}
-                          className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                          title={room.layout ? "View room layout" : "Configure layout first"}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        {/* Eye icon removed - layout viewer disabled */}
                         <Button
                           size="sm"
                           variant="ghost"
@@ -513,23 +497,7 @@ export const RoomConfiguration = () => {
         );
       })()}
 
-      {/* Layout Viewer Dialog */}
-      <Dialog open={showLayoutViewer} onOpenChange={closeLayoutViewer}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Layout className="h-5 w-5 text-purple-600" />
-              Room Layout View
-            </DialogTitle>
-          </DialogHeader>
-          {selectedRoomForView && (
-            <RoomLayoutViewer
-              layout={rooms.find(r => r.id === selectedRoomForView)?.layout}
-              roomName={rooms.find(r => r.id === selectedRoomForView)?.name || "Room"}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Layout Viewer Dialog removed - feature disabled */}
     </div>
   );
 };

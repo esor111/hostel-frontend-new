@@ -718,7 +718,7 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
             </Button>
             <div className="flex items-center gap-2">
               <Box className="h-6 w-6 text-purple-500" />
-              <h1 className="text-xl font-bold">God-Tier Room Designer</h1>
+              <h1 className="text-xl font-bold">Room Designer</h1>
               {collisionWarnings.length > 0 && (
                 <Badge variant="destructive" className="ml-2">
                   <AlertTriangle className="h-3 w-3 mr-1" />
