@@ -42,7 +42,7 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
     // Default values in feet
     return { length: 32.8, width: 32.8, height: 32.8 }; // ~10m converted to feet
   });
-  
+
   const defaultTheme: RoomTheme = {
     name: 'Modern',
     wallColor: '#F8F9FA',
@@ -79,7 +79,7 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          
+
           {/* Room Dimensions */}
           <div className="space-y-6">
             <div className="space-y-6">
@@ -87,7 +87,7 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                 <h3 className="text-lg font-semibold mb-2">Room Dimensions</h3>
                 <p className="text-gray-600">Set your room's basic measurements</p>
               </div>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Input Controls */}
                 <div className="space-y-4">
@@ -107,26 +107,24 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                       <Input
                         type="number"
                         value={dimensions.length}
-                        onChange={(e) => setDimensions({...dimensions, length: Number(e.target.value)})}
+                        onChange={(e) => setDimensions({ ...dimensions, length: Number(e.target.value) })}
                         min="6"
                         max="60"
                         step="0.5"
-                        className={`text-center ${
-                          getDimensionStatus(dimensions.length, 6, 'length').status === 'error' 
-                            ? 'border-red-300 focus:border-red-500' 
-                            : getDimensionStatus(dimensions.length, 6, 'length').status === 'success'
+                        className={`text-center ${getDimensionStatus(dimensions.length, 6, 'length').status === 'error'
+                          ? 'border-red-300 focus:border-red-500'
+                          : getDimensionStatus(dimensions.length, 6, 'length').status === 'success'
                             ? 'border-green-300 focus:border-green-500'
                             : 'border-yellow-300 focus:border-yellow-500'
-                        }`}
+                          }`}
                       />
                       <div className="text-xs mt-1">
-                        <span className={`${
-                          getDimensionStatus(dimensions.length, 6, 'length').status === 'error' 
-                            ? 'text-red-500' 
-                            : getDimensionStatus(dimensions.length, 6, 'length').status === 'success'
+                        <span className={`${getDimensionStatus(dimensions.length, 6, 'length').status === 'error'
+                          ? 'text-red-500'
+                          : getDimensionStatus(dimensions.length, 6, 'length').status === 'success'
                             ? 'text-green-500'
                             : 'text-yellow-500'
-                        }`}>
+                          }`}>
                           {getDimensionStatus(dimensions.length, 6, 'length').message}
                         </span>
                       </div>
@@ -146,26 +144,24 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                       <Input
                         type="number"
                         value={dimensions.width}
-                        onChange={(e) => setDimensions({...dimensions, width: Number(e.target.value)})}
+                        onChange={(e) => setDimensions({ ...dimensions, width: Number(e.target.value) })}
                         min="6"
                         max="60"
                         step="0.5"
-                        className={`text-center ${
-                          getDimensionStatus(dimensions.width, 6, 'width').status === 'error' 
-                            ? 'border-red-300 focus:border-red-500' 
-                            : getDimensionStatus(dimensions.width, 6, 'width').status === 'success'
+                        className={`text-center ${getDimensionStatus(dimensions.width, 6, 'width').status === 'error'
+                          ? 'border-red-300 focus:border-red-500'
+                          : getDimensionStatus(dimensions.width, 6, 'width').status === 'success'
                             ? 'border-green-300 focus:border-green-500'
                             : 'border-yellow-300 focus:border-yellow-500'
-                        }`}
+                          }`}
                       />
                       <div className="text-xs mt-1">
-                        <span className={`${
-                          getDimensionStatus(dimensions.width, 6, 'width').status === 'error' 
-                            ? 'text-red-500' 
-                            : getDimensionStatus(dimensions.width, 6, 'width').status === 'success'
+                        <span className={`${getDimensionStatus(dimensions.width, 6, 'width').status === 'error'
+                          ? 'text-red-500'
+                          : getDimensionStatus(dimensions.width, 6, 'width').status === 'success'
                             ? 'text-green-500'
                             : 'text-yellow-500'
-                        }`}>
+                          }`}>
                           {getDimensionStatus(dimensions.width, 6, 'width').message}
                         </span>
                       </div>
@@ -185,26 +181,24 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                       <Input
                         type="number"
                         value={dimensions.height}
-                        onChange={(e) => setDimensions({...dimensions, height: Number(e.target.value)})}
+                        onChange={(e) => setDimensions({ ...dimensions, height: Number(e.target.value) })}
                         min="7"
                         max="15"
                         step="0.5"
-                        className={`text-center ${
-                          getDimensionStatus(dimensions.height, 7, 'height').status === 'error' 
-                            ? 'border-red-300 focus:border-red-500' 
-                            : getDimensionStatus(dimensions.height, 7, 'height').status === 'success'
+                        className={`text-center ${getDimensionStatus(dimensions.height, 7, 'height').status === 'error'
+                          ? 'border-red-300 focus:border-red-500'
+                          : getDimensionStatus(dimensions.height, 7, 'height').status === 'success'
                             ? 'border-green-300 focus:border-green-500'
                             : 'border-yellow-300 focus:border-yellow-500'
-                        }`}
+                          }`}
                       />
                       <div className="text-xs mt-1">
-                        <span className={`${
-                          getDimensionStatus(dimensions.height, 7, 'height').status === 'error' 
-                            ? 'text-red-500' 
-                            : getDimensionStatus(dimensions.height, 7, 'height').status === 'success'
+                        <span className={`${getDimensionStatus(dimensions.height, 7, 'height').status === 'error'
+                          ? 'text-red-500'
+                          : getDimensionStatus(dimensions.height, 7, 'height').status === 'success'
                             ? 'text-green-500'
                             : 'text-yellow-500'
-                        }`}>
+                          }`}>
                           {getDimensionStatus(dimensions.height, 7, 'height').message}
                         </span>
                       </div>
@@ -268,7 +262,7 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                       <span className="font-medium">Room Summary</span>
                     </div>
                     <p className="text-blue-700">
-                      {dimensions.length}ft × {dimensions.width}ft × {dimensions.height}ft 
+                      {dimensions.length}ft × {dimensions.width}ft × {dimensions.height}ft
                       <br />
                       <span className="text-sm">Floor Area: {(dimensions.length * dimensions.width).toFixed(1)} sq feet</span>
                       <br />
@@ -283,7 +277,7 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                     <h4 className="font-medium text-gray-700 mb-2">Live Preview</h4>
                     <p className="text-sm text-gray-500">Real-time room visualization</p>
                   </div>
-                  
+
                   {/* 2D Floor Plan Preview */}
                   <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
                     <div className="text-xs text-gray-500 mb-2 text-center">Floor Plan (Top View)</div>
@@ -298,7 +292,7 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                           }}
                         >
                           {/* Grid pattern */}
-                          <div 
+                          <div
                             className="absolute inset-0 opacity-20"
                             style={{
                               backgroundImage: `
@@ -308,7 +302,7 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                               backgroundSize: '10px 10px'
                             }}
                           />
-                          
+
                           {/* Dimension labels */}
                           <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-medium text-purple-600">
                             {dimensions.length}ft
@@ -327,13 +321,13 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
                       <div className="text-sm font-medium text-gray-700">Room Category</div>
                       <div className="text-lg font-bold text-purple-600">
                         {dimensions.length * dimensions.width < 100 ? 'Compact' :
-                         dimensions.length * dimensions.width < 200 ? 'Standard' :
-                         dimensions.length * dimensions.width < 400 ? 'Spacious' : 'Large'}
+                          dimensions.length * dimensions.width < 200 ? 'Standard' :
+                            dimensions.length * dimensions.width < 400 ? 'Spacious' : 'Large'}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {dimensions.length * dimensions.width < 100 ? 'Perfect for 1-2 beds' :
-                         dimensions.length * dimensions.width < 200 ? 'Ideal for 2-4 beds' :
-                         dimensions.length * dimensions.width < 400 ? 'Great for 4-8 beds' : 'Suitable for 8+ beds'}
+                          dimensions.length * dimensions.width < 200 ? 'Ideal for 2-4 beds' :
+                            dimensions.length * dimensions.width < 400 ? 'Great for 4-8 beds' : 'Suitable for 8+ beds'}
                       </div>
                     </div>
                   </div>

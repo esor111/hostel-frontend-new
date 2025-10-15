@@ -42,9 +42,9 @@ export const AddRoomWizard = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [showRoomDesigner, setShowRoomDesigner] = useState(false);
 
-    const { createRoom, updateRoom, refreshData } = useRooms();
+    const { createRoom, updateRoom, refreshData, getRoomById } = useRooms();
 
-    const isEditing = location.state?.isEditing || false;
+    const isEditing = location.state?.isEditing || !!editRoomId;
     const roomData = location.state?.roomData || null;
     const editRoomId = searchParams.get('edit');
 
@@ -77,6 +77,40 @@ export const AddRoomWizard = () => {
         images: roomData?.images || [],
         layout: roomData?.layout || null
     });
+
+    // Fetch room data when in edit mode but no roomData is provided
+    useEffect(() => {
+        const fetchRoomData = async () => {
+            if (editRoomId && !roomData) {
+                try {
+                    console.log('🔍 Fetching room data for edit mode:', editRoomId);
+                    const fetchedRoom = await getRoomById(editRoomId);
+                    
+                    // Update form data with fetched room data
+                    setFormData({
+                        name: fetchedRoom.name || "",
+                        roomNumber: fetchedRoom.roomNumber || "",
+                        type: fetchedRoom.type || "Dormitory",
+                        bedCount: fetchedRoom.bedCount || fetchedRoom.capacity || 1,
+                        gender: fetchedRoom.gender || "Mixed",
+                        baseRate: fetchedRoom.baseRate || fetchedRoom.rent || fetchedRoom.monthlyRate || 12000,
+                        floorNumber: fetchedRoom.floorNumber || 1,
+                        amenities: extractAmenityNames(fetchedRoom.amenities || []),
+                        description: fetchedRoom.description || "",
+                        images: fetchedRoom.images || [],
+                        layout: fetchedRoom.layout || null
+                    });
+                    
+                    console.log('✅ Room data loaded for editing:', fetchedRoom);
+                } catch (error) {
+                    console.error('❌ Error fetching room data:', error);
+                    toast.error('Failed to load room data for editing');
+                }
+            }
+        };
+
+        fetchRoomData();
+    }, [editRoomId, roomData, getRoomById]);
 
     // Monitor layout state changes
     useEffect(() => {

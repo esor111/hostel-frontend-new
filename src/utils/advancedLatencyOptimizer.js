@@ -490,7 +490,7 @@ if (typeof window !== 'undefined') {
     } else if (hostname.includes('dev.')) {
       return 'https://dev.kaha.com.np/hostel/api/v1';
     } else {
-      return 'https://api.kaha.com.np/hostel/api/v1';
+      return 'https://dev.kaha.com.np/hostel/api/v1';
     }
   };
 

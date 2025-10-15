@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const NOTIFICATION_API_BASE_URL = 'https://api.kaha.com.np/notifications/api/v3';
+const NOTIFICATION_API_BASE_URL = 'https://dev.kaha.com.np/notifications/api/v3';
 
 export interface NotificationPayload {
   receiverUserIds: string[];

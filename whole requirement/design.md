@@ -215,7 +215,7 @@ export const ENVIRONMENT_CONFIGS: Record<Environment, EnvironmentConfig> = {
     logLevel: 'info',
   },
   production: {
-    apiBaseUrl: 'https://api.kaha.com.np/hostel/api/v1',
+    apiBaseUrl: 'https://dev.kaha.com.np/hostel/api/v1',
     environment: 'production',
     debugMode: false,
     logLevel: 'error',

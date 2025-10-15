@@ -314,6 +314,23 @@ export const useRooms = () => {
     }
   };
 
+  // Get room by ID
+  const getRoomById = async (roomId: string) => {
+    try {
+      console.log(`🏠 Fetching room ${roomId}...`);
+      
+      const room = await roomsApiService.getRoomById(roomId);
+      console.log('✅ Room fetched:', room);
+      
+      return room;
+    } catch (error: any) {
+      console.error('❌ Error fetching room:', error);
+      const errorMessage = error.message || 'Failed to fetch room. Please try again.';
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
   // Update room
   const updateRoom = async (roomId: string, updates: UpdateRoomData) => {
     try {
@@ -518,6 +535,7 @@ export const useRooms = () => {
     fetchRooms,
     fetchRoomStats,
     fetchAvailableRooms,
+    getRoomById,
     createRoom,
     updateRoom,
     deleteRoom,

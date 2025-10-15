@@ -376,7 +376,6 @@ const BookingRequests = () => {
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Contact Details</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Type & Guests</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Check-in Date</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Room/Bed</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
                   </tr>
@@ -409,9 +408,6 @@ const BookingRequests = () => {
                       const checkInDate = isMultiGuest 
                         ? (booking as MultiGuestBooking).checkInDate 
                         : (booking as BookingRequest).checkInDate;
-                      const preferredRoom = isMultiGuest 
-                        ? (booking as MultiGuestBooking).preferredRoom 
-                        : (booking as BookingRequest).preferredRoom;
                       
                       // Find assigned room/bed information
                       const assignedRoom = booking.assignedRoom ? 
@@ -450,24 +446,6 @@ const BookingRequests = () => {
                           </td>
                           <td className="py-3 px-4 text-sm">
                             {checkInDate ? new Date(checkInDate).toLocaleDateString() : 'Not specified'}
-                          </td>
-                          <td className="py-3 px-4">
-                            {assignedRoom ? (
-                              <div>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  {assignedRoom.name || assignedRoom.roomNumber}
-                                </Badge>
-                                {assignedRoom.bedCount && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {assignedRoom.bedCount} beds
-                                  </p>
-                                )}
-                              </div>
-                            ) : (
-                              <Badge variant="outline" className="text-gray-600">
-                                {preferredRoom || 'Not specified'}
-                              </Badge>
-                            )}
                           </td>
                           <td className="py-3 px-4">
                             <Badge className={getStatusColor(booking.status)}>
@@ -651,15 +629,7 @@ const BookingRequests = () => {
                   </p>
                 </div>
                 
-                {/* Preferred Room */}
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">Preferred Room</Label>
-                  <Badge variant="outline">
-                    {isMultiGuestBooking(selectedBooking) 
-                      ? (selectedBooking as MultiGuestBooking).preferredRoom || 'Not specified'
-                      : (selectedBooking as BookingRequest).preferredRoom || 'Not specified'}
-                  </Badge>
-                </div>
+
                 
                 {/* Multi-guest specific information */}
                 {isMultiGuestBooking(selectedBooking) && (
