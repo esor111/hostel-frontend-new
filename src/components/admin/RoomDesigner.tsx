@@ -80,8 +80,8 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
   const [showWizard, setShowWizard] = useState(!roomData);
 
   const [dimensions, setDimensions] = useState({
-    length: roomData?.dimensions?.length || 10,
-    width: roomData?.dimensions?.width || 8,
+    length: roomData?.dimensions?.length || 12, // Default to 12m for new rooms
+    width: roomData?.dimensions?.width || 10,   // Default to 10m for new rooms  
     height: roomData?.dimensions?.height || 3
   });
 

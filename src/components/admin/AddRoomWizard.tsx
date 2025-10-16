@@ -41,6 +41,7 @@ export const AddRoomWizard = () => {
     const [searchParams] = useSearchParams();
     const [currentStep, setCurrentStep] = useState(1);
     const [showRoomDesigner, setShowRoomDesigner] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const { createRoom, updateRoom, refreshData, getRoomById } = useRooms();
 
@@ -87,7 +88,7 @@ export const AddRoomWizard = () => {
                 try {
                     console.log('🔍 Fetching room data for edit mode:', editRoomId);
                     const fetchedRoom = await getRoomById(editRoomId);
-                    
+
                     // Update form data with fetched room data
                     setFormData({
                         name: fetchedRoom.name || "",
@@ -102,7 +103,7 @@ export const AddRoomWizard = () => {
                         images: fetchedRoom.images || [],
                         layout: fetchedRoom.layout || null
                     });
-                    
+
                     console.log('✅ Room data loaded for editing:', fetchedRoom);
                 } catch (error) {
                     console.error('❌ Error fetching room data:', error);
@@ -221,9 +222,12 @@ export const AddRoomWizard = () => {
     };
 
     const handleSubmit = async () => {
+        setIsSubmitting(true);
+
         const validation = validateStep(1);
         if (!validation.valid) {
             toast.error(validation.message);
+            setIsSubmitting(false);
             return;
         }
 
@@ -248,16 +252,19 @@ export const AddRoomWizard = () => {
         // Validate layout (now mandatory)
         if (!finalLayout) {
             toast.error("Room layout is required. Please design the room layout first.");
+            setIsSubmitting(false);
             return;
         }
 
         if (!finalLayout.elements || finalLayout.elements.length === 0) {
             toast.error("Layout has no elements. Please add beds and furniture to the layout.");
+            setIsSubmitting(false);
             return;
         }
 
         if (!finalLayout.dimensions) {
             toast.error("Layout is missing dimensions. Please set room dimensions in the layout designer.");
+            setIsSubmitting(false);
             return;
         }
 
@@ -325,6 +332,8 @@ export const AddRoomWizard = () => {
         } catch (error) {
             console.error('Error saving room:', error);
             toast.error(`Failed to ${isEditing ? 'update' : 'create'} room. Please try again.`);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -343,8 +352,8 @@ export const AddRoomWizard = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button 
-                        variant="ghost" 
+                    <Button
+                        variant="ghost"
                         onClick={() => {
                             if (currentStep > 1) {
                                 setCurrentStep(currentStep - 1);
@@ -841,9 +850,22 @@ export const AddRoomWizard = () => {
                             </>
                         ) : (
                             <>
-                                <Button onClick={handleSubmit} className="w-full bg-green-600 hover:bg-green-700">
-                                    <Check className="h-4 w-4 mr-2" />
-                                    {isEditing ? "Save Changes" : "Create Room"}
+                                <Button
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting}
+                                    className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            {isEditing ? "Saving..." : "Creating..."}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check className="h-4 w-4 mr-2" />
+                                            {isEditing ? "Save Changes" : "Create Room"}
+                                        </>
+                                    )}
                                 </Button>
                                 <Button variant="outline" onClick={handleBack} className="w-full">
                                     <ArrowLeft className="h-4 w-4 mr-2" />

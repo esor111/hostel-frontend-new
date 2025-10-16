@@ -41,6 +41,7 @@ export const AddRoomForm = () => {
     const [searchParams] = useSearchParams();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showRoomDesigner, setShowRoomDesigner] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     // Use the rooms hook for API integration
     const { createRoom, updateRoom, refreshData } = useRooms();
@@ -111,9 +112,12 @@ export const AddRoomForm = () => {
     };
 
     const handleSubmit = async () => {
+        setIsSubmitting(true);
+        
         // Validation
         if (!formData.name.trim()) {
             toast.error("Please enter a room name");
+            setIsSubmitting(false);
             return;
         }
 
@@ -121,16 +125,19 @@ export const AddRoomForm = () => {
 
         if (formData.bedCount < 1) {
             toast.error("Bed count must be at least 1");
+            setIsSubmitting(false);
             return;
         }
 
         if (formData.baseRate < 1000) {
             toast.error("Base rate must be at least NPR 1,000");
+            setIsSubmitting(false);
             return;
         }
 
         if (formData.floorNumber < 1) {
             toast.error("Floor number must be at least 1");
+            setIsSubmitting(false);
             return;
         }
 
@@ -169,6 +176,8 @@ export const AddRoomForm = () => {
         } catch (error) {
             console.error('Error saving room:', error);
             toast.error(`Failed to ${isEditing ? 'update' : 'create'} room. Please try again.`);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -513,9 +522,22 @@ export const AddRoomForm = () => {
 
                     {/* Action Buttons */}
                     <div className="space-y-3">
-                        <Button onClick={handleSubmit} className="w-full bg-blue-600 hover:bg-blue-700">
-                            <Save className="h-4 w-4 mr-2" />
-                            {isEditing ? "Save & Exit" : "Create Room"}
+                        <Button 
+                            onClick={handleSubmit} 
+                            disabled={isSubmitting}
+                            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    {isEditing ? "Saving..." : "Creating..."}
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    {isEditing ? "Save & Exit" : "Create Room"}
+                                </>
+                            )}
                         </Button>
                         <Button variant="outline" onClick={() => navigate("/rooms")} className="w-full">
                             Cancel

@@ -402,8 +402,26 @@ export const RoomConfiguration = () => {
                       <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
                         <div className="text-sm text-purple-700 font-medium mb-1">Room Layout</div>
                         <div className="text-sm text-gray-600">
-                          {formatDimensionsAsFeet(room.layout.dimensions?.length || 0, room.layout.dimensions?.width || 0)}
-                          <br />
+                          {/* Check if dimensions are configured (not default 10x8 values) */}
+                          {room.layout.dimensions?.length && room.layout.dimensions?.width ? (
+                            // Check if these are the old default values
+                            (room.layout.dimensions.length === 10 && room.layout.dimensions.width === 8) ? (
+                              <>
+                                <span className="text-amber-600">Default dimensions (click Layout to customize)</span>
+                                <br />
+                              </>
+                            ) : (
+                              <>
+                                {formatDimensionsAsFeet(room.layout.dimensions.length, room.layout.dimensions.width)}
+                                <br />
+                              </>
+                            )
+                          ) : (
+                            <>
+                              <span className="text-gray-500">Dimensions not set</span>
+                              <br />
+                            </>
+                          )}
                           {room.layout.elements?.length || 0} elements configured
                         </div>
                       </div>
@@ -432,21 +450,6 @@ export const RoomConfiguration = () => {
                       </div>
                     )}
 
-                    {/* Occupancy Progress */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-700">Occupancy</span>
-                        <span className="text-sm text-gray-600">
-                          {Math.round(((room.occupancy || 0) / (room.bedCount || room.capacity || 1)) * 100)}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${((room.occupancy || 0) / (room.bedCount || room.capacity || 1)) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               ))}

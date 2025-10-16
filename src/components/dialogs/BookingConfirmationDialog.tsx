@@ -39,7 +39,16 @@ export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps>
   const studentName = isMultiGuest ? booking.contactName : booking.name;
   const email = isMultiGuest ? booking.contactEmail : booking.email;
   const phone = isMultiGuest ? booking.contactPhone : booking.phone;
-  const preferredRoom = booking.preferredRoom || 'Not specified';
+  
+  // Fix preferred room display - check multiple possible fields
+  let preferredRoom = 'Any available room';
+  if (booking.preferredRoom && booking.preferredRoom.trim() !== '') {
+    preferredRoom = booking.preferredRoom;
+  } else if (isMultiGuest && (booking as any).assignedRoom) {
+    preferredRoom = (booking as any).assignedRoom;
+  } else if (!isMultiGuest && (booking as any).roomPreference) {
+    preferredRoom = (booking as any).roomPreference;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onCancel}>
