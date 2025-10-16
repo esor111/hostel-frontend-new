@@ -34,11 +34,14 @@ export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps>
 }) => {
   if (!booking) return null;
 
-  // Extract data based on booking type
+  // Extract data based on booking type - handle both nested contactPerson and flat structure
   const isMultiGuest = isMultiGuestBooking(booking);
-  const studentName = isMultiGuest ? booking.contactName : booking.name;
-  const email = isMultiGuest ? booking.contactEmail : booking.email;
-  const phone = isMultiGuest ? booking.contactPhone : booking.phone;
+  const studentName = (booking as any).contactPerson?.name || 
+    (isMultiGuest ? booking.contactName : booking.name);
+  const email = (booking as any).contactPerson?.email || 
+    (isMultiGuest ? booking.contactEmail : booking.email);
+  const phone = (booking as any).contactPerson?.phone || 
+    (isMultiGuest ? booking.contactPhone : booking.phone);
   
   // Fix preferred room display - check multiple possible fields
   let preferredRoom = 'Any available room';

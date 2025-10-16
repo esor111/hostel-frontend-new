@@ -32,9 +32,9 @@ const BookingRequests = () => {
     getBookingTypeLabel,
     refreshData
   } = useBookings();
-  
+
   const navigate = useNavigate();
-  
+
   const [filteredBookings, setFilteredBookings] = useState<(BookingRequest | MultiGuestBooking)[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -45,7 +45,7 @@ const BookingRequests = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [bookingToApprove, setBookingToApprove] = useState<BookingRequest | MultiGuestBooking | null>(null);
   const [rooms, setRooms] = useState([]);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [bookingsPerPage] = useState(6); // 6 bookings per page
@@ -67,38 +67,38 @@ const BookingRequests = () => {
   useEffect(() => {
     // Debug logging
     console.log('BookingRequests: bookings data:', bookings, 'Type:', typeof bookings, 'IsArray:', Array.isArray(bookings));
-    
+
     // Ensure bookings is an array before filtering
     if (!Array.isArray(bookings)) {
       console.warn('BookingRequests: bookings is not an array, setting empty array');
       setFilteredBookings([]);
       return;
     }
-    
+
     let filtered = bookings;
-    
+
     if (searchTerm) {
       filtered = filtered.filter(booking => {
-        const contactName = isMultiGuestBooking(booking) 
-          ? (booking as unknown as MultiGuestBooking).contactName 
+        const contactName = isMultiGuestBooking(booking)
+          ? (booking as unknown as MultiGuestBooking).contactName
           : (booking as BookingRequest).name;
-        const contactEmail = isMultiGuestBooking(booking) 
-          ? (booking as unknown as MultiGuestBooking).contactEmail 
+        const contactEmail = isMultiGuestBooking(booking)
+          ? (booking as unknown as MultiGuestBooking).contactEmail
           : (booking as BookingRequest).email;
-        const contactPhone = isMultiGuestBooking(booking) 
-          ? (booking as unknown as MultiGuestBooking).contactPhone 
+        const contactPhone = isMultiGuestBooking(booking)
+          ? (booking as unknown as MultiGuestBooking).contactPhone
           : (booking as BookingRequest).phone;
-          
+
         return contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               contactEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               contactPhone?.includes(searchTerm);
+          contactEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          contactPhone?.includes(searchTerm);
       });
     }
-    
+
     if (statusFilter !== 'all') {
       filtered = filtered.filter(booking => booking.status === statusFilter);
     }
-    
+
     if (typeFilter !== 'all') {
       if (typeFilter === 'single') {
         filtered = filtered.filter(booking => !isMultiGuestBooking(booking));
@@ -106,7 +106,7 @@ const BookingRequests = () => {
         filtered = filtered.filter(booking => isMultiGuestBooking(booking));
       }
     }
-    
+
     setFilteredBookings(filtered);
     setCurrentPage(1); // Reset to first page when filters change
   }, [bookings, searchTerm, statusFilter, typeFilter, isMultiGuestBooking]);
@@ -125,10 +125,10 @@ const BookingRequests = () => {
 
   const handleConfirmApprove = async () => {
     if (!bookingToApprove) return;
-    
+
     try {
       let result;
-      
+
       // Check if it's a multi-guest booking and use appropriate method
       if (isMultiGuestBooking(bookingToApprove)) {
         result = await confirmMultiGuestBooking(bookingToApprove.id, 'admin');
@@ -141,13 +141,13 @@ const BookingRequests = () => {
           duration: 4000,
         });
       }
-      
+
       console.log('Booking approved/confirmed:', result);
-      
+
       // Close confirmation dialog
       setShowConfirmDialog(false);
       setBookingToApprove(null);
-      
+
       // Navigate to configuration page (ledger with student management section)
       navigate('/ledger?section=student-management');
     } catch (error) {
@@ -158,7 +158,7 @@ const BookingRequests = () => {
 
   const handleReject = async () => {
     if (!selectedBooking || !rejectionReason.trim()) return;
-    
+
     try {
       await rejectBooking(selectedBooking.id, rejectionReason);
       setShowRejectDialog(false);
@@ -193,16 +193,16 @@ const BookingRequests = () => {
             <div className="relative">
               <svg width="48" height="72" viewBox="0 0 55 83" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-pulse mx-auto">
                 <g clipPath="url(#clip0_319_901)">
-                  <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F"/>
-                  <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F"/>
-                  <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20"/>
-                  <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#2563eb"/>
-                  <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white"/>
-                  <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20"/>
+                  <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F" />
+                  <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F" />
+                  <path d="M14.4383 33.34C14.4383 33.34 14.0063 32.3905 14.8156 33.0214C15.6249 33.6522 27.3516 47.8399 39.7618 33.2563C39.7618 33.2563 41.0709 31.8047 40.2358 33.4816C39.4007 35.1585 28.1061 50.8718 14.4383 33.34Z" fill="#231F20" />
+                  <path d="M27.3935 47.6498C38.5849 47.6498 47.6548 38.5926 47.6548 27.424C47.6548 16.2554 38.5817 7.19824 27.3935 7.19824C16.2052 7.19824 7.12885 16.2522 7.12885 27.424C7.12885 34.9878 11.2882 41.5795 17.4465 45.0492L13.1389 55.2554C14.2029 56.6233 15.2992 58.0427 16.4083 59.5329L21.7574 46.858C23.5469 47.373 25.4363 47.6498 27.3935 47.6498Z" fill="#2563eb" />
+                  <path d="M45.2334 27.4241C45.2334 37.2602 37.2469 45.2327 27.3935 45.2327C17.5401 45.2327 9.55353 37.2602 9.55353 27.4241C9.55353 17.588 17.5401 9.61548 27.3935 9.61548C37.2437 9.61548 45.2334 17.588 45.2334 27.4241Z" fill="white" />
+                  <path d="M14.4383 33.3398C14.4383 33.3398 14.0063 32.3903 14.8156 33.0211C15.6249 33.652 27.3516 47.8396 39.7618 33.2561C39.7618 33.2561 41.0709 31.8045 40.2358 33.4814C39.4007 35.1583 28.1061 50.8716 14.4383 33.3398Z" fill="#231F20" />
                 </g>
                 <defs>
                   <clipPath id="clip0_319_901">
-                    <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)"/>
+                    <rect width="54.787" height="82.9534" fill="white" transform="translate(0 0.0466309)" />
                   </clipPath>
                 </defs>
               </svg>
@@ -252,7 +252,7 @@ const BookingRequests = () => {
                 Page {currentPage} of {totalPages}
               </Badge>
             )}
-            <Button 
+            <Button
               onClick={refreshData}
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-50"
@@ -375,7 +375,6 @@ const BookingRequests = () => {
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Contact Details</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Type & Guests</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Check-in Date</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Room/Bed</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
@@ -384,7 +383,7 @@ const BookingRequests = () => {
                 <tbody>
                   {currentBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-gray-500">
+                      <td colSpan={5} className="py-8 text-center text-gray-500">
                         {searchTerm || statusFilter !== 'all' ? 'No bookings match your filters' : 'No booking requests found'}
                       </td>
                     </tr>
@@ -392,34 +391,24 @@ const BookingRequests = () => {
                     currentBookings.map((booking) => {
                       // Determine if it's a multi-guest booking
                       const isMultiGuest = isMultiGuestBooking(booking);
-                      
-                      // Extract contact information based on booking type
-                      const contactName = isMultiGuest 
-                        ? (booking as MultiGuestBooking).contactName 
-                        : (booking as BookingRequest).name;
-                      const contactEmail = isMultiGuest 
-                        ? (booking as MultiGuestBooking).contactEmail 
-                        : (booking as BookingRequest).email;
-                      const contactPhone = isMultiGuest 
-                        ? (booking as MultiGuestBooking).contactPhone 
-                        : (booking as BookingRequest).phone;
-                      const address = isMultiGuest 
-                        ? (booking as MultiGuestBooking).address 
-                        : (booking as BookingRequest).address;
-                      const checkInDate = isMultiGuest 
-                        ? (booking as MultiGuestBooking).checkInDate 
-                        : (booking as BookingRequest).checkInDate;
-                      
+
+                      // Extract contact information - handle both nested contactPerson and flat structure
+                      const contactName = (booking as any).contactPerson?.name ||
+                        (isMultiGuest ? (booking as MultiGuestBooking).contactName : (booking as BookingRequest).name);
+                      const contactEmail = (booking as any).contactPerson?.email ||
+                        (isMultiGuest ? (booking as MultiGuestBooking).contactEmail : (booking as BookingRequest).email);
+                      const contactPhone = (booking as any).contactPerson?.phone ||
+                        (isMultiGuest ? (booking as MultiGuestBooking).contactPhone : (booking as BookingRequest).phone);
+
                       // Find assigned room/bed information
-                      const assignedRoom = booking.assignedRoom ? 
+                      const assignedRoom = booking.assignedRoom ?
                         rooms.find(room => room.id === booking.assignedRoom || room.name === booking.assignedRoom) : null;
-                      
+
                       return (
                         <tr key={booking.id} className="border-b hover:bg-gray-50">
                           <td className="py-3 px-4">
                             <div>
                               <p className="font-medium">{contactName}</p>
-                              <p className="text-sm text-gray-500">{address}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <Mail className="h-3 w-3 text-gray-400" />
                                 <span className="text-xs text-gray-600">{contactEmail}</span>
@@ -432,8 +421,8 @@ const BookingRequests = () => {
                           </td>
                           <td className="py-3 px-4">
                             <div className="space-y-1">
-                              <Badge 
-                                variant="outline" 
+                              <Badge
+                                variant="outline"
                                 className={isMultiGuest ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200"}
                               >
                                 {getBookingTypeLabel(booking)}
@@ -445,17 +434,11 @@ const BookingRequests = () => {
                               )}
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-sm">
-                            {checkInDate ? new Date(checkInDate).toLocaleDateString() : 'Not specified'}
-                          </td>
                           <td className="py-3 px-4">
                             <div className="text-sm">
-                              {booking.assignedRoom ? (
+                              {(booking.preferredRoom || booking.assignedRoom) ? (
                                 <div>
-                                  <p className="font-medium text-gray-900">{assignedRoom?.name || booking.assignedRoom}</p>
-                                  {assignedRoom?.roomNumber && (
-                                    <p className="text-xs text-gray-500">Room: {assignedRoom.roomNumber}</p>
-                                  )}
+                                  <p className="font-medium text-gray-900">{booking.preferredRoom || assignedRoom?.name || booking.assignedRoom}</p>
                                   {isMultiGuest && (booking as MultiGuestBooking).guests && (
                                     <p className="text-xs text-gray-500">
                                       {(booking as MultiGuestBooking).guests.filter(g => g.bedId).length} beds assigned
@@ -496,8 +479,8 @@ const BookingRequests = () => {
                                     ) : (
                                       <CheckCircle className="h-3 w-3 mr-1" />
                                     )}
-                                    {(actionLoading === `approve-${booking.id}` || actionLoading === `confirm-${booking.id}`) 
-                                      ? (isMultiGuest ? 'Confirming...' : 'Approving...') 
+                                    {(actionLoading === `approve-${booking.id}` || actionLoading === `confirm-${booking.id}`)
+                                      ? (isMultiGuest ? 'Confirming...' : 'Approving...')
                                       : (isMultiGuest ? 'Confirm' : 'Approve')}
                                   </Button>
                                   <Button
@@ -524,7 +507,7 @@ const BookingRequests = () => {
                 </tbody>
               </table>
             </div>
-            
+
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-6 pt-4 border-t">
@@ -541,7 +524,7 @@ const BookingRequests = () => {
                     <ChevronLeft className="h-4 w-4" />
                     Previous
                   </Button>
-                  
+
                   <div className="flex items-center gap-1">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                       <Button
@@ -583,8 +566,8 @@ const BookingRequests = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Booking Type</Label>
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={isMultiGuestBooking(selectedBooking) ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200"}
                     >
                       {getBookingTypeLabel(selectedBooking)}
@@ -597,23 +580,25 @@ const BookingRequests = () => {
                     </Badge>
                   </div>
                 </div>
-                
+
                 {/* Contact Information */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Contact Name</Label>
                     <p className="text-sm font-medium">
-                      {isMultiGuestBooking(selectedBooking) 
-                        ? (selectedBooking as MultiGuestBooking).contactName 
-                        : (selectedBooking as BookingRequest).name}
+                      {(selectedBooking as any).contactPerson?.name || 
+                        (isMultiGuestBooking(selectedBooking)
+                          ? (selectedBooking as MultiGuestBooking).contactName
+                          : (selectedBooking as BookingRequest).name)}
                     </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Email</Label>
                     <p className="text-sm">
-                      {isMultiGuestBooking(selectedBooking) 
-                        ? (selectedBooking as MultiGuestBooking).contactEmail 
-                        : (selectedBooking as BookingRequest).email}
+                      {(selectedBooking as any).contactPerson?.email || 
+                        (isMultiGuestBooking(selectedBooking)
+                          ? (selectedBooking as MultiGuestBooking).contactEmail
+                          : (selectedBooking as BookingRequest).email)}
                     </p>
                   </div>
                 </div>
@@ -621,36 +606,22 @@ const BookingRequests = () => {
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Phone</Label>
                     <p className="text-sm">
-                      {isMultiGuestBooking(selectedBooking) 
-                        ? (selectedBooking as MultiGuestBooking).contactPhone 
-                        : (selectedBooking as BookingRequest).phone}
+                      {(selectedBooking as any).contactPerson?.phone || 
+                        (isMultiGuestBooking(selectedBooking)
+                          ? (selectedBooking as MultiGuestBooking).contactPhone
+                          : (selectedBooking as BookingRequest).phone)}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">Check-in Date</Label>
-                    <p className="text-sm">
-                      {(() => {
-                        const date = isMultiGuestBooking(selectedBooking) 
-                          ? (selectedBooking as MultiGuestBooking).checkInDate 
-                          : (selectedBooking as BookingRequest).checkInDate;
-                        return date ? new Date(date).toLocaleDateString() : 'Not specified';
-                      })()}
+                    <Label className="text-sm font-medium text-gray-600">Preferred Room</Label>
+                    <p className="text-sm font-medium">
+                      {selectedBooking.preferredRoom || selectedBooking.assignedRoom || 'Not assigned'}
                     </p>
                   </div>
                 </div>
-                
-                {/* Address */}
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">Address</Label>
-                  <p className="text-sm">
-                    {isMultiGuestBooking(selectedBooking) 
-                      ? (selectedBooking as MultiGuestBooking).address 
-                      : (selectedBooking as BookingRequest).address}
-                  </p>
-                </div>
-                
 
-                
+
+
                 {/* Multi-guest specific information */}
                 {isMultiGuestBooking(selectedBooking) && (
                   <div className="border-t pt-4">
@@ -683,7 +654,7 @@ const BookingRequests = () => {
                     )}
                   </div>
                 )}
-                
+
                 {/* Guardian Information (for single guest bookings) */}
                 {!isMultiGuestBooking(selectedBooking) && (selectedBooking as BookingRequest).guardianName && (
                   <div className="grid grid-cols-2 gap-4">
@@ -697,7 +668,7 @@ const BookingRequests = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Course Information (for single guest bookings) */}
                 {!isMultiGuestBooking(selectedBooking) && (selectedBooking as BookingRequest).course && (
                   <div className="grid grid-cols-2 gap-4">
@@ -713,7 +684,7 @@ const BookingRequests = () => {
                     )}
                   </div>
                 )}
-                
+
                 {/* Rejection Reason */}
                 {selectedBooking.rejectionReason && (
                   <div>
@@ -721,7 +692,7 @@ const BookingRequests = () => {
                     <p className="text-sm text-red-600">{selectedBooking.rejectionReason}</p>
                   </div>
                 )}
-                
+
                 {/* Notes */}
                 {selectedBooking.notes && (
                   <div>
@@ -760,8 +731,8 @@ const BookingRequests = () => {
                 <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
                   Cancel
                 </Button>
-                <Button 
-                  onClick={handleReject} 
+                <Button
+                  onClick={handleReject}
                   disabled={actionLoading === `reject-${selectedBooking?.id}` || !rejectionReason.trim()}
                   className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                 >
