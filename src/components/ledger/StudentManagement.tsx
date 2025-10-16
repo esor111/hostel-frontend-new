@@ -640,6 +640,21 @@ export const StudentManagement = () => {
     refreshData
   } = useStudents();
 
+  // ✅ CRITICAL FIX: Detect refresh parameter from URL and reload data
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const refreshParam = params.get('refresh');
+    
+    if (refreshParam) {
+      console.log('🔄 Refresh parameter detected, reloading student data...');
+      refreshData().then(() => {
+        console.log('✅ Student data refreshed successfully');
+      }).catch(err => {
+        console.error('❌ Error refreshing student data:', err);
+      });
+    }
+  }, [window.location.search, refreshData]);
+
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedStudent, setSelectedStudent] = useState<EnhancedStudent | null>(null);
   const [showChargeConfigDialog, setShowChargeConfigDialog] = useState(false);

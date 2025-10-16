@@ -148,8 +148,11 @@ const BookingRequests = () => {
       setShowConfirmDialog(false);
       setBookingToApprove(null);
 
-      // Navigate to configuration page (ledger with student management section)
-      navigate('/ledger?section=student-management');
+      // ✅ CRITICAL FIX: Navigate with a flag to trigger student data refresh
+      // The Ledger/StudentManagement component will detect this and refresh its data
+      // We use a timestamp to force a refresh even if navigating to the same route
+      const timestamp = Date.now();
+      navigate(`/ledger?section=student-management&refresh=${timestamp}`);
     } catch (error) {
       console.error('Error approving/confirming booking:', error);
       toast.error('Failed to approve booking request');

@@ -52,6 +52,7 @@ const Ledger = () => {
       const sectionMap: Record<string, string> = {
         'dashboard': 'dashboard',
         'students': 'students',
+        'student-management': 'students', // ✅ Add mapping for student-management
         'payments': 'payments',
         'ledger': 'ledger',
         'ledgers': 'ledger',
