@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Box, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Box, AlertTriangle, ArrowLeft, Bed } from "lucide-react";
 import { toast } from "sonner";
 import { RoomSetupWizard } from "./room-designer/RoomSetupWizard";
 import { ElementLibraryPanel } from "./room-designer/ElementLibraryPanel";
@@ -384,6 +384,20 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
     const elementType = elementTypes.find(t => t.type === type);
     if (!elementType) return;
 
+    // 🚫 TEMPORARILY DISABLED: Bed count validation (for debugging)
+    if (type === 'single-bed' || type === 'bunk-bed') {
+      // Debug logging to see what's happening
+      console.log('🔍 Bed validation debug:', {
+        roomData,
+        bedCount: roomData?.bedCount,
+        type,
+        hasRoomData: !!roomData,
+        validationDisabled: true
+      });
+      
+      console.log('✅ Bed count validation DISABLED - you can add beds freely');
+    }
+
     // Start from corner (0,0) and work outward for better placement
     let x = 0, y = 0;
     let attempts = 0;
@@ -525,6 +539,9 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
   };
 
   const updateElement = (id: string, updates: Partial<RoomElement>) => {
+    // 🚫 TEMPORARILY DISABLED: Bunk bed level validation (for debugging)
+    console.log('🔍 UpdateElement called - validation disabled');
+
     addToHistory();
     setElements(elements.map(el => {
       if (el.id === id) {
@@ -719,6 +736,46 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
             <div className="flex items-center gap-2">
               <Box className="h-6 w-6 text-purple-500" />
               <h1 className="text-xl font-bold">Room Designer</h1>
+              
+              {/* ✅ Bed Count Indicator */}
+              {!isViewMode && (() => {
+                // Calculate current bed capacity
+                let currentBedCapacity = 0;
+                elements.forEach(el => {
+                  if (el.type === 'single-bed') {
+                    currentBedCapacity += 1;
+                  } else if (el.type === 'bunk-bed') {
+                    currentBedCapacity += el.properties?.bunkLevels || 2;
+                  }
+                });
+                
+                // Show bed count indicator
+                if (roomData?.bedCount && roomData.bedCount > 0) {
+                  const roomBedCount = roomData.bedCount;
+                  const isAtLimit = currentBedCapacity >= roomBedCount;
+                  const isOverLimit = currentBedCapacity > roomBedCount;
+                  
+                  return (
+                    <Badge 
+                      variant={isOverLimit ? "destructive" : isAtLimit ? "secondary" : "outline"}
+                      className={`ml-2 ${isAtLimit ? 'bg-green-100 text-green-700 border-green-300' : ''}`}
+                    >
+                      <Bed className="h-3 w-3 mr-1" />
+                      {currentBedCapacity}/{roomBedCount} Beds
+                    </Badge>
+                  );
+                } else if (currentBedCapacity > 0) {
+                  // Show current bed count even if no limit is set
+                  return (
+                    <Badge variant="outline" className="ml-2">
+                      <Bed className="h-3 w-3 mr-1" />
+                      {currentBedCapacity} Beds
+                    </Badge>
+                  );
+                }
+                return null;
+              })()}
+              
               {collisionWarnings.length > 0 && (
                 <Badge variant="destructive" className="ml-2">
                   <AlertTriangle className="h-3 w-3 mr-1" />

@@ -310,90 +310,104 @@ export const RoomConfiguration = () => {
                   </div>
 
                   <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg font-bold text-gray-900 mb-2">
-                          {room.name}
-                        </CardTitle>
-                        {room.roomNumber && (
-                          <p className="text-sm text-gray-600 mb-2">Room #{room.roomNumber}</p>
-                        )}
-                        <div className="flex gap-2 flex-wrap">
-                          <Badge variant="outline" className="text-xs">{room.type}</Badge>
-                          <Badge variant="outline" className="text-xs">{room.gender}</Badge>
-                          <Badge variant="outline" className="text-xs">Floor {room.floorNumber || 1}</Badge>
+                    <div className="space-y-3">
+                      {/* Room Name and Number */}
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-xl font-bold text-gray-900">
+                            {room.name}
+                          </CardTitle>
+                          {room.roomNumber && (
+                            <p className="text-sm text-gray-500 mt-1">R-{room.roomNumber}</p>
+                          )}
                         </div>
-                      </div>
 
-                      {/* Quick Actions */}
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleToggleRoomStatus(room.id)}
-                          className={`h-8 w-8 p-0 ${room.status === "ACTIVE"
-                            ? "text-green-600 hover:text-green-700 hover:bg-green-50"
-                            : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                            }`}
-                          title={room.status === "ACTIVE" ? "Deactivate room" : "Activate room"}
-                        >
-                          <Power className="h-4 w-4" />
-                        </Button>
-                        {room.layout && (
+                        {/* Quick Actions */}
+                        <div className="flex gap-1">
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => openRoomBedViewer(room.id)}
-                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            title="View Room with Bed Status"
+                            onClick={() => handleToggleRoomStatus(room.id)}
+                            className={`h-8 w-8 p-0 ${room.status === "ACTIVE"
+                              ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                              : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                              }`}
+                            title={room.status === "ACTIVE" ? "Deactivate room" : "Activate room"}
                           >
-                            <Bed className="h-4 w-4" />
+                            <Power className="h-4 w-4" />
                           </Button>
-                        )}
-                        {/* Eye icon removed - layout viewer disabled */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditRoom(room)}
-                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          title="Edit room details"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteRoom(room)}
-                          title="Delete room"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          {room.layout && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => openRoomBedViewer(room.id)}
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="View Room with Bed Status"
+                            >
+                              <Bed className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditRoom(room)}
+                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            title="Edit room details"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteRoom(room)}
+                            title="Delete room"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
+
+                      {/* Room Info Badges */}
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          <Users className="h-3 w-3 mr-1" />
+                          {room.occupancy}/{room.bedCount || room.capacity}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                          <Layout className="h-3 w-3 mr-1" />
+                          Floor {room.floorNumber || 1}
+                        </Badge>
+                      </div>
+
+                      {/* Availability Status */}
+                      {room.bedCount && room.occupancy !== undefined && (
+                        <div className="text-sm">
+                          {room.occupancy < room.bedCount ? (
+                            <span className="text-green-600 font-medium">
+                              {room.bedCount - room.occupancy} bed{room.bedCount - room.occupancy !== 1 ? 's' : ''} available
+                            </span>
+                          ) : (
+                            <span className="text-gray-500 font-medium">Fully occupied</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </CardHeader>
 
-                  <CardContent className="pt-0 space-y-4">
-                    {/* Room Stats */}
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Bed className="h-4 w-4 text-gray-500" />
-                        <span>{room.bedCount || room.capacity} beds</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-gray-500" />
-                        <span>{room.occupancy}/{room.bedCount || room.capacity} occupied</span>
-                      </div>
-                    </div>
-
-                    {/* Pricing */}
-                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-100">
-                      <div className="text-sm text-gray-600 mb-1">Monthly Rate</div>
-                      <div className="text-xl font-bold text-blue-600">
-                        NPR {(room.rent || room.monthlyRate || room.baseRate || 0).toLocaleString()}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Daily: NPR {Math.round((room.rent || room.monthlyRate || room.baseRate || 0) / 30)}
+                  <CardContent className="pt-0">
+                    {/* Pricing - Prominent Display */}
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="text-xs text-gray-600 mb-1">Monthly Rate</div>
+                          <div className="text-2xl font-bold text-green-600">
+                            NPR {(room.rent || room.monthlyRate || room.baseRate || 0).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500">Per Month</div>
+                        </div>
                       </div>
                     </div>
 
