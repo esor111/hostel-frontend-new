@@ -135,13 +135,7 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
       errors['guardian.relation'] = 'Guardian relation is required';
     }
 
-    // Validate academic information
-    if (!academicInfo.course.trim()) {
-      errors['academic.course'] = 'Course is required';
-    }
-    if (!academicInfo.institution.trim()) {
-      errors['academic.institution'] = 'Institution is required';
-    }
+    // Academic information is optional - no validation required
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -168,7 +162,7 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
   const handleComplete = () => {
     // Validate form first
     if (!validateForm()) {
-      toast.error("Please fill in all required fields correctly");
+      toast.error("Please fill in all required guardian information correctly");
       return;
     }
 
@@ -291,11 +285,12 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
             <Settings className="h-5 w-5" />
             Academic Information
           </CardTitle>
+          <p className="text-sm text-gray-600">Optional - You can leave these fields blank if the information is not available</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="course">Course *</Label>
+              <Label htmlFor="course">Course</Label>
               <Input
                 id="course"
                 placeholder="e.g., B.Tech Computer Science, MBA, etc."
@@ -308,7 +303,7 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="institution">Institution *</Label>
+              <Label htmlFor="institution">Institution</Label>
               <Input
                 id="institution"
                 placeholder="e.g., ABC University, XYZ College, etc."
@@ -339,15 +334,18 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
               <Input
                 id="baseFee"
                 type="number"
-                value={baseCharges.baseMonthlyFee}
+                min="0"
+                step="1"
+                placeholder="Enter base monthly fee"
+                value={baseCharges.baseMonthlyFee || ''}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value === '') {
+                  if (value === '' || value === '0') {
                     handleBaseChargeChange('baseMonthlyFee', 0);
                   } else {
                     const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                      handleBaseChargeChange('baseMonthlyFee', Math.max(0, numValue));
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      handleBaseChargeChange('baseMonthlyFee', numValue);
                     }
                   }
                 }}
@@ -358,15 +356,18 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
               <Input
                 id="laundryFee"
                 type="number"
-                value={baseCharges.laundryFee}
+                min="0"
+                step="1"
+                placeholder="Enter laundry fee"
+                value={baseCharges.laundryFee || ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '') {
                     handleBaseChargeChange('laundryFee', 0);
                   } else {
                     const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                      handleBaseChargeChange('laundryFee', Math.max(0, numValue));
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      handleBaseChargeChange('laundryFee', numValue);
                     }
                   }
                 }}
@@ -377,15 +378,18 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
               <Input
                 id="foodFee"
                 type="number"
-                value={baseCharges.foodFee}
+                min="0"
+                step="1"
+                placeholder="Enter food fee"
+                value={baseCharges.foodFee || ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '') {
                     handleBaseChargeChange('foodFee', 0);
                   } else {
                     const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                      handleBaseChargeChange('foodFee', Math.max(0, numValue));
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      handleBaseChargeChange('foodFee', numValue);
                     }
                   }
                 }}
@@ -396,15 +400,18 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
               <Input
                 id="wifiFee"
                 type="number"
-                value={baseCharges.wifiFee}
+                min="0"
+                step="1"
+                placeholder="Enter WiFi fee"
+                value={baseCharges.wifiFee || ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '') {
                     handleBaseChargeChange('wifiFee', 0);
                   } else {
                     const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                      handleBaseChargeChange('wifiFee', Math.max(0, numValue));
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      handleBaseChargeChange('wifiFee', numValue);
                     }
                   }
                 }}
@@ -415,15 +422,18 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
               <Input
                 id="maintenanceFee"
                 type="number"
-                value={baseCharges.maintenanceFee}
+                min="0"
+                step="1"
+                placeholder="Enter maintenance fee"
+                value={baseCharges.maintenanceFee || ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '') {
                     handleBaseChargeChange('maintenanceFee', 0);
                   } else {
                     const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                      handleBaseChargeChange('maintenanceFee', Math.max(0, numValue));
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      handleBaseChargeChange('maintenanceFee', numValue);
                     }
                   }
                 }}
@@ -434,15 +444,18 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
               <Input
                 id="securityDeposit"
                 type="number"
-                value={baseCharges.securityDeposit}
+                min="0"
+                step="1"
+                placeholder="Enter security deposit"
+                value={baseCharges.securityDeposit || ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '') {
                     handleBaseChargeChange('securityDeposit', 0);
                   } else {
                     const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                      handleBaseChargeChange('securityDeposit', Math.max(0, numValue));
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      handleBaseChargeChange('securityDeposit', numValue);
                     }
                   }
                 }}
@@ -493,16 +506,18 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
                 <Input
                   id={`amount-${charge.id}`}
                   type="number"
-                  placeholder="0"
-                  value={charge.amount}
+                  min="0"
+                  step="1"
+                  placeholder="Enter amount"
+                  value={charge.amount || ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (value === '') {
                       handleAdditionalChargeChange(charge.id, 'amount', 0);
                     } else {
                       const numValue = parseFloat(value);
-                      if (!isNaN(numValue)) {
-                        handleAdditionalChargeChange(charge.id, 'amount', Math.max(0, numValue));
+                      if (!isNaN(numValue) && numValue >= 0) {
+                        handleAdditionalChargeChange(charge.id, 'amount', numValue);
                       }
                     }
                   }}
@@ -1616,6 +1631,7 @@ export const StudentManagement = () => {
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base">Academic Information</CardTitle>
+                      <p className="text-xs text-gray-500">Optional - Leave blank if not available</p>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="space-y-2">
