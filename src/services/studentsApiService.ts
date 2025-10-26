@@ -59,6 +59,7 @@ export class StudentsApiService {
         // Additional fields from backend API
         guardianName: item.guardianName,
         guardianPhone: item.guardianPhone,
+        guardian: item.guardian,
         address: item.address,
         baseMonthlyFee: parseFloat(item.baseMonthlyFee || '0'),
         laundryFee: parseFloat(item.laundryFee || '0'),
@@ -112,6 +113,7 @@ export class StudentsApiService {
         } : null,
         guardianName: item.guardianName,
         guardianPhone: item.guardianPhone,
+        guardian: item.guardian,
         address: item.address,
         baseMonthlyFee: parseFloat(item.baseMonthlyFee || '0'),
         laundryFee: parseFloat(item.laundryFee || '0'),

@@ -1291,11 +1291,11 @@ export const StudentManagement = () => {
             setShowDetailsDialog(false);
           }
         }}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Student Details - {selectedStudent.name}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
               {/* Student Header */}
               <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#07A64F] to-[#1295D0] flex items-center justify-center text-white font-bold text-xl">
@@ -1461,225 +1461,234 @@ export const StudentManagement = () => {
             setShowEditDialog(false);
           }
         }}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 <Edit className="h-5 w-5 text-[#07A64F]" />
                 Edit Student Details - {selectedStudent.name}
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-6">
-              {/* Basic Information */}
+            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+              {/* Compact Form Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-4">
+                  {/* Basic Information */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Basic Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-name">Full Name *</Label>
+                        <Input
+                          id="edit-name"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Enter full name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-phone">Phone Number *</Label>
+                        <Input
+                          id="edit-phone"
+                          value={editForm.phone}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="Enter phone number"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-email">Email Address *</Label>
+                        <Input
+                          id="edit-email"
+                          type="email"
+                          value={editForm.email}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="Enter email address"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Room & Status */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Room & Status</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-room">Room Number</Label>
+                        <Input
+                          id="edit-room"
+                          value={editForm.roomNumber}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, roomNumber: e.target.value }))}
+                          placeholder="Enter room number"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-status">Status</Label>
+                        <Select
+                          value={editForm.status}
+                          onValueChange={(value: 'Active' | 'Inactive' | 'Suspended' | 'Graduated') =>
+                            setEditForm(prev => ({ ...prev, status: value }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Inactive">Inactive</SelectItem>
+                            <SelectItem value="Suspended">Suspended</SelectItem>
+                            <SelectItem value="Graduated">Graduated</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-4">
+                  {/* Guardian Information */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Guardian Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-guardian-name">Guardian Name</Label>
+                        <Input
+                          id="edit-guardian-name"
+                          value={editForm.guardian.name}
+                          onChange={(e) => setEditForm(prev => ({
+                            ...prev,
+                            guardian: { ...prev.guardian, name: e.target.value }
+                          }))}
+                          placeholder="Enter guardian's name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-guardian-phone">Guardian Phone</Label>
+                        <Input
+                          id="edit-guardian-phone"
+                          value={editForm.guardian.phone}
+                          onChange={(e) => setEditForm(prev => ({
+                            ...prev,
+                            guardian: { ...prev.guardian, phone: e.target.value }
+                          }))}
+                          placeholder="Enter guardian's phone"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-guardian-relation">Relation</Label>
+                        <Select
+                          value={editForm.guardian.relation}
+                          onValueChange={(value) =>
+                            setEditForm(prev => ({
+                              ...prev,
+                              guardian: { ...prev.guardian, relation: value }
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select relation" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Father">Father</SelectItem>
+                            <SelectItem value="Mother">Mother</SelectItem>
+                            <SelectItem value="Brother">Brother</SelectItem>
+                            <SelectItem value="Sister">Sister</SelectItem>
+                            <SelectItem value="Uncle">Uncle</SelectItem>
+                            <SelectItem value="Aunt">Aunt</SelectItem>
+                            <SelectItem value="Grandfather">Grandfather</SelectItem>
+                            <SelectItem value="Grandmother">Grandmother</SelectItem>
+                            <SelectItem value="Cousin">Cousin</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Academic Information */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Academic Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-course">Course</Label>
+                        <Input
+                          id="edit-course"
+                          value={editForm.course}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, course: e.target.value }))}
+                          placeholder="e.g., B.Tech Computer Science"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-institution">Institution</Label>
+                        <Input
+                          id="edit-institution"
+                          value={editForm.institution}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, institution: e.target.value }))}
+                          placeholder="e.g., ABC University"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Address - Full Width */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Address</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-name">Full Name *</Label>
-                      <Input
-                        id="edit-name"
-                        value={editForm.name}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Enter full name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-phone">Phone Number *</Label>
-                      <Input
-                        id="edit-phone"
-                        value={editForm.phone}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                        placeholder="Enter phone number"
-                      />
-                    </div>
-                  </div>
-
+                <CardContent>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-email">Email Address *</Label>
-                    <Input
-                      id="edit-email"
-                      type="email"
-                      value={editForm.email}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="Enter email address"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-address">Address</Label>
+                    <Label htmlFor="edit-address">Full Address</Label>
                     <Textarea
                       id="edit-address"
                       value={editForm.address}
                       onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
                       placeholder="Enter full address"
-                      rows={3}
+                      rows={2}
                     />
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Room & Status Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Room & Status</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-room">Room Number</Label>
-                      <Input
-                        id="edit-room"
-                        value={editForm.roomNumber}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, roomNumber: e.target.value }))}
-                        placeholder="Enter room number"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-status">Status</Label>
-                      <Select
-                        value={editForm.status}
-                        onValueChange={(value: 'Active' | 'Inactive' | 'Suspended' | 'Graduated') =>
-                          setEditForm(prev => ({ ...prev, status: value }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="Inactive">Inactive</SelectItem>
-                          <SelectItem value="Suspended">Suspended</SelectItem>
-                          <SelectItem value="Graduated">Graduated</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            </div>
 
-              {/* Guardian Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Guardian Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-guardian-name">Guardian Name</Label>
-                      <Input
-                        id="edit-guardian-name"
-                        value={editForm.guardian.name}
-                        onChange={(e) => setEditForm(prev => ({
-                          ...prev,
-                          guardian: { ...prev.guardian, name: e.target.value }
-                        }))}
-                        placeholder="Enter guardian's name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-guardian-phone">Guardian Phone</Label>
-                      <Input
-                        id="edit-guardian-phone"
-                        value={editForm.guardian.phone}
-                        onChange={(e) => setEditForm(prev => ({
-                          ...prev,
-                          guardian: { ...prev.guardian, phone: e.target.value }
-                        }))}
-                        placeholder="Enter guardian's phone"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-guardian-relation">Relation</Label>
-                      <Select
-                        value={editForm.guardian.relation}
-                        onValueChange={(value) =>
-                          setEditForm(prev => ({
-                            ...prev,
-                            guardian: { ...prev.guardian, relation: value }
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select relation" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Father">Father</SelectItem>
-                          <SelectItem value="Mother">Mother</SelectItem>
-                          <SelectItem value="Brother">Brother</SelectItem>
-                          <SelectItem value="Sister">Sister</SelectItem>
-                          <SelectItem value="Uncle">Uncle</SelectItem>
-                          <SelectItem value="Aunt">Aunt</SelectItem>
-                          <SelectItem value="Grandfather">Grandfather</SelectItem>
-                          <SelectItem value="Grandmother">Grandmother</SelectItem>
-                          <SelectItem value="Cousin">Cousin</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Academic Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Academic Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-course">Course</Label>
-                      <Input
-                        id="edit-course"
-                        value={editForm.course}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, course: e.target.value }))}
-                        placeholder="e.g., B.Tech Computer Science"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-institution">Institution</Label>
-                      <Input
-                        id="edit-institution"
-                        value={editForm.institution}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, institution: e.target.value }))}
-                        placeholder="e.g., ABC University"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Action Buttons */}
-              <div className="flex gap-4 pt-4 border-t">
-                <Button
-                  onClick={handleUpdateStudent}
-                  disabled={isUpdating || !editForm.name.trim() || !editForm.phone.trim() || !editForm.email.trim()}
-                  className="bg-[#07A64F] hover:bg-[#07A64F]/90 flex-1"
-                >
-                  {isUpdating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Update Student
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowEditDialog(false)}
-                  disabled={isUpdating}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
+            {/* Action Buttons - Fixed at bottom */}
+            <div className="flex-shrink-0 flex gap-4 pt-4 border-t bg-white">
+              <Button
+                onClick={handleUpdateStudent}
+                disabled={isUpdating || !editForm.name.trim() || !editForm.phone.trim() || !editForm.email.trim()}
+                className="bg-[#07A64F] hover:bg-[#07A64F]/90 flex-1"
+              >
+                {isUpdating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Update Student
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowEditDialog(false)}
+                disabled={isUpdating}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -1687,11 +1696,11 @@ export const StudentManagement = () => {
 
       {/* Charge Configuration Dialog */}
       <Dialog open={showChargeConfigDialog} onOpenChange={setShowChargeConfigDialog}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Configure Charges - {selectedStudent?.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
+          <div className="flex-1 overflow-y-auto pr-2">
             {selectedStudent && (
               <ChargeConfigurationForm
                 student={selectedStudent}
@@ -1732,7 +1741,7 @@ export const StudentManagement = () => {
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-gray-600">Active Students: </span>
-                <span className="font-medium">{students.filter(s => s.status === 'active').length}</span>
+                <span className="font-medium">{students.filter(s => s.status === 'Active').length}</span>
               </div>
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-red-600" />
