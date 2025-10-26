@@ -6,18 +6,10 @@ import {
   Bed,
   BarChart3,
   Settings,
-  Mountain,
   BookOpen,
-  Users,
-  Receipt,
-  CreditCard,
-  FileText,
-  TrendingUp,
   Bell
 } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
 import { KahaLogo } from "@/components/ui/KahaLogo";
 
 interface SidebarProps {
@@ -28,7 +20,6 @@ interface SidebarProps {
 
 export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarProps) => {
   const { translations } = useLanguage();
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const mainMenuItems = [
     { id: "dashboard", label: translations.dashboard, icon: LayoutDashboard },
@@ -40,28 +31,6 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarPr
   ];
 
   const adminMenuItems = [];
-
-  const ledgerSubItems = [
-    { id: "ledger-dashboard", label: "📊 Dashboard", icon: TrendingUp },
-    { id: "ledger-students", label: "👥 Student Profiles", icon: Users },
-    { id: "ledger-invoices", label: "📋 Invoices", icon: Receipt },
-    { id: "ledger-payments", label: "💰 Payments", icon: CreditCard },
-    { id: "ledger-ledgers", label: "📚 Ledgers", icon: FileText },
-    { id: "ledger-discounts", label: "🏷️ Discounts", icon: Settings },
-  ];
-
-  const handleLedgerToggle = () => {
-    if (expandedSection === "ledger") {
-      setExpandedSection(null);
-    } else {
-      setExpandedSection("ledger");
-    }
-  };
-
-  const handleLedgerSubItemClick = (subId: string) => {
-    // Navigate to the ledger page with the specific section
-    window.location.href = `/ledger?section=${subId.replace('ledger-', '')}`;
-  };
 
   return (
     <div className="h-screen bg-gradient-to-b from-white to-gray-50 shadow-xl border-r border-gray-200 flex flex-col">
