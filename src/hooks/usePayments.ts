@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  paymentsApiService, 
-  Payment, 
-  CreatePaymentDto, 
-  UpdatePaymentDto, 
-  PaymentStats, 
+import {
+  paymentsApiService,
+  Payment,
+  CreatePaymentDto,
+  UpdatePaymentDto,
+  PaymentStats,
   PaymentMethod,
   PaymentFilters,
   BulkPaymentResult,
@@ -58,20 +58,20 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Load payments with current filters
   const loadPayments = useCallback(async (filters: PaymentFilters = currentFilters) => {
     console.log('💰 usePayments.loadPayments called with filters:', filters);
-    
+
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
+
     try {
       const result = await paymentsApiService.getPayments(filters);
-      
+
       setState(prev => ({
         ...prev,
-        payments: result.items,
-        pagination: result.pagination,
+        payments: result.items || [],
+        pagination: result.pagination || null,
         loading: false,
         lastRefresh: Date.now()
       }));
-      
+
       console.log('✅ Payments loaded successfully:', result.items.length, 'payments');
     } catch (error) {
       console.error('❌ Error loading payments:', error);
@@ -86,16 +86,16 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Load payment statistics
   const loadPaymentStats = useCallback(async () => {
     console.log('📊 usePayments.loadPaymentStats called');
-    
+
     try {
       const stats = await paymentsApiService.getPaymentStats();
-      
+
       setState(prev => ({
         ...prev,
         stats,
         lastRefresh: Date.now()
       }));
-      
+
       console.log('✅ Payment stats loaded successfully');
     } catch (error) {
       console.error('❌ Error loading payment stats:', error);
@@ -109,16 +109,16 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Load payment methods
   const loadPaymentMethods = useCallback(async () => {
     console.log('💳 usePayments.loadPaymentMethods called');
-    
+
     try {
       const methods = await paymentsApiService.getPaymentMethods();
-      
+
       setState(prev => ({
         ...prev,
         paymentMethods: methods,
         lastRefresh: Date.now()
       }));
-      
+
       console.log('✅ Payment methods loaded successfully');
     } catch (error) {
       console.error('❌ Error loading payment methods:', error);
@@ -132,16 +132,16 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Load monthly payment data
   const loadMonthlyData = useCallback(async (months: number = 12) => {
     console.log('📊 usePayments.loadMonthlyData called for:', months, 'months');
-    
+
     try {
       const monthlyData = await paymentsApiService.getMonthlyPaymentSummary(months);
-      
+
       setState(prev => ({
         ...prev,
         monthlyData,
         lastRefresh: Date.now()
       }));
-      
+
       console.log('✅ Monthly payment data loaded successfully');
     } catch (error) {
       console.error('❌ Error loading monthly payment data:', error);
@@ -155,9 +155,9 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Load all payment data
   const loadAllPaymentData = useCallback(async () => {
     console.log('🔄 usePayments.loadAllPaymentData called');
-    
+
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
+
     try {
       await Promise.all([
         loadPayments(),
@@ -165,7 +165,7 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
         loadPaymentMethods(),
         loadMonthlyData()
       ]);
-      
+
       console.log('✅ All payment data loaded successfully');
     } catch (error) {
       console.error('❌ Error loading all payment data:', error);
@@ -180,12 +180,12 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Record new payment
   const recordPayment = useCallback(async (paymentData: CreatePaymentDto): Promise<Payment> => {
     console.log('💰 usePayments.recordPayment called with:', paymentData);
-    
+
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
+
     try {
       const newPayment = await paymentsApiService.recordPayment(paymentData);
-      
+
       // Add to current payments list
       setState(prev => ({
         ...prev,
@@ -193,10 +193,10 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
         loading: false,
         lastRefresh: Date.now()
       }));
-      
+
       // Refresh stats
       await loadPaymentStats();
-      
+
       console.log('✅ Payment recorded successfully:', newPayment);
       return newPayment;
     } catch (error) {
@@ -213,19 +213,19 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Update payment
   const updatePayment = useCallback(async (id: string, updateData: UpdatePaymentDto): Promise<Payment> => {
     console.log('💰 usePayments.updatePayment called for:', id, updateData);
-    
+
     try {
       const updatedPayment = await paymentsApiService.updatePayment(id, updateData);
-      
+
       // Update in current payments list
       setState(prev => ({
         ...prev,
-        payments: prev.payments.map(payment => 
+        payments: prev.payments.map(payment =>
           payment.id === id ? updatedPayment : payment
         ),
         lastRefresh: Date.now()
       }));
-      
+
       console.log('✅ Payment updated successfully:', updatedPayment);
       return updatedPayment;
     } catch (error) {
@@ -241,22 +241,22 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Cancel payment
   const cancelPayment = useCallback(async (id: string): Promise<void> => {
     console.log('💰 usePayments.cancelPayment called for:', id);
-    
+
     try {
       await paymentsApiService.cancelPayment(id);
-      
+
       // Update payment status in list
       setState(prev => ({
         ...prev,
-        payments: prev.payments.map(payment => 
+        payments: prev.payments.map(payment =>
           payment.id === id ? { ...payment, status: 'Cancelled' as const } : payment
         ),
         lastRefresh: Date.now()
       }));
-      
+
       // Refresh stats
       await loadPaymentStats();
-      
+
       console.log('✅ Payment cancelled successfully');
     } catch (error) {
       console.error('❌ Error cancelling payment:', error);
@@ -271,15 +271,15 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Process bulk payments
   const processBulkPayments = useCallback(async (payments: CreatePaymentDto[]): Promise<BulkPaymentResult> => {
     console.log('💰 usePayments.processBulkPayments called with:', payments.length, 'payments');
-    
+
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
+
     try {
       const result = await paymentsApiService.processBulkPayments(payments);
-      
+
       // Refresh all data after bulk operation
       await loadAllPaymentData();
-      
+
       console.log('✅ Bulk payments processed:', result);
       return result;
     } catch (error) {
@@ -296,10 +296,10 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Get payments by student
   const getPaymentsByStudent = useCallback(async (studentId: string): Promise<Payment[]> => {
     console.log('💰 usePayments.getPaymentsByStudent called for:', studentId);
-    
+
     try {
       const payments = await paymentsApiService.getPaymentsByStudentId(studentId);
-      
+
       console.log('✅ Student payments loaded:', payments.length, 'payments');
       return payments;
     } catch (error) {
@@ -311,10 +311,10 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Search payments
   const searchPayments = useCallback(async (searchTerm: string, filters: Omit<PaymentFilters, 'search'> = {}): Promise<Payment[]> => {
     console.log('🔍 usePayments.searchPayments called with term:', searchTerm);
-    
+
     try {
       const payments = await paymentsApiService.searchPayments(searchTerm, filters);
-      
+
       console.log('✅ Payment search completed:', payments.length, 'payments found');
       return payments;
     } catch (error) {
@@ -326,7 +326,7 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Apply filters
   const applyFilters = useCallback(async (filters: PaymentFilters) => {
     console.log('🔍 usePayments.applyFilters called with:', filters);
-    
+
     setCurrentFilters(filters);
     await loadPayments(filters);
   }, [loadPayments]);
@@ -334,7 +334,7 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Clear filters
   const clearFilters = useCallback(async () => {
     console.log('🔄 usePayments.clearFilters called');
-    
+
     const emptyFilters = {};
     setCurrentFilters(emptyFilters);
     await loadPayments(emptyFilters);
@@ -343,7 +343,7 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
   // Refresh all data
   const refreshPayments = useCallback(async () => {
     console.log('🔄 usePayments.refreshPayments called');
-    
+
     await loadAllPaymentData();
   }, [loadAllPaymentData]);
 
@@ -384,7 +384,7 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
     lastRefresh: state.lastRefresh,
     pagination: state.pagination,
     currentFilters,
-    
+
     // Actions
     loadPayments,
     loadPaymentStats,
@@ -401,10 +401,10 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
     clearFilters,
     refreshPayments,
     clearError,
-    
+
     // Computed values
-    hasData: state.payments.length > 0,
-    totalPayments: state.payments.length,
+    hasData: (state.payments || []).length > 0,
+    totalPayments: (state.payments || []).length,
     isStale: state.lastRefresh ? (Date.now() - state.lastRefresh) > refreshInterval : false,
     hasError: !!state.error
   };

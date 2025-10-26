@@ -130,7 +130,60 @@ export class PaymentsApiService {
     const result = await this.apiService.get<any>(endpoint);
     
     console.log('💰 Payments result:', result);
-    return result;
+    
+    // ✅ CRITICAL FIX: Handle different API response structures
+    if (Array.isArray(result)) {
+      // Direct array response
+      return {
+        items: result,
+        pagination: {
+          page: 1,
+          limit: result.length,
+          total: result.length,
+          totalPages: 1
+        }
+      };
+    } else if (result && result.data) {
+      // Backend API response structure: {status: 200, data: {...}}
+      if (Array.isArray(result.data)) {
+        // Data is direct array
+        return {
+          items: result.data,
+          pagination: {
+            page: 1,
+            limit: result.data.length,
+            total: result.data.length,
+            totalPages: 1
+          }
+        };
+      } else if (result.data.items) {
+        // Data has items structure
+        return {
+          items: result.data.items,
+          pagination: result.data.pagination || {
+            page: 1,
+            limit: result.data.items.length,
+            total: result.data.items.length,
+            totalPages: 1
+          }
+        };
+      }
+    } else if (result && result.items) {
+      // Direct items structure
+      return result;
+    }
+    
+    // Fallback for unexpected structure
+    console.warn('⚠️ Unexpected payments API response structure:', result);
+    return {
+      items: [],
+      pagination: {
+        page: 1,
+        limit: 0,
+        total: 0,
+        totalPages: 0
+      }
+    };
   }
 
   /**

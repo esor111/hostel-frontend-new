@@ -298,7 +298,7 @@ export const PaymentRecording = () => {
             <CardTitle>Recent Payments</CardTitle>
           </CardHeader>
           <CardContent>
-            {payments.length === 0 ? (
+            {(payments || []).length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <DollarSign className="h-12 w-12 mx-auto mb-4" />
                 <p>No payments recorded yet.</p>
@@ -317,7 +317,7 @@ export const PaymentRecording = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payments.slice(0, 10).map((payment) => {
+                  {(payments || []).slice(0, 10).map((payment) => {
                     const student = students.find(s => s.id === payment.studentId);
                     return (
                       <TableRow key={payment.id}>
