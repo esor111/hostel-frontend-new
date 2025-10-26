@@ -1,53 +1,15 @@
 
-import { useState } from "react";
+
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Building, MapPin, Phone, Mail, Wifi, Car, Utensils, Shirt, Shield, Clock, Save } from "lucide-react";
+import { MapPin, Shield, Building2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const HostelProfile = () => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [hostelData, setHostelData] = useState({
-    name: "Kaha Hostel",
-    description: "A premium hostel providing comfortable accommodation for students and travelers in the heart of Kathmandu.",
-    address: "Thamel, Kathmandu, Nepal",
-    phone: "+977-1-4123456",
-    email: "info@kahahostel.com",
-    website: "www.kahahostel.com",
-    establishedYear: "2020",
-    totalRooms: 25,
-    totalBeds: 100,
-    checkInTime: "14:00",
-    checkOutTime: "12:00",
-    policies: [
-      "No smoking in rooms",
-      "Quiet hours: 10 PM - 7 AM",
-      "No outside guests after 10 PM",
-      "Payment due on 1st of every month"
-    ],
-    amenities: [
-      { name: "Free Wi-Fi", icon: Wifi, available: true },
-      { name: "Parking", icon: Car, available: true },
-      { name: "Laundry Service", icon: Shirt, available: true, price: 1500 },
-      { name: "Meal Service", icon: Utensils, available: true, price: 8000 },
-      { name: "24/7 Security", icon: Shield, available: true },
-    ],
-    roomTypes: [
-      { type: "Single Room", basePrice: 15000, beds: 1, available: 5 },
-      { type: "Shared Room", basePrice: 12000, beds: 2, available: 8 },
-      { type: "Dormitory", basePrice: 8000, beds: 6, available: 12 }
-    ]
-  });
+  const { state } = useAuth();
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Here you would typically save to backend
-    console.log("Saving hostel data:", hostelData);
-  };
 
   return (
     <MainLayout activeTab="profile">
@@ -68,70 +30,81 @@ const HostelProfile = () => {
           </div>
         </div>
 
-        {/* Basic Information */}
-        <Card className="max-w-2xl mx-auto border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
-          <CardHeader className="bg-gradient-to-r from-[#07A64F] to-[#1295D0] text-white rounded-t-lg">
-            <CardTitle className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <Building className="h-6 w-6" />
+        {/* Current Business Information */}
+        {state.selectedBusiness && (
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
+            <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Building2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Current Business</h3>
+                  <p className="text-white/80 text-sm">Active business profile from Kaha platform</p>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="flex items-start gap-6">
+                {/* Business Avatar */}
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0 border-4 border-white shadow-lg">
+                  {state.selectedBusiness.avatar ? (
+                    <img
+                      src={state.selectedBusiness.avatar}
+                      alt={state.selectedBusiness.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <Building2 className={`h-10 w-10 text-gray-400 ${state.selectedBusiness.avatar ? 'hidden' : ''}`} />
+                </div>
+
+                {/* Business Details */}
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">{state.selectedBusiness.name}</h3>
+                    <div className="flex items-center gap-3 mt-2">
+                      <Badge variant="secondary" className="text-sm font-medium">
+                        ID: {state.selectedBusiness.kahaId}
+                      </Badge>
+                      <Badge variant="outline" className="text-sm">
+                        Kaha Platform
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Business Address */}
+                  {state.selectedBusiness.address && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <MapPin className="h-5 w-5 text-blue-500" />
+                      <span className="text-lg">{state.selectedBusiness.address}</span>
+                    </div>
+                  )}
+
+                  {/* Status Indicators */}
+                  <div className="flex items-center gap-4 pt-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-green-600">Active Business</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm text-gray-600">
+                        {state.businessToken ? 'Business Token Active' : 'User Token Active'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold">Basic Information</h3>
-                <p className="text-white/80 text-sm">Essential hostel details</p>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8 space-y-6">
-            <div>
-              <Label htmlFor="name" className="text-sm font-semibold text-gray-700">Hostel Name</Label>
-              <Input
-                id="name"
-                value={hostelData.name}
-                disabled={true}
-                className="mt-2 border-gray-200 bg-gray-50"
-              />
-            </div>
-            <div>
-              <Label htmlFor="description" className="text-sm font-semibold text-gray-700">Description</Label>
-              <Textarea
-                id="description"
-                value={hostelData.description}
-                disabled={true}
-                rows={4}
-                className="mt-2 border-gray-200 bg-gray-50"
-              />
-            </div>
-            <div>
-              <Label htmlFor="address" className="text-sm font-semibold text-gray-700">Address</Label>
-              <Input
-                id="address"
-                value={hostelData.address}
-                disabled={true}
-                className="mt-2 border-gray-200 bg-gray-50"
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">Phone</Label>
-                <Input
-                  id="phone"
-                  value={hostelData.phone}
-                  disabled={true}
-                  className="mt-2 border-gray-200 bg-gray-50"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email</Label>
-                <Input
-                  id="email"
-                  value={hostelData.email}
-                  disabled={true}
-                  className="mt-2 border-gray-200 bg-gray-50"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
+
 
 
       </div>

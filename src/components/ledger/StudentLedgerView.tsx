@@ -195,7 +195,7 @@ export const StudentLedgerView = () => {
   const handleApplyFilters = () => {
     // Filters are applied automatically via useEffect
     // This could be used for additional actions like analytics tracking
-    console.log('Filters applied:', filters);
+
   };
 
   const handleClearFilters = () => {

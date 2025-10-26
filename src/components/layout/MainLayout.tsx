@@ -1,11 +1,11 @@
 
 import { useState } from "react";
 import { Sidebar } from "@/components/admin/Sidebar";
-
 import { useLanguage } from "@/hooks/useLanguage";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { KahaLogo } from "@/components/ui/KahaLogo";
+import { Menu, X } from "lucide-react";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -15,50 +15,72 @@ interface MainLayoutProps {
 export const MainLayout = ({ children, activeTab }: MainLayoutProps) => {
   const { translations } = useLanguage();
   const navigate = useNavigate();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-[#07A64F]/5 flex">
-      <Sidebar activeTab={activeTab} onTabChange={(tab) => {
-        // Handle navigation based on tab
-        switch (tab) {
-          case 'dashboard':
-            navigate('/admin');
-            break;
-          case 'profile':
-            navigate('/hostel');
-            break;
-          case 'bookings':
-            navigate('/bookings');
-            break;
-          case 'rooms':
-            navigate('/rooms');
-            break;
-          case 'analytics':
-            navigate('/analytics');
-            break;
-          case 'notifications':
-            navigate('/notifications');
-            break;
-
-          case 'charging':
-            navigate('/admin/charging');
-            break;
-          case 'billing':
-            navigate('/admin/monthly-billing');
-            break;
-          case 'settings':
-            navigate('/settings');
-            break;
-          default:
-            navigate('/');
-        }
-      }} />
+    <div className="h-screen bg-gradient-to-br from-gray-50 to-[#07A64F]/5 flex overflow-hidden">
+      {/* Collapsible Sidebar */}
+      <div className={`transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-16' : 'w-64'} flex-shrink-0`}>
+        <Sidebar 
+          activeTab={activeTab} 
+          collapsed={sidebarCollapsed}
+          onTabChange={(tab) => {
+            // Handle navigation based on tab
+            switch (tab) {
+              case 'dashboard':
+                navigate('/admin');
+                break;
+              case 'profile':
+                navigate('/hostel');
+                break;
+              case 'bookings':
+                navigate('/bookings');
+                break;
+              case 'rooms':
+                navigate('/rooms');
+                break;
+              case 'analytics':
+                navigate('/analytics');
+                break;
+              case 'notifications':
+                navigate('/notifications');
+                break;
+              case 'charging':
+                navigate('/admin/charging');
+                break;
+              case 'billing':
+                navigate('/admin/monthly-billing');
+                break;
+              case 'settings':
+                navigate('/settings');
+                break;
+              default:
+                navigate('/');
+            }
+          }} 
+        />
+      </div>
       
-      <div className="flex-1 flex flex-col">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Enhanced Modern Header */}
-        <div className="bg-white shadow-lg border-b border-gray-100 px-6 py-4">
+        <div className="bg-white shadow-lg border-b border-gray-100 px-6 py-4 flex-shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-6">
+              {/* Sidebar Toggle Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="h-5 w-5 text-gray-600" />
+                ) : (
+                  <X className="h-5 w-5 text-gray-600" />
+                )}
+              </Button>
+
               {/* Kaha Logo and Branding */}
               <div className="flex items-center space-x-4">
                 <KahaLogo size="lg" />
@@ -100,14 +122,15 @@ export const MainLayout = ({ children, activeTab }: MainLayoutProps) => {
                   </div>
                 </span>
               </Button>
-
             </div>
           </div>
         </div>
         
-        {/* Main Content */}
-        <div className="flex-1 p-6 bg-gradient-to-br from-white via-[#1295D0]/2 to-[#07A64F]/3">
-          {children}
+        {/* Main Content - Independent Scroll */}
+        <div className="flex-1 overflow-y-auto bg-gradient-to-br from-white via-[#1295D0]/2 to-[#07A64F]/3">
+          <div className="p-6">
+            {children}
+          </div>
         </div>
       </div>
     </div>

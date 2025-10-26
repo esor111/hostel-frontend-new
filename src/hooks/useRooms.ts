@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { roomsApiService } from '../services/roomsApiService';
+import { roomsApiOptimized } from '../services/roomsApiOptimized';
 
 export interface Room {
   id: string;
@@ -68,11 +69,11 @@ const calculateBedCountFromLayout = (layout: any): number => {
   if (!layout || !layout.elements) {
     return 0;
   }
-  
-  const bedElements = layout.elements.filter((element: any) => 
+
+  const bedElements = layout.elements.filter((element: any) =>
     element.type === 'single-bed' || element.type === 'bunk-bed'
   );
-  
+
   return bedElements.reduce((count: number, element: any) => {
     if (element.type === 'bunk-bed') {
       return count + (element.properties?.bunkLevels || 2);
@@ -89,19 +90,19 @@ export const useRooms = () => {
   const [stats, setStats] = useState<RoomStats | null>(null);
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
 
-  // Fetch rooms from API
+  // Fetch rooms from API - OPTIMIZED VERSION
   const fetchRooms = async (filters = {}) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🏠 Fetching rooms from API...');
-      const roomsData = await roomsApiService.getRooms(filters);
+      console.log('🚀 Fetching lightweight rooms from optimized API...');
+      const roomsData = await roomsApiOptimized.getRoomsLightweight(filters);
       console.log('✅ Rooms fetched:', roomsData);
-      
+
       // Parse numeric fields and layout (API returns strings)
       const parsedRooms = roomsData.map((room: any) => {
         let parsedLayout = null;
-        
+
         // Parse layout if it exists
         if (room.layout) {
           try {
@@ -112,7 +113,7 @@ export const useRooms = () => {
             } else if (typeof room.layout === 'object' && room.layout !== null) {
               // Backend returns layout as layoutData field, extract it
               parsedLayout = room.layout.layoutData || room.layout;
-              
+
               // If layoutData doesn't exist, reconstruct from separate fields
               if (!room.layout.layoutData && (room.layout.dimensions || room.layout.bedPositions || room.layout.furnitureLayout)) {
                 parsedLayout = {
@@ -129,7 +130,7 @@ export const useRooms = () => {
                   createdAt: room.layout.createdAt || new Date().toISOString()
                 };
               }
-              
+
               // Handle nested string objects (PowerShell format issue)
               if (parsedLayout && parsedLayout.dimensions && typeof parsedLayout.dimensions === 'string') {
                 try {
@@ -153,17 +154,17 @@ export const useRooms = () => {
             parsedLayout = null;
           }
         }
-        
+
         // Calculate actual bed count from layout if available
         let actualBedCount = parseInt(room.bedCount) || 0;
         let actualAvailableBeds = parseInt(room.availableBeds) || 0;
-        
+
         if (parsedLayout && parsedLayout.elements) {
           // Count beds from layout elements
-          const bedElements = parsedLayout.elements.filter((element: any) => 
+          const bedElements = parsedLayout.elements.filter((element: any) =>
             element.type === 'single-bed' || element.type === 'bunk-bed'
           );
-          
+
           // Calculate total beds considering bunk beds have multiple levels
           actualBedCount = bedElements.reduce((count: number, element: any) => {
             if (element.type === 'bunk-bed') {
@@ -171,12 +172,12 @@ export const useRooms = () => {
             }
             return count + 1;
           }, 0);
-          
+
           // Recalculate available beds based on actual bed count and occupancy
           const occupancy = parseInt(room.occupancy) || 0;
           actualAvailableBeds = Math.max(0, actualBedCount - occupancy);
         }
-        
+
         // Parse amenities to handle both string and object formats
         let parsedAmenities = room.amenities || [];
         if (Array.isArray(parsedAmenities)) {
@@ -203,7 +204,7 @@ export const useRooms = () => {
           amenities: parsedAmenities, // Properly parsed amenities as strings
         };
       });
-      
+
       setRooms(parsedRooms);
     } catch (error: any) {
       console.error('❌ Error fetching rooms:', error);
@@ -220,7 +221,7 @@ export const useRooms = () => {
       console.log('📊 Fetching room statistics...');
       const statsData = await roomsApiService.getRoomStats();
       console.log('✅ Room stats fetched:', statsData);
-      setStats(statsData);
+      setStats(statsData as RoomStats);
     } catch (error: any) {
       console.error('❌ Error fetching room stats:', error);
       toast.error('Failed to load room statistics');
@@ -233,12 +234,12 @@ export const useRooms = () => {
       console.log('🏠 Fetching available rooms...');
       const availableData = await roomsApiService.getAvailableRooms();
       console.log('✅ Available rooms fetched:', availableData);
-      
+
       // Parse numeric fields and calculate bed count from layout
       const parsedAvailable = availableData.map((room: any) => {
         let actualBedCount = parseInt(room.bedCount) || 0;
         let actualAvailableBeds = parseInt(room.availableBeds) || 0;
-        
+
         // Parse layout and calculate actual bed count
         if (room.layout) {
           let parsedLayout = null;
@@ -248,7 +249,7 @@ export const useRooms = () => {
             } else {
               parsedLayout = room.layout.layoutData || room.layout;
             }
-            
+
             if (parsedLayout) {
               const layoutBedCount = calculateBedCountFromLayout(parsedLayout);
               if (layoutBedCount > 0) {
@@ -261,7 +262,7 @@ export const useRooms = () => {
             console.warn(`Failed to parse layout for available room ${room.id}:`, error);
           }
         }
-        
+
         // Parse amenities to handle both string and object formats
         let parsedAmenities = room.amenities || [];
         if (Array.isArray(parsedAmenities)) {
@@ -285,7 +286,7 @@ export const useRooms = () => {
           amenities: parsedAmenities,
         };
       });
-      
+
       setAvailableRooms(parsedAvailable);
     } catch (error: any) {
       console.error('❌ Error fetching available rooms:', error);
@@ -299,11 +300,11 @@ export const useRooms = () => {
       console.log('🏠 Creating new room...');
       const createdRoom = await roomsApiService.createRoom(roomData);
       console.log('✅ Room created:', createdRoom);
-      
+
       // Refresh rooms list
       await fetchRooms();
       await fetchRoomStats();
-      
+
       toast.success('Room created successfully!');
       return createdRoom;
     } catch (error: any) {
@@ -314,14 +315,19 @@ export const useRooms = () => {
     }
   };
 
-  // Get room by ID
+  // Get room by ID and update rooms array with full data
   const getRoomById = async (roomId: string) => {
     try {
-      console.log(`🏠 Fetching room ${roomId}...`);
-      
+      console.log(`🏠 Fetching full room data for ${roomId}...`);
+
       const room = await roomsApiService.getRoomById(roomId);
-      console.log('✅ Room fetched:', room);
-      
+      console.log('✅ Full room data fetched:', room);
+
+      // Update the rooms array with the full room data
+      setRooms(prevRooms =>
+        prevRooms.map(r => r.id === roomId ? (room as Room) : r)
+      );
+
       return room;
     } catch (error: any) {
       console.error('❌ Error fetching room:', error);
@@ -335,14 +341,14 @@ export const useRooms = () => {
   const updateRoom = async (roomId: string, updates: UpdateRoomData) => {
     try {
       console.log(`🏠 Updating room ${roomId}...`);
-      
+
       const updatedRoom = await roomsApiService.updateRoom(roomId, updates);
       console.log('✅ Room updated:', updatedRoom);
-      
+
       // Refresh rooms list
       await fetchRooms();
       await fetchRoomStats();
-      
+
       // Show appropriate success message based on update type
       if (updates.layout) {
         toast.success('Room layout saved successfully!', {
@@ -351,7 +357,7 @@ export const useRooms = () => {
       } else {
         toast.success('Room updated successfully!');
       }
-      
+
       return updatedRoom;
     } catch (error: any) {
       console.error('❌ Error updating room:', error);
@@ -367,11 +373,11 @@ export const useRooms = () => {
       console.log(`🗑️ Deleting room ${roomId}...`);
       await roomsApiService.deleteRoom(roomId);
       console.log('✅ Room deleted');
-      
+
       // Refresh rooms list
       await fetchRooms();
       await fetchRoomStats();
-      
+
       toast.success('Room deleted successfully!');
     } catch (error: any) {
       console.error('❌ Error deleting room:', error);
@@ -387,11 +393,11 @@ export const useRooms = () => {
       console.log(`👤 Assigning student ${studentId} to room ${roomId}...`);
       const result = await roomsApiService.assignStudentToRoom(roomId, studentId);
       console.log('✅ Student assigned to room');
-      
+
       // Refresh rooms list
       await fetchRooms();
       await fetchRoomStats();
-      
+
       toast.success('Student assigned to room successfully!');
       return result;
     } catch (error: any) {
@@ -408,11 +414,11 @@ export const useRooms = () => {
       console.log(`👤 Vacating student ${studentId} from room ${roomId}...`);
       const result = await roomsApiService.vacateStudentFromRoom(roomId, studentId);
       console.log('✅ Student vacated from room');
-      
+
       // Refresh rooms list
       await fetchRooms();
       await fetchRoomStats();
-      
+
       toast.success('Student vacated from room successfully!');
       return result;
     } catch (error: any) {
@@ -429,11 +435,11 @@ export const useRooms = () => {
       console.log(`🔧 Scheduling maintenance for room ${roomId}...`);
       const result = await roomsApiService.scheduleRoomMaintenance(roomId, maintenanceData);
       console.log('✅ Room maintenance scheduled');
-      
+
       // Refresh rooms list
       await fetchRooms();
       await fetchRoomStats();
-      
+
       toast.success('Room maintenance scheduled successfully!');
       return result;
     } catch (error: any) {
@@ -449,7 +455,7 @@ export const useRooms = () => {
     try {
       console.log(`🔍 Searching rooms: ${searchTerm}`);
       const searchResults = await roomsApiService.searchRooms(searchTerm, filters);
-      
+
       // Parse numeric fields and amenities
       const parsedResults = searchResults.map((room: any) => {
         // Parse amenities to handle both string and object formats
@@ -475,7 +481,7 @@ export const useRooms = () => {
           amenities: parsedAmenities,
         };
       });
-      
+
       setRooms(parsedResults);
       return parsedResults;
     } catch (error: any) {
@@ -530,7 +536,7 @@ export const useRooms = () => {
     error,
     stats,
     availableRooms,
-    
+
     // Actions
     fetchRooms,
     fetchRoomStats,
@@ -546,7 +552,7 @@ export const useRooms = () => {
     filterRoomsByStatus,
     filterRoomsByType,
     refreshData,
-    
+
     // Utilities
     refetch: fetchRooms,
     invalidateCache: refreshData,

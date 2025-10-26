@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Bed, Plus, Edit, Trash2, Users, Layout, Eye, Loader2, Image as ImageIcon, Power } from "lucide-react";
+import { Bed, Plus, Edit, Users, Layout, Eye, Loader2, Image as ImageIcon, Power } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "sonner";
 import { RoomDesigner } from "./RoomDesigner";
@@ -28,8 +28,8 @@ export const RoomConfiguration = () => {
     stats,
     createRoom,
     updateRoom,
-    deleteRoom,
     refreshData,
+    getRoomById,
   } = useRooms();
 
   const [showRoomDesigner, setShowRoomDesigner] = useState(false);
@@ -55,23 +55,7 @@ export const RoomConfiguration = () => {
     });
   };
 
-  const handleDeleteRoom = async (room: any) => {
-    if (room.occupancy > 0) {
-      toast.error("Cannot delete room with current occupants. Please move students first.");
-      return;
-    }
 
-    if (!confirm(`Are you sure you want to delete "${room.name}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await deleteRoom(room.id);
-    } catch (error) {
-      // Error handling is done in the hook
-      console.error('Error in handleDeleteRoom:', error);
-    }
-  };
 
   const handleToggleRoomStatus = async (roomId: string) => {
     const room = rooms.find(r => r.id === roomId);
@@ -96,9 +80,27 @@ export const RoomConfiguration = () => {
     }
   };
 
-  const openRoomDesigner = (roomId: string) => {
-    setSelectedRoomForDesign(roomId);
-    setShowRoomDesigner(true);
+  const openRoomDesigner = async (roomId: string) => {
+    try {
+      setSelectedRoomForDesign(roomId);
+      
+      // Check if we have layout data in the current room
+      const currentRoom = rooms.find(r => r.id === roomId);
+      
+      if (currentRoom?.layout && currentRoom.layout.elements) {
+        // We have layout data, open designer directly
+        console.log('✅ Layout data available, opening designer');
+        setShowRoomDesigner(true);
+      } else {
+        // Need to fetch full room data including layout
+        console.log('🔍 Fetching full room data for designer...');
+        await getRoomById(roomId); // This will update the rooms array with full data
+        setShowRoomDesigner(true);
+      }
+    } catch (error) {
+      console.error('❌ Error opening room designer:', error);
+      toast.error('Failed to load room data for designer');
+    }
   };
 
   const handleSaveLayout = async (layout: any) => {
@@ -132,28 +134,53 @@ export const RoomConfiguration = () => {
     setSelectedRoomForDesign(null);
   };
 
-  const handleViewLayout = (roomId: string) => {
-    const room = rooms.find(r => r.id === roomId);
+  const handleViewLayout = async (roomId: string) => {
+    try {
+      let room = rooms.find(r => r.id === roomId);
 
-    // Check if room has layout data
-    const hasLayout = room?.layout && (room.layout.dimensions || room.layout.elements);
+      // Check if room has layout data
+      let hasLayout = room?.layout && (room.layout.dimensions || room.layout.elements);
 
-    if (hasLayout) {
-      console.log('✅ Layout found - opening viewer');
-      setSelectedRoomForView(roomId);
-      setShowLayoutViewer(true);
-    } else {
-      console.log('❌ No valid layout found');
-      toast.info("Please configure the room layout first using the Layout Designer", {
-        description: "Click the Layout button to design your room",
-        duration: 4000,
-      });
+      if (!hasLayout) {
+        // Try to fetch full room data to get layout
+        console.log('🔍 Fetching full room data to check for layout...');
+        room = await getRoomById(roomId);
+        hasLayout = room?.layout && (room.layout.dimensions || room.layout.elements);
+      }
+
+      if (hasLayout) {
+        console.log('✅ Layout found - opening viewer');
+        setSelectedRoomForView(roomId);
+        setShowLayoutViewer(true);
+      } else {
+        console.log('❌ No valid layout found');
+        toast.info("Please configure the room layout first using the Layout Designer", {
+          description: "Click the Layout button to design your room",
+          duration: 4000,
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error checking room layout:', error);
+      toast.error('Failed to load room layout data');
     }
   };
 
-  const openRoomBedViewer = (roomId: string) => {
-    setSelectedRoomForBedView(roomId);
-    setShowRoomViewer(true);
+  const openRoomBedViewer = async (roomId: string) => {
+    try {
+      // Ensure we have full room data for bed viewer
+      const currentRoom = rooms.find(r => r.id === roomId);
+      
+      if (!currentRoom?.layout || !currentRoom.layout.elements) {
+        console.log('🔍 Fetching full room data for bed viewer...');
+        await getRoomById(roomId);
+      }
+      
+      setSelectedRoomForBedView(roomId);
+      setShowRoomViewer(true);
+    } catch (error) {
+      console.error('❌ Error opening bed viewer:', error);
+      toast.error('Failed to load room data for bed viewer');
+    }
   };
 
   const closeRoomBedViewer = () => {
@@ -175,7 +202,12 @@ export const RoomConfiguration = () => {
       <RoomDesigner
         onSave={handleSaveLayout}
         onClose={closeRoomDesigner}
-        roomData={roomData?.layout}
+        roomData={{
+          ...roomData?.layout,
+          bedCount: roomData?.bedCount || roomData?.capacity, // Pass bed count for validation
+          name: roomData?.name,
+          type: roomData?.type
+        }}
         isViewMode={false}
       />
     );
@@ -188,7 +220,12 @@ export const RoomConfiguration = () => {
       <RoomDesigner
         onSave={() => { }} // No save functionality in view mode
         onClose={closeRoomBedViewer}
-        roomData={roomData?.layout}
+        roomData={{
+          ...roomData?.layout,
+          bedCount: roomData?.bedCount || roomData?.capacity, // Pass bed count for validation
+          name: roomData?.name,
+          type: roomData?.type
+        }}
         isViewMode={true} // Read-only view mode with bed status visualization
       />
     );
@@ -230,11 +267,6 @@ export const RoomConfiguration = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">{translations.rooms}</h2>
-          {stats && (
-            <p className="text-gray-600 mt-1">
-              {stats.totalRooms} rooms • {stats.occupiedBeds}/{stats.totalBeds} beds occupied • {stats.occupancyRate}% occupancy
-            </p>
-          )}
         </div>
         <Button onClick={() => navigate("/addroom")} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-2" />
@@ -355,15 +387,6 @@ export const RoomConfiguration = () => {
                             title="Edit room details"
                           >
                             <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDeleteRoom(room)}
-                            title="Delete room"
-                          >
-                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>

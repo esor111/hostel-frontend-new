@@ -342,7 +342,12 @@ export const AddRoomWizard = () => {
             <RoomDesigner
                 onSave={handleSaveLayout}
                 onClose={() => setShowRoomDesigner(false)}
-                roomData={formData.layout}
+                roomData={{
+                    ...formData.layout,
+                    bedCount: formData.bedCount, // Pass bed count for validation
+                    name: formData.name,
+                    type: formData.type
+                }}
             />
         );
     }

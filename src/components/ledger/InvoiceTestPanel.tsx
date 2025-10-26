@@ -16,7 +16,7 @@ export const InvoiceTestPanel = () => {
       setTesting(true);
       setTestResults(null);
       
-      console.log('🧪 Starting comprehensive invoice test...');
+
       
       // Run quick test for UI
       const results = await invoiceTestRunner.quickTest();
@@ -39,7 +39,7 @@ export const InvoiceTestPanel = () => {
   const getInvoiceStats = async () => {
     try {
       const stats = await invoiceGenerationService.getInvoiceStatistics();
-      console.log('📊 Invoice Statistics:', stats);
+
       toast.success(`📊 Total invoices: ${stats.totalInvoices}, Total amount: NPR ${stats.totalAmount.toLocaleString()}`);
     } catch (error) {
       toast.error('Failed to get statistics: ' + error.message);
@@ -80,7 +80,7 @@ export const InvoiceTestPanel = () => {
             onClick={async () => {
               try {
                 const results = await invoiceTestRunner.runComprehensiveTest();
-                console.log('🧪 Comprehensive test results:', results);
+
                 toast.success(`Comprehensive test completed: ${results.summary.passed}/${results.summary.total} tests passed`);
               } catch (error) {
                 toast.error('Comprehensive test failed: ' + error.message);

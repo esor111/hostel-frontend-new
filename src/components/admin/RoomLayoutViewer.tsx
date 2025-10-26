@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Info, RefreshCw } from "lucide-react";
 import { KahaLogo } from "@/components/common/KahaLogo";
 import { useRooms } from "@/hooks/useRooms";
+import { useRoomLayout } from "@/hooks/useRoomLayout";
 import { formatDimensionsAsFeet, formatMetersAsFeet } from "@/utils/unitConversion";
 
 interface RoomElement {
@@ -50,6 +51,7 @@ export const RoomLayoutViewer = ({ layout, roomName, roomId, onRefresh }: RoomLa
   const [showInfo, setShowInfo] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { refreshData } = useRooms();
+  const { getRoomLayout, loading: layoutLoading } = useRoomLayout();
 
   // Debug layout data
   console.log('🎨 RoomLayoutViewer received layout:', layout);
@@ -67,8 +69,14 @@ export const RoomLayoutViewer = ({ layout, roomName, roomId, onRefresh }: RoomLa
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // Refresh room data
-      await refreshData();
+      // Use optimized layout API for refresh if roomId is available
+      if (roomId) {
+        console.log('🚀 Refreshing layout using optimized API...');
+        await getRoomLayout(roomId);
+      } else {
+        // Fallback to general refresh
+        await refreshData();
+      }
       
       // Call parent refresh if provided
       if (onRefresh) {

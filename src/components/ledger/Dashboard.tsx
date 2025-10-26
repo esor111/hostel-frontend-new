@@ -27,7 +27,7 @@ export const Dashboard = memo(() => {
     setError(null);
     
     try {
-      console.log('🔄 Refreshing dashboard data...');
+
       
       const [
         stats,
@@ -46,7 +46,7 @@ export const Dashboard = memo(() => {
       setTotalCollected(totalCollectedAmount);
       setTotalOutstandingDues(outstandingDues);
       
-      console.log('✅ Dashboard refreshed successfully');
+
     } catch (error) {
       console.error('❌ Error refreshing dashboard:', error);
       setError(error instanceof Error ? error.message : 'Failed to refresh dashboard');
@@ -62,7 +62,7 @@ export const Dashboard = memo(() => {
         setLoading(true);
         setError(null);
         
-        console.log('🔄 Loading real dashboard data from API...');
+
         
         // Load all dashboard data from real APIs
         const [
@@ -77,12 +77,7 @@ export const Dashboard = memo(() => {
           dashboardApiService.getTotalOutstandingDues()
         ]);
         
-        console.log('✅ Dashboard data loaded:', {
-          stats,
-          checkedOutData: checkedOutData.length,
-          totalCollectedAmount,
-          outstandingDues
-        });
+
         
         setDashboardStats(stats);
         setCheckedOutWithDues(checkedOutData);

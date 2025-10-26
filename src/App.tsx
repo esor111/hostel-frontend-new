@@ -10,7 +10,6 @@ import { SafeTooltipProvider } from "@/components/providers/SafeTooltipProvider"
 import { KahaLogo } from "@/components/common/KahaLogo";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AuthGuard from "@/components/auth/AuthGuard";
-import AuthHeader from "@/components/auth/AuthHeader";
 
 // Lazy load components for better initial load performance
 const Landing = lazy(() => import("./pages/Landing"));
@@ -28,6 +27,7 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const DashboardTest = lazy(() => import("./pages/DashboardTest"));
 const BillingDashboard = lazy(() => import("./pages/BillingDashboard"));
 const MonthlyBilling = lazy(() => import("./pages/MonthlyBilling"));
+const Settings = lazy(() => import("./pages/Settings"));
 
 const TestSafeContext = lazy(() => import("./pages/TestSafeContext"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -113,7 +113,6 @@ const App = () => {
                       path="/admin"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Admin Dashboard" />}>
                             <Index />
                           </Suspense>
@@ -124,7 +123,6 @@ const App = () => {
                       path="/hostel"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Hostel Profile" />}>
                             <HostelProfile />
                           </Suspense>
@@ -135,7 +133,6 @@ const App = () => {
                       path="/bookings"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Booking Requests" />}>
                             <BookingRequests />
                           </Suspense>
@@ -146,7 +143,6 @@ const App = () => {
                       path="/rooms"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Room Management" />}>
                             <RoomManagement />
                           </Suspense>
@@ -157,7 +153,6 @@ const App = () => {
                       path="/addroom"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Add Room" />}>
                             <AddRoom />
                           </Suspense>
@@ -168,7 +163,6 @@ const App = () => {
                       path="/ledger"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Ledger" />}>
                             <Ledger />
                           </Suspense>
@@ -179,7 +173,6 @@ const App = () => {
                       path="/checkout"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Checkout" />}>
                             <Ledger />
                           </Suspense>
@@ -190,7 +183,6 @@ const App = () => {
                       path="/analytics"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Analytics" />}>
                             <Analytics />
                           </Suspense>
@@ -201,7 +193,6 @@ const App = () => {
                       path="/attendance"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Attendance" />}>
                             <Attendance />
                           </Suspense>
@@ -212,7 +203,6 @@ const App = () => {
                       path="/notifications"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Notifications" />}>
                             <Notifications />
                           </Suspense>
@@ -223,7 +213,6 @@ const App = () => {
                       path="/dashboard-test"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Dashboard Test" />}>
                             <DashboardTest />
                           </Suspense>
@@ -234,7 +223,6 @@ const App = () => {
                       path="/admin/billing-dashboard"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Billing Dashboard" />}>
                             <BillingDashboard />
                           </Suspense>
@@ -245,7 +233,6 @@ const App = () => {
                       path="/admin/monthly-billing"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Monthly Billing" />}>
                             <MonthlyBilling />
                           </Suspense>
@@ -256,9 +243,18 @@ const App = () => {
                       path="/test-safe"
                       element={
                         <AuthGuard>
-                          <AuthHeader />
                           <Suspense fallback={<LoadingFallback componentName="Safe Context Test" />}>
                             <TestSafeContext />
+                          </Suspense>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/settings"
+                      element={
+                        <AuthGuard>
+                          <Suspense fallback={<LoadingFallback componentName="Settings" />}>
+                            <Settings />
                           </Suspense>
                         </AuthGuard>
                       }

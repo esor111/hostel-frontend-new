@@ -143,11 +143,11 @@ export const PaymentRecording = () => {
         createdBy: "admin"
       };
 
-      console.log('🔄 Recording payment:', paymentData);
+
       
       const recordedPayment = await recordPayment(paymentData);
       
-      console.log('✅ Payment recorded successfully:', recordedPayment);
+
       
       // Refresh data after successful payment
       await loadPayments();

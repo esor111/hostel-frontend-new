@@ -8,10 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { 
   RotateCw, 
-  Trash2, 
   Box, 
   AlertTriangle,
-  Copy,
   Settings,
   Users,
   Lock,
@@ -62,9 +60,7 @@ interface RoomElement {
 interface PropertiesPanelProps {
   selectedElement: RoomElement | null;
   onUpdateElement: (id: string, updates: Partial<RoomElement>) => void;
-  onDeleteElement: (id: string) => void;
   onRotateElement: (id: string) => void;
-  onDuplicateElement: (id: string) => void;
   hasCollision: boolean;
   isLastSelected?: boolean;
 }
@@ -72,26 +68,24 @@ interface PropertiesPanelProps {
 export const PropertiesPanel = ({ 
   selectedElement, 
   onUpdateElement, 
-  onDeleteElement, 
   onRotateElement, 
-  onDuplicateElement,
   hasCollision,
   isLastSelected = false
 }: PropertiesPanelProps) => {
   if (!selectedElement) {
     return (
-      <div className="w-80 bg-white border-l border-gray-200 h-full flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-lg flex items-center gap-2">
-            <Settings className="h-5 w-5 text-gray-400" />
+      <div className="w-72 bg-white border-l border-gray-200 h-full flex flex-col">
+        <div className="p-2 border-b border-gray-200">
+          <h3 className="font-semibold text-xs flex items-center gap-1">
+            <Settings className="h-3 w-3 text-gray-400" />
             Properties
           </h3>
         </div>
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center text-gray-500">
-            <Box className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <h4 className="font-medium mb-2">No Element Selected</h4>
-            <p className="text-sm">Click on an element in the canvas to edit its properties</p>
+            <Box className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+            <h4 className="font-medium mb-1 text-xs">No Element Selected</h4>
+            <p className="text-xs">Click on an element to edit</p>
           </div>
         </div>
       </div>
@@ -190,35 +184,24 @@ export const PropertiesPanel = ({
   };
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 h-full flex flex-col">
+    <div className="w-72 bg-white border-l border-gray-200 h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-lg flex items-center gap-2">
-            <Icon className="h-5 w-5" style={{ color: elementType?.color }} />
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <Icon className="h-4 w-4" style={{ color: elementType?.color }} />
             Properties
-            {isLastSelected && (
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                Last Selected
-              </Badge>
-            )}
           </h3>
-          <div className="text-2xl">{elementType?.emoji}</div>
+          <div className="text-lg">{elementType?.emoji}</div>
         </div>
 
-        <div className="flex items-center gap-2 mb-3">
-          <Badge variant="outline" className="capitalize">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="capitalize text-sm">
             {selectedElement.type.replace('-', ' ')}
           </Badge>
           {elementType?.popular && (
-            <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">
+            <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 text-sm">
               Popular
-            </Badge>
-          )}
-          {selectedElement.properties?.isLocked && (
-            <Badge variant="secondary" className="bg-red-100 text-red-700">
-              <Lock className="h-3 w-3 mr-1" />
-              Locked
             </Badge>
           )}
         </div>
@@ -233,22 +216,6 @@ export const PropertiesPanel = ({
             disabled={selectedElement.properties?.isLocked}
           >
             <RotateCw className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onDuplicateElement(selectedElement.id)}
-            className="flex-1"
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onDeleteElement(selectedElement.id)}
-            className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -267,10 +234,10 @@ export const PropertiesPanel = ({
       )}
 
       {/* Properties Form */}
-      <div className="flex-1 p-4 space-y-6 overflow-y-auto">
+      <div className="flex-1 p-2 space-y-2 overflow-y-auto">
         {/* Lock/Unlock Toggle */}
         {selectedElement.type === 'bunk-bed' && (
-          <div className="space-y-4">
+          <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label className="text-sm text-gray-700 flex items-center gap-2">
                 {selectedElement.properties?.isLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
@@ -288,7 +255,7 @@ export const PropertiesPanel = ({
         )}
 
         {/* Position & Size */}
-        <div className="space-y-4">
+        <div className="space-y-2">
           <h4 className="font-medium text-sm text-gray-900 flex items-center gap-2">
             <Box className="h-4 w-4" />
             Position & Size
@@ -530,27 +497,7 @@ export const PropertiesPanel = ({
 
       </div>
 
-      {/* Footer Actions */}
-      <div className="p-4 border-t border-gray-200 space-y-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full"
-          onClick={() => onDuplicateElement(selectedElement.id)}
-        >
-          <Copy className="h-4 w-4 mr-2" />
-          Duplicate Element
-        </Button>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-          onClick={() => onDeleteElement(selectedElement.id)}
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete Element
-        </Button>
-      </div>
+
     </div>
   );
 };

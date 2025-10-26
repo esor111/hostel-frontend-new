@@ -179,7 +179,7 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                         description: `Partial month billing (${currentMonthBilling.daysCharged} days) - Checkout till ${checkoutDate}`,
                         type: 'debit'
                     });
-                    console.log('✅ Partial billing added to ledger');
+
                 } catch (error) {
                     console.error('Error adding partial billing to ledger:', error);
                 }
@@ -195,9 +195,9 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                 processedBy: "Admin"
             };
 
-            console.log('🚪 Processing checkout via API:', checkoutRequest);
+
             const checkoutResult = await checkoutApiService.processCheckout(student.id, checkoutRequest);
-            console.log('✅ Checkout API response:', checkoutResult);
+
 
             // 3. Complete checkout
             onCheckoutComplete(student.id);
@@ -532,7 +532,7 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
 
 // Updated: 2025-01-08 - API Integration with real Students API
 export const StudentCheckoutManagement = () => {
-    console.log('🔄 StudentCheckoutManagement component loaded with API integration');
+
 
     // Use real Students API
     const {
@@ -557,18 +557,14 @@ export const StudentCheckoutManagement = () => {
 
     // Transform API students to local Student format and filter active students
     const transformedStudents: Student[] = useMemo(() => {
-        console.log('🔍 Raw API Students:', apiStudents.length, 'students');
-        console.log('🔍 Students with status=Active:', apiStudents.filter(s => s.status === 'Active').length);
-        console.log('🔍 Students with status=Inactive:', apiStudents.filter(s => s.status === 'Inactive').length);
-        console.log('🔍 Students with status=Suspended:', apiStudents.filter(s => s.status === 'Suspended').length);
-        console.log('🔍 Students with status=Graduated:', apiStudents.filter(s => s.status === 'Graduated').length);
+
 
         return apiStudents
             .filter(student => {
                 // Only show students with 'Active' status - these are the ones available for checkout
                 const isActive = student.status === 'Active';
 
-                console.log(`🔍 Student ${student.name} (${student.id}): status=${student.status}, showing=${isActive}`);
+
                 return isActive;
             }) // Only active students
             .map((student, index) => ({
@@ -643,12 +639,12 @@ export const StudentCheckoutManagement = () => {
     };
 
     const handleCheckoutComplete = async (studentId: string) => {
-        console.log(`✅ Student ${studentId} checkout completed - refreshing data from API`);
+
 
         // Immediately remove the student from local state to provide instant feedback
         setFilteredStudents(prev => {
             const updated = prev.filter(student => student.id !== studentId);
-            console.log(`🔄 Removed student ${studentId} from local state. Remaining: ${updated.length} students`);
+
             return updated;
         });
         setSelectedStudent(null);
@@ -659,7 +655,7 @@ export const StudentCheckoutManagement = () => {
         // Refresh data from API with multiple attempts to ensure consistency
         const refreshWithRetry = async (attempt = 1, maxAttempts = 3) => {
             try {
-                console.log(`🔄 Refreshing data from API (attempt ${attempt}/${maxAttempts})...`);
+
                 await refreshData();
 
                 // Verify the student status is changed to Inactive after checkout
@@ -673,7 +669,7 @@ export const StudentCheckoutManagement = () => {
                     }
                 }
 
-                console.log('✅ Student data refreshed from API after checkout');
+
             } catch (error) {
                 console.error(`❌ Error refreshing student data after checkout (attempt ${attempt}):`, error);
                 if (attempt < maxAttempts) {
@@ -751,7 +747,7 @@ export const StudentCheckoutManagement = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                            console.log('🔄 Manual refresh triggered');
+
                             refreshData();
                         }}
                         disabled={studentsLoading}

@@ -11,6 +11,7 @@ const getElementEmoji = (elementType: string, properties?: any): string => {
   const emojiMap: Record<string, string> = {
     'single-bed': '🛏️',
     'bunk-bed': '🏠',
+    'bunk-bed-level': '🛏️',
     'double-bed': '🛌',
     'kids-bed': '🧸',
     'study-table': '🪑',
@@ -198,6 +199,34 @@ export const RoomCanvas = ({
   checkCollisions,
   warnings
 }: RoomCanvasProps) => {
+  
+  // 🔧 ZOOM-PROOF COORDINATE TRANSFORMATION SYSTEM 🔧
+  // This fixes the drag & drop issue at 100% browser zoom by properly accounting for:
+  // 1. Browser zoom level (80%, 90%, 100%, 110%, etc.)
+  // 2. CSS scaling and transforms
+  // 3. Device pixel ratio (high-DPI displays)
+  // 4. Canvas internal scaling vs displayed size
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Prevent division by zero and handle edge cases
+    if (rect.width === 0 || rect.height === 0) {
+      return { x: 0, y: 0 };
+    }
+    
+    // Calculate the scale factor between actual canvas size and displayed size
+    // This is the key fix - it accounts for ALL zoom and scaling factors
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // Convert mouse coordinates to canvas coordinates with proper zoom handling
+    // The magic formula: (mousePos - canvasOffset) * displayScale / internalScale
+    const x = ((e.clientX - rect.left) * scaleX) / canvasScale;
+    const y = ((e.clientY - rect.top) * scaleY) / canvasScale;
+    
+    return { x, y };
+  };
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, elementId: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -385,7 +414,7 @@ export const RoomCanvas = ({
           ctx.fillText(shortName, 0, height * 0.35);
         }
         
-      } else if (element.type === 'bunk-bed') {
+      } else if (element.type === 'bunk-bed' || element.type === 'bunk-bed-level') {
         const bunkLevels = element.properties?.bunkLevels || 2;
         const levels = element.properties?.levels || [];
         
@@ -666,10 +695,8 @@ export const RoomCanvas = ({
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { x, y } = getCanvasCoordinates(e);
     const canvas = e.currentTarget;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / canvasScale;
-    const y = (e.clientY - rect.top) / canvasScale;
 
     const clickedElement = getElementAtPosition(x, y);
 
@@ -746,10 +773,8 @@ export const RoomCanvas = ({
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { x, y } = getCanvasCoordinates(e);
     const canvas = e.currentTarget;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / canvasScale;
-    const y = (e.clientY - rect.top) / canvasScale;
 
     // 🧈🧈🧈 ULTRA-SMOOTH BUTTER DRAG SYSTEM 🧈🧈🧈
     if (isDragging && draggedElementId && dragOffset) {
@@ -967,11 +992,7 @@ export const RoomCanvas = ({
 
   const handleCanvasRightClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-
-    const canvas = e.currentTarget;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / canvasScale;
-    const y = (e.clientY - rect.top) / canvasScale;
+    const { x, y } = getCanvasCoordinates(e);
 
     const clickedElement = getElementAtPosition(x, y);
 
@@ -1077,28 +1098,8 @@ export const RoomCanvas = ({
   }, [selectedElements, snapToGrid, onElementsMove, onElementsMoveComplete]);
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 p-4 relative overflow-auto">
-      {/* Canvas Header */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex gap-2 flex-wrap">
-          <Badge variant="outline" className="bg-white">
-            <Grid3X3 className="h-4 w-4 mr-2" />
-            2D View • {canvasScale}px/m
-          </Badge>
-          <Badge variant="secondary">
-            <Ruler className="h-4 w-4 mr-2" />
-            {formatDimensionsAsFeet(dimensions.length, dimensions.width)}
-          </Badge>
-          <Badge variant="outline" className="bg-green-50 text-green-700">
-            📦 {elements.length} elements
-          </Badge>
-          {selectedElements.length > 0 && (
-            <Badge variant="default">
-              ✅ {selectedElements.length} selected
-            </Badge>
-          )}
-        </div>
-      </div>
+    <div className="flex-1 flex flex-col bg-gray-50 p-4 relative min-h-0">
+
 
       {/* Warnings */}
       {warnings.length > 0 && (
@@ -1118,61 +1119,36 @@ export const RoomCanvas = ({
         </div>
       )}
 
-      {/* Canvas Container */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-lg shadow-sm border p-4">
-        <div className="relative overflow-auto max-h-[60vh] max-w-full">
-          <canvas
-            ref={canvasRef}
-            width={dimensions.length * canvasScale}
-            height={dimensions.width * canvasScale}
-            className="cursor-crosshair border rounded select-none"
-            onMouseDown={handleCanvasMouseDown}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
-            onMouseLeave={handleCanvasMouseLeave}
-            onContextMenu={handleCanvasRightClick}
-            style={{ 
-              touchAction: 'none',
-              willChange: isDragging ? 'transform' : 'auto',
-              backfaceVisibility: 'hidden',
-              perspective: '1000px',
-              transform: 'translateZ(0)',
-              transition: isDragging ? 'none' : 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-            }}
-          />
+      {/* Canvas Container - FIXED SIZING */}
+      <div className="flex-1 flex flex-col bg-white rounded-lg shadow-sm border overflow-hidden">
+        {/* Canvas Wrapper - Proper scrolling */}
+        <div className="flex-1 overflow-auto p-4">
+          <div className="flex items-center justify-center min-h-full">
+            <canvas
+              ref={canvasRef}
+              width={dimensions.length * canvasScale}
+              height={dimensions.width * canvasScale}
+              className="cursor-crosshair border rounded select-none"
+              onMouseDown={handleCanvasMouseDown}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseLeave}
+              onContextMenu={handleCanvasRightClick}
+              style={{ 
+                touchAction: 'none',
+                willChange: isDragging ? 'transform' : 'auto',
+                backfaceVisibility: 'hidden',
+                perspective: '1000px',
+                transform: 'translateZ(0)',
+                transition: isDragging ? 'none' : 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                maxWidth: '100%',
+                maxHeight: '100%'
+              }}
+            />
+          </div>
         </div>
 
-        {/* Status Legend & Controls */}
-        <div className="mt-6 space-y-4">
-          {/* Status Legend - Industry Standard Colors */}
-          <div className="flex items-center justify-center gap-8 p-4 bg-gray-50 rounded-lg border">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-gray-300 border border-gray-300"></div>
-              <span className="text-sm font-medium text-gray-700">Available</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-blue-500 border border-gray-300"></div>
-              <span className="text-sm font-medium text-gray-700">Selected</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-amber-500 border border-gray-300"></div>
-              <span className="text-sm font-medium text-gray-700">Booked</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-red-500 border border-gray-300"></div>
-              <span className="text-sm font-medium text-gray-700">Occupied</span>
-            </div>
-          </div>
-          
-          {/* Quick Controls */}
-          <div className="flex items-center justify-center gap-6 p-3 bg-blue-50 rounded-lg border text-sm text-blue-800">
-            <span>💡 <strong>Pro Tips:</strong></span>
-            <span>• Drag elements smoothly to any position</span>
-            <span>• Use arrow keys for precise movement</span>
-            <span>• Hold Shift + arrows for fine adjustments</span>
-            <span>• Right-click for context menu</span>
-          </div>
-        </div>
+
 
         {/* Tooltip removed - was causing UI obstruction issues */}
       </div>

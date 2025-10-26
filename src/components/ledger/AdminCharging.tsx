@@ -53,7 +53,7 @@ export const AdminCharging = () => {
   const [showBulkCharge, setShowBulkCharge] = useState(false);
 
   useEffect(() => {
-    console.log('🚀 AdminCharging component mounted, loading data...');
+
     loadOverdueStudents();
     loadTodaySummary();
   }, []);

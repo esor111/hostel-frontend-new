@@ -85,7 +85,7 @@ export const ParentBookingForm: React.FC<ParentBookingFormProps> = ({
     const fetchAvailableBeds = async () => {
       setLoadingBeds(true);
       try {
-        console.log('🔍 Fetching available beds from API...');
+
         const rooms = await roomsApiService.getRooms();
         
         const beds: Array<{ id: string; label: string; roomName: string; rate: number }> = [];
@@ -108,7 +108,7 @@ export const ParentBookingForm: React.FC<ParentBookingFormProps> = ({
           }
         });
         
-        console.log(`✅ Found ${beds.length} available beds`);
+
         setAvailableBeds(beds);
       } catch (error) {
         console.error('❌ Error fetching available beds:', error);
@@ -236,11 +236,11 @@ export const ParentBookingForm: React.FC<ParentBookingFormProps> = ({
         }
       };
 
-      console.log('🔄 Submitting parent booking for children:', bookingData);
+
       
       const result = await createMultiGuestBooking(bookingData);
       
-      console.log('✅ Parent booking created successfully:', result);
+
       
       if (onSuccess) {
         onSuccess(result);

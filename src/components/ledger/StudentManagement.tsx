@@ -646,9 +646,9 @@ export const StudentManagement = () => {
     const refreshParam = params.get('refresh');
     
     if (refreshParam) {
-      console.log('🔄 Refresh parameter detected, reloading student data...');
+
       refreshData().then(() => {
-        console.log('✅ Student data refreshed successfully');
+
       }).catch(err => {
         console.error('❌ Error refreshing student data:', err);
       });
@@ -697,22 +697,7 @@ export const StudentManagement = () => {
   const configuredStudents = students?.filter(student => student.isConfigured) || [];
 
   // Debug logging
-  console.log('🔍 StudentManagement Debug:', {
-    totalStudents: students?.length || 0,
-    pendingCount: pendingStudents.length,
-    configuredCount: configuredStudents.length,
-    unconfiguredStudents: students?.filter(s => !s.isConfigured).map(s => ({ 
-      id: s.id, 
-      name: s.name, 
-      status: s.status, 
-      isConfigured: s.isConfigured 
-    })) || [],
-    allStudentsStatus: students?.map(s => ({ 
-      name: s.name.substring(0, 20), 
-      status: s.status, 
-      isConfigured: s.isConfigured 
-    })) || []
-  });
+
 
   // Filter configured students based on search
   const filteredStudents = configuredStudents.filter(student =>
