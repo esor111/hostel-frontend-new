@@ -457,27 +457,39 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
         el.type === 'single-bed' || el.type === 'bunk-bed'
       ).length;
 
-      // Check if room has a bed count limit
+      // 🔧 FLEXIBLE VALIDATION: Allow editing beyond initial bedCount
+      // During editing, the layout can have more beds than the original bedCount
+      // The backend will update the room's bedCount to match the layout
       if (roomData?.bedCount && roomData.bedCount > 0) {
         const roomBedLimit = roomData.bedCount;
         const newBedElements = 1; // Each bed (single or bunk) = 1 bookable unit
+        const wouldExceed = currentBedElements + newBedElements > roomBedLimit;
 
-        console.log('✅ Bed element validation active:', {
+        console.log('✅ Bed element validation (flexible for editing):', {
           roomBedLimit,
           currentBedElements,
           newBedElements,
-          wouldExceed: currentBedElements + newBedElements > roomBedLimit
+          wouldExceed,
+          isEditing: !!roomData.name // If room has name, it's being edited
         });
 
-        if (currentBedElements + newBedElements > roomBedLimit) {
-          toast.error(`Cannot add ${type.replace('-', ' ')}!`, {
-            description: `Room bed limit: ${roomBedLimit}. Current: ${currentBedElements} beds. Adding ${type.replace('-', ' ')} would exceed limit.`,
+        // Only enforce strict limits for new rooms, be flexible for editing
+        if (wouldExceed && currentBedElements >= roomBedLimit * 2) {
+          // Only block if trying to add way too many beds (2x the original limit)
+          toast.error(`Too many beds!`, {
+            description: `Consider creating multiple rooms. Current: ${currentBedElements} beds, original limit: ${roomBedLimit}.`,
             duration: 5000,
           });
-          return; // Prevent adding the bed
+          return; // Prevent adding excessive beds
+        } else if (wouldExceed) {
+          // Show warning but allow adding
+          toast.info(`Expanding room capacity`, {
+            description: `Adding bed ${currentBedElements + 1}. Room will be updated to accommodate ${currentBedElements + 1} beds.`,
+            duration: 3000,
+          });
         }
       } else {
-        console.log('⚠️ No bed count limit set for this room', {
+        console.log('⚠️ No bed count limit set for this room - allowing unlimited beds', {
           roomData: roomData,
           bedCount: roomData?.bedCount,
           hasRoomData: !!roomData
@@ -737,6 +749,17 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
     console.log('🎨 RoomDesigner - Saving layout');
     console.log('📐 Dimensions:', dimensions);
 
+    // 🔧 ENHANCED DEBUGGING: Track bed count changes
+    const bedElements = elements.filter(el => el.type === 'single-bed' || el.type === 'bunk-bed');
+    const newBedCount = bedElements.length;
+    const originalBedCount = roomData?.bedCount || 0;
+
+    console.log('🛏️ Bed count analysis:', {
+      originalBedCount,
+      newBedCount,
+      bedCountChanged: originalBedCount !== newBedCount,
+      bedElements: bedElements.map(el => ({ id: el.id, type: el.type }))
+    });
 
     const layout = {
       dimensions,
@@ -750,11 +773,12 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
       hasDimensions: !!layout.dimensions,
       hasElements: !!layout.elements,
       elementsCount: layout.elements?.length || 0,
+      bedElementsCount: newBedCount,
       hasTheme: !!layout.theme
     });
 
     onSave(layout);
-    toast.success("Room layout saved successfully!");
+    toast.success(`Room layout saved! ${newBedCount} bed${newBedCount !== 1 ? 's' : ''} configured.`);
   };
 
   const clearRoom = () => {
