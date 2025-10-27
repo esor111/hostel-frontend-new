@@ -23,6 +23,7 @@ export interface Room {
   maintenanceStatus: string;
   pricingModel: string;
   description: string;
+  images: string[]; // Added missing images field
   createdAt: string;
   updatedAt: string;
 }
