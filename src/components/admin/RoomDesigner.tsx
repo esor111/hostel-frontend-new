@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Box, AlertTriangle, ArrowLeft, Bed } from "lucide-react";
+import { Box, AlertTriangle, ArrowLeft, Bed, Save } from "lucide-react";
 import { toast } from "sonner";
 import { RoomSetupWizard } from "./room-designer/RoomSetupWizard";
 import { ElementLibraryPanel } from "./room-designer/ElementLibraryPanel";
@@ -809,90 +809,137 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
-
-
-
-
-      {/* View Mode Toolbar - Simplified */}
-      {isViewMode && (
-        <div className="bg-white border-b border-gray-200 px-6 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">
-                Room Layout View - {elements.length} beds
+      {/* Professional Header Bar - FIXED POSITIONING */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* Left Section - Navigation */}
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="hover:bg-gray-100 flex-shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Back to Rooms</span>
+              <span className="sm:hidden">Back</span>
+            </Button>
+            <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
+            <div className="min-w-0">
+              <h1 className="text-lg font-semibold text-gray-900 truncate">
+                {isViewMode ? 'Room Layout View' : 'Room Designer'}
+              </h1>
+              <div className="flex items-center gap-2 sm:gap-3 text-sm text-gray-600 flex-wrap">
+                <span>
+                  {(() => {
+                    // Count actual bed elements
+                    let bedElements = 0;
+                    elements.forEach(el => {
+                      if (el.type === 'single-bed' || el.type === 'bunk-bed') {
+                        bedElements += 1;
+                      }
+                    });
+                    return bedElements;
+                  })()} beds
+                </span>
+                <span className="hidden sm:inline">•</span>
+                <span className="hidden sm:inline">{elements.length} elements</span>
+                <span className="hidden sm:inline">•</span>
+                <span className="hidden md:inline">
+                  {(dimensions.length * 3.28084).toFixed(1)} × {(dimensions.width * 3.28084).toFixed(1)} ft
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-green-500 rounded"></div>
-                  <span className="text-xs">Available</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-red-500 rounded"></div>
-                  <span className="text-xs">Occupied</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                  <span className="text-xs">Reserved</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-gray-500 rounded"></div>
-                  <span className="text-xs">Maintenance</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleZoom(-5)}
-              >
-                Zoom Out
-              </Button>
-              <span className="text-sm text-gray-600">{scale}%</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleZoom(5)}
-              >
-                Zoom In
-              </Button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Floating Action Buttons */}
-      <div className="fixed top-4 left-4 z-50">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onClose}
-          className="bg-white shadow-lg hover:shadow-xl border-gray-300 hover:bg-gray-50"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+          {/* Right Section - Actions */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* View Mode Status Badge */}
+            {isViewMode && (
+              <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                View Mode
+              </Badge>
+            )}
+
+            {/* Zoom Controls for View Mode */}
+            {isViewMode && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleZoom(-5)}
+                >
+                  Zoom Out
+                </Button>
+                <span className="text-sm text-gray-600 min-w-[40px] text-center">{scale}%</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleZoom(5)}
+                >
+                  Zoom In
+                </Button>
+              </div>
+            )}
+
+            {/* Save Actions for Edit Mode */}
+            {!isViewMode && (
+              <>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                  <span className="hidden sm:inline">Unsaved changes</span>
+                  <span className="sm:hidden">Unsaved</span>
+                </div>
+                <Button
+                  onClick={saveLayout}
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  <Save className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Save Layout</span>
+                </Button>
+                <Button
+                  onClick={() => {
+                    saveLayout();
+                    setTimeout(() => onClose(), 500); // Small delay for save feedback
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="border-purple-200 text-purple-700 hover:bg-purple-50 hidden sm:flex"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save & Close
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Status Legend for View Mode */}
+        {isViewMode && (
+          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
+            <span className="text-sm font-medium text-gray-700">Bed Status:</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                <span className="text-xs text-gray-600">Available</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-red-500 rounded"></div>
+                <span className="text-xs text-gray-600">Occupied</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                <span className="text-xs text-gray-600">Reserved</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-gray-500 rounded"></div>
+                <span className="text-xs text-gray-600">Maintenance</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-
-      {!isViewMode && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Button
-            onClick={saveLayout}
-            size="sm"
-            className="bg-purple-600 hover:bg-purple-700 shadow-lg hover:shadow-xl"
-          >
-            Save Layout
-          </Button>
-        </div>
-      )}
-
-      {isViewMode && (
-        <div className="fixed top-4 right-4 z-50">
-          <Badge variant="secondary" className="bg-white shadow-lg border">
-            View Mode
-          </Badge>
-        </div>
-      )}
 
       {/* Main Designer Layout - FIXED OVERFLOW */}
       <div className="flex-1 flex overflow-hidden min-h-0">
@@ -906,36 +953,7 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
         )}
 
         {/* Canvas Container - FIXED SIZING */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 pt-2 pb-2">
-          {/* Dynamic Canvas Title Bar */}
-          <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-3 text-sm text-gray-700">
-              <span className="font-medium">
-                {isViewMode ? 'Room Layout View' : 'Room Designer'}
-              </span>
-              <span className="text-blue-600">
-                {(() => {
-                  // Count actual bed elements (not bed capacity)
-                  let bedElements = 0;
-                  elements.forEach(el => {
-                    if (el.type === 'single-bed' || el.type === 'bunk-bed') {
-                      bedElements += 1; // Count each bed element as 1, regardless of levels
-                    }
-                  });
-                  return bedElements;
-                })()} beds
-              </span>
-              <span className="text-gray-500 text-xs">
-                • {elements.length} elements
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span>
-                {(dimensions.length * 3.28084).toFixed(1)} × {(dimensions.width * 3.28084).toFixed(1)} × {(dimensions.height * 3.28084).toFixed(1)} ft
-              </span>
-            </div>
-          </div>
-
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Canvas */}
           <div className="flex-1 overflow-hidden">
             <RoomCanvas
