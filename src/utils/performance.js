@@ -276,6 +276,20 @@ export class PerformanceManager {
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
         console.log('Service Worker registered:', registration);
+        
+        // Clear cache in development to prevent stale API calls
+        if (import.meta.env.DEV || import.meta.env.VITE_ENVIRONMENT === 'localhost') {
+          console.log('🧹 Clearing service worker cache in development...');
+          if (registration.active) {
+            registration.active.postMessage({ type: 'CLEAR_CACHE' });
+          }
+          // Also clear browser caches
+          if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+            console.log('✅ Cleared all caches:', cacheNames);
+          }
+        }
       } catch (error) {
         console.log('Service Worker registration failed:', error);
       }

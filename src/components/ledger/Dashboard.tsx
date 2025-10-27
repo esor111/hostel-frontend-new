@@ -139,9 +139,7 @@ export const Dashboard = memo(() => {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-[#07A64F] via-[#1295D0] to-[#07A64F] bg-clip-text text-transparent tracking-tight">
                       Kaha KLedger
                     </h1>
-                    <div className="text-slate-600 font-medium text-lg">
-                      Student Financial Management System
-                    </div>
+
                   </div>
                 </div>
               </div>

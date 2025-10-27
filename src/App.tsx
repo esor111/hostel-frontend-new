@@ -10,6 +10,7 @@ import { SafeTooltipProvider } from "@/components/providers/SafeTooltipProvider"
 import { KahaLogo } from "@/components/common/KahaLogo";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AuthGuard from "@/components/auth/AuthGuard";
+import { performanceManager } from "@/utils/performance.js";
 
 // Lazy load components for better initial load performance
 const Landing = lazy(() => import("./pages/Landing"));
@@ -69,6 +70,42 @@ const LoadingFallback = ({ componentName }: { componentName?: string }) => (
 const App = () => {
   useEffect(() => {
     console.log('🚀 Kaha Hostel Control Center starting...');
+    
+    // Performance manager is already initialized via constructor
+    console.log('✅ Performance manager loaded');
+    
+    // Add manual cache clearing function to window for debugging
+    if (import.meta.env.DEV) {
+      (window as any).clearAllCaches = async () => {
+        console.log('🧹 Manually clearing all caches...');
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration.active) {
+            registration.active.postMessage({ type: 'CLEAR_CACHE' });
+          }
+        }
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+          console.log('✅ Cleared all caches:', cacheNames);
+        }
+        localStorage.clear();
+        sessionStorage.clear();
+        console.log('✅ Cleared all storage. Please refresh the page.');
+      };
+      
+      // Trigger cache clearing immediately in development
+      setTimeout(async () => {
+        console.log('🧹 Auto-clearing caches in development...');
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          if (cacheNames.length > 0) {
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+            console.log('✅ Auto-cleared caches:', cacheNames);
+          }
+        }
+      }, 1000);
+    }
     
     // Clear any corrupted localStorage data
     try {

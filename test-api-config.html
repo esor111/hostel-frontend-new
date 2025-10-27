@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Configuration Test</title>
+</head>
+<body>
+    <h1>API Configuration Test</h1>
+    <div id="results"></div>
+    
+    <script type="module">
+        // Test environment configuration
+        const ENVIRONMENT_CONFIGS = {
+            localhost: {
+                apiBaseUrl: 'http://localhost:3001/hostel/api/v1',
+                environment: 'localhost',
+                debugMode: true,
+                logLevel: 'debug',
+            },
+            development: {
+                apiBaseUrl: 'https://dev.kaha.com.np/hostel/api/v1',
+                environment: 'development',
+                debugMode: true,
+                logLevel: 'info',
+            },
+            production: {
+                apiBaseUrl: 'https://dev.kaha.com.np/hostel/api/v1',
+                environment: 'production',
+                debugMode: false,
+                logLevel: 'error',
+            },
+        };
+
+        const getEnvironmentConfig = () => {
+            // Simulate Vite environment variable
+            const currentEnv = 'localhost'; // This should match .env file
+            console.log('🔧 Environment:', currentEnv, '- API Base:', ENVIRONMENT_CONFIGS[currentEnv].apiBaseUrl);
+            return ENVIRONMENT_CONFIGS[currentEnv];
+        };
+
+        const buildApiUrl = (endpoint) => {
+            const config = getEnvironmentConfig();
+            const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+            const fullUrl = `${config.apiBaseUrl}${cleanEndpoint}`;
+            console.log('🌐 Building API URL:', { endpoint, fullUrl });
+            return fullUrl;
+        };
+
+        // Test API call
+        async function testApiCall() {
+            const url = buildApiUrl('/rooms-optimized/lightweight?hostelId=c199ac90-7b51-42e0-8caa-a24c45e2c30f');
+            
+            try {
+                console.log('🚀 Testing API call to:', url);
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                document.getElementById('results').innerHTML = `
+                    <h2>✅ API Test Results</h2>
+                    <p><strong>URL:</strong> ${url}</p>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Data:</strong> ${JSON.stringify(data, null, 2)}</p>
+                `;
+                
+                console.log('✅ API Response:', data);
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <h2>❌ API Test Failed</h2>
+                    <p><strong>URL:</strong> ${url}</p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+                
+                console.error('❌ API Error:', error);
+            }
+        }
+
+        // Run test
+        testApiCall();
+    </script>
+</body>
+</html>

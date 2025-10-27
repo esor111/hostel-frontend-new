@@ -30,11 +30,13 @@ export const ENVIRONMENT_CONFIGS: Record<Environment, EnvironmentConfig> = {
 
 export const getEnvironmentConfig = (): EnvironmentConfig => {
   const currentEnv = (import.meta.env.VITE_ENVIRONMENT as Environment) || 'development';
+  console.log('🔧 Environment:', currentEnv, '- API Base:', ENVIRONMENT_CONFIGS[currentEnv].apiBaseUrl);
   return ENVIRONMENT_CONFIGS[currentEnv];
 };
 
 export const buildApiUrl = (endpoint: string): string => {
   const config = getEnvironmentConfig();
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${config.apiBaseUrl}${cleanEndpoint}`;
+  const fullUrl = `${config.apiBaseUrl}${cleanEndpoint}`;
+  return fullUrl;
 };
