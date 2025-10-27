@@ -40,7 +40,13 @@ export class ImageUploadService {
       });
 
       if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        const errorText = await response.text().catch(() => response.statusText);
+        console.error('❌ Upload service error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Upload failed: ${response.status} - ${errorText || response.statusText}`);
       }
 
       const result: ImageUploadResponse = await response.json();
@@ -54,7 +60,16 @@ export class ImageUploadService {
       return result.fileUrls;
     } catch (error) {
       console.error('❌ Error uploading images:', error);
-      toast.error('Failed to upload images. Please try again.');
+      
+      // Provide more specific error messages
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        toast.error('Cannot connect to upload service. Please check your internet connection.');
+      } else if (error instanceof Error) {
+        toast.error(`Upload failed: ${error.message}`);
+      } else {
+        toast.error('Failed to upload images. Please try again.');
+      }
+      
       throw error;
     }
   }

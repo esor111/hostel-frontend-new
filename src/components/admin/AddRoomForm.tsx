@@ -42,6 +42,7 @@ export const AddRoomForm = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showRoomDesigner, setShowRoomDesigner] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploadingImages, setIsUploadingImages] = useState(false);
     
     // Use the rooms hook for API integration
     const { createRoom, updateRoom, refreshData } = useRooms();
@@ -112,6 +113,12 @@ export const AddRoomForm = () => {
     };
 
     const handleSubmit = async () => {
+        // Check if images are still uploading
+        if (isUploadingImages) {
+            toast.error("Please wait for images to finish uploading");
+            return;
+        }
+
         setIsSubmitting(true);
         
         // Validation
@@ -159,6 +166,10 @@ export const AddRoomForm = () => {
                 description: formData.description,
                 layout: formData.layout
             };
+
+            // Log images for debugging
+            console.log('🖼️ Images in room payload:', formData.images);
+            console.log('📊 Total images:', formData.images.length);
 
             if (isEditing && (editRoomId || roomData?.id)) {
                 // Update existing room
@@ -413,6 +424,7 @@ export const AddRoomForm = () => {
                                     existingImages={formData.images}
                                     maxImages={8}
                                     className="mt-3"
+                                    onUploadStateChange={setIsUploadingImages}
                                 />
                             </div>
                         </CardContent>
@@ -529,18 +541,23 @@ export const AddRoomForm = () => {
                     <div className="space-y-3">
                         <Button 
                             onClick={handleSubmit} 
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || isUploadingImages}
                             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                         >
-                            {isSubmitting ? (
+                            {isUploadingImages ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    {isEditing ? "Saving..." : "Creating..."}
+                                    <Upload className="h-4 w-4 mr-2 animate-pulse" />
+                                    Uploading images...
+                                </>
+                            ) : isSubmitting ? (
+                                <>
+                                    <Save className="h-4 w-4 mr-2 animate-spin" />
+                                    {isEditing ? 'Updating...' : 'Creating...'}
                                 </>
                             ) : (
                                 <>
                                     <Save className="h-4 w-4 mr-2" />
-                                    {isEditing ? "Save & Exit" : "Create Room"}
+                                    {isEditing ? 'Update Room' : 'Create Room'}
                                 </>
                             )}
                         </Button>

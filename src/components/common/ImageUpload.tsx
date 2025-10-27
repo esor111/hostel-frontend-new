@@ -12,6 +12,7 @@ interface ImageUploadProps {
   maxImages?: number;
   disabled?: boolean;
   className?: string;
+  onUploadStateChange?: (isUploading: boolean) => void;
 }
 
 interface PreviewImage {
@@ -30,6 +31,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   maxImages = 10,
   disabled = false,
   className = '',
+  onUploadStateChange,
 }) => {
   const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -86,6 +88,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     if (imagesToUpload.length === 0) return;
 
     setUploading(true);
+    onUploadStateChange?.(true);
 
     try {
       // Mark images as uploading
@@ -155,6 +158,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       toast.error('Upload failed. Please try again.');
     } finally {
       setUploading(false);
+      onUploadStateChange?.(false);
     }
   };
 
