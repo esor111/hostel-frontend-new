@@ -1,16 +1,22 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface KahaLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   animated?: boolean;
   className?: string;
+  clickable?: boolean;
+  redirectTo?: string;
 }
 
 export const KahaLogo: React.FC<KahaLogoProps> = ({ 
   size = 'md', 
   animated = false, 
-  className = '' 
+  className = '',
+  clickable = true,
+  redirectTo = '/admin'
 }) => {
+  const navigate = useNavigate();
   const sizeClasses = {
     sm: { width: 44, height: 66 },   // Increased from 22×33
     md: { width: 66, height: 100 },  // Increased from 33×50
@@ -22,15 +28,20 @@ export const KahaLogo: React.FC<KahaLogoProps> = ({
   const animationClass = animated ? 'animate-pulse' : '';
   const dimensions = sizeClasses[size];
 
-  return (
-    <div className={`${animationClass} ${className}`}>
-      <svg 
-        width={dimensions.width} 
-        height={dimensions.height} 
-        viewBox="0 0 55 83" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg"
-      >
+  const handleClick = () => {
+    if (clickable) {
+      navigate(redirectTo);
+    }
+  };
+
+  const logoContent = (
+    <svg 
+      width={dimensions.width} 
+      height={dimensions.height} 
+      viewBox="0 0 55 83" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+    >
         <g clipPath="url(#clip0_319_901)">
           <path d="M27.3935 0.0466309C12.2652 0.0466309 0 12.2774 0 27.3662C0 40.746 7.8608 47.9976 16.6341 59.8356C25.9039 72.3432 27.3935 74.1327 27.3935 74.1327C27.3935 74.1327 31.3013 69.0924 37.9305 59.9483C46.5812 48.0201 54.787 40.746 54.787 27.3662C54.787 12.2774 42.5218 0.0466309 27.3935 0.0466309Z" fill="#07A64F"/>
           <path d="M31.382 79.0185C31.382 81.2169 29.5957 83 27.3935 83C25.1913 83 23.4051 81.2169 23.4051 79.0185C23.4051 76.8202 25.1913 75.0371 27.3935 75.0371C29.5957 75.0371 31.382 76.8202 31.382 79.0185Z" fill="#07A64F"/>
@@ -59,6 +70,23 @@ export const KahaLogo: React.FC<KahaLogoProps> = ({
           </clipPath>
         </defs>
       </svg>
+  );
+
+  return (
+    <div 
+      className={`${animationClass} ${className} ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity duration-200' : ''}`}
+      onClick={handleClick}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      } : undefined}
+      title={clickable ? 'Go to Dashboard' : undefined}
+    >
+      {logoContent}
     </div>
   );
 };

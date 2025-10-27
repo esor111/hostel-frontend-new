@@ -17,7 +17,7 @@ interface AuthGuardProps {
 const LoadingScreen = () => (
   <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center">
     <div className="text-center space-y-6">
-      <KahaLogo size="xl" animated className="justify-center" />
+      <KahaLogo size="xl" animated className="justify-center" clickable={false} />
       <div className="space-y-3">
         <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
         <p className="text-lg font-medium text-gray-700">Loading...</p>
@@ -30,7 +30,7 @@ const LoadingScreen = () => (
 const ErrorScreen = ({ error }: { error: string }) => (
   <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 flex items-center justify-center">
     <div className="text-center space-y-6 max-w-md mx-auto p-6">
-      <KahaLogo size="lg" className="justify-center" />
+      <KahaLogo size="lg" className="justify-center" clickable={false} />
       <div className="space-y-3">
         <h2 className="text-xl font-semibold text-red-600">Authentication Error</h2>
         <p className="text-gray-600">{error}</p>

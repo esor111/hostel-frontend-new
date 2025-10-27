@@ -54,7 +54,7 @@ const queryClient = new QueryClient({
 const LoadingFallback = ({ componentName }: { componentName?: string }) => (
   <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center">
     <div className="text-center space-y-6">
-      <KahaLogo size="2xl" animated className="justify-center" />
+      <KahaLogo size="2xl" animated className="justify-center" clickable={false} />
       <div className="space-y-3">
         <div className="h-4 bg-gray-200 rounded animate-pulse w-40 mx-auto"></div>
         <div className="h-3 bg-gray-100 rounded animate-pulse w-32 mx-auto"></div>
