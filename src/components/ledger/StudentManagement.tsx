@@ -763,6 +763,9 @@ export const StudentManagement = () => {
 
       // Switch to student list tab to show the configured student
       setActiveTab("students");
+      
+      // Reset to first page to ensure the newly configured student is visible
+      setCurrentPage(1);
 
     } catch (error) {
       console.error('Error in charge configuration:', error);
@@ -840,25 +843,32 @@ export const StudentManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-[#231F20]">👥 Student Management</h1>
-          <p className="text-[#231F20]/70 mt-1">
-            Enroll new students and manage existing student records
-          </p>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="flex items-center gap-4">
-          <Badge variant="outline" className="text-[#1295D0] border-[#1295D0]/30">
-            {students?.length || 0} Total Students
-          </Badge>
-          <Badge variant="outline" className="text-[#07A64F] border-[#07A64F]/30">
-            {students?.filter(s => s.status === 'Active').length || 0} Active
-          </Badge>
-        </div>
-      </div>
+      {/* Compact Header */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-xl font-bold text-[#231F20]">👥 Student Management</h1>
+                <p className="text-sm text-[#231F20]/70">Enroll and manage student records</p>
+              </div>
+            </div>
+            
+            {/* Quick Stats */}
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="text-[#1295D0] border-[#1295D0]/30 text-xs">
+                {students?.length || 0} Total
+              </Badge>
+              <Badge variant="outline" className="text-[#07A64F] border-[#07A64F]/30 text-xs">
+                {students?.filter(s => s.status === 'Active').length || 0} Active
+              </Badge>
+              <Badge variant="outline" className="text-orange-600 border-orange-300 text-xs">
+                {pendingStudents.length} Pending
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -874,27 +884,26 @@ export const StudentManagement = () => {
         </TabsList>
 
         {/* Pending Configuration Tab */}
-        <TabsContent value="pending" className="space-y-6">
+        <TabsContent value="pending" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-[#07A64F]" />
-                  Students Pending Configuration
-                </div>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-[#07A64F]" />
+                  Pending Configuration ({pendingStudents.length})
+                </CardTitle>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={refreshData}
-                  className="flex items-center gap-2"
+                  className="h-8"
                   disabled={loading}
                 >
                   <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
                 </Button>
-              </CardTitle>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {pendingStudents.length > 0 ? (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
@@ -910,56 +919,38 @@ export const StudentManagement = () => {
 
                   {paginatedPendingStudents.map((student) => (
                     <Card key={student.id} className="border-orange-200 bg-orange-50/30">
-                      <CardContent className="pt-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           {/* Student Info */}
-                          <div className="lg:col-span-4">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-12 h-12 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-full flex items-center justify-center text-white font-bold">
-                                {student.name.charAt(0)}
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-[#231F20]">{student.name}</h3>
-                                <p className="text-sm text-gray-600">{student.phone}</p>
-                                <p className="text-xs text-gray-500">{student.email}</p>
-                              </div>
+                          <div className="flex items-center space-x-3 flex-1">
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-full flex items-center justify-center text-white font-bold text-sm">
+                              {student.name.charAt(0)}
                             </div>
-                          </div>
-
-                          {/* Room & Course Info */}
-                          <div className="lg:col-span-3">
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <Bed className="h-4 w-4 text-[#1295D0]" />
-                                <span className="font-medium">
-                                  {student.assignedRoomNumber || student.roomNumber || 'Not assigned'}
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-[#231F20] text-sm">{student.name}</h3>
+                              <div className="flex items-center gap-4 text-xs text-gray-600">
+                                <span>{student.phone}</span>
+                                <span className="flex items-center gap-1">
+                                  <Bed className="h-3 w-3" />
+                                  {student.assignedRoomNumber || student.roomNumber || 'No room'}
                                 </span>
-                                {(student.assignedBedNumber || student.bedNumber) && (
-                                  <span className="text-sm text-gray-500">
-                                    ({student.assignedBedNumber || student.bedNumber})
-                                  </span>
-                                )}
+                                <span>{student.course || 'No course'}</span>
                               </div>
-                              <p className="text-sm text-gray-600">{student.course || 'Not specified'}</p>
-                              <p className="text-xs text-gray-500">{student.institution || ''}</p>
                             </div>
                           </div>
 
-                          {/* Status */}
-                          <div className="lg:col-span-2">
-                            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                              Pending Configuration
+                          {/* Status and Action */}
+                          <div className="flex items-center gap-3">
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
+                              Pending
                             </Badge>
-                          </div>
-
-                          {/* Actions */}
-                          <div className="lg:col-span-3">
                             <Button
                               onClick={() => configureCharges(student)}
-                              className="w-full bg-[#07A64F] hover:bg-[#07A64F]/90"
+                              size="sm"
+                              className="bg-[#07A64F] hover:bg-[#07A64F]/90 h-8"
                             >
-                              <Settings className="h-4 w-4 mr-2" />
-                              Configure Charges
+                              <Settings className="h-3 w-3 mr-1" />
+                              Configure
                             </Button>
                           </div>
                         </div>
@@ -1038,144 +1029,127 @@ export const StudentManagement = () => {
 
         {/* Student List & Management Tab */}
         <TabsContent value="students" className="space-y-6">
-          {/* Search and Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="md:col-span-2">
-              <CardContent className="pt-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          {/* Compact Search and Stats */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                {/* Search */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search by name, email, room, phone, course, or institution..."
+                    placeholder="Search students..."
                     value={searchTerm}
                     onChange={(e) => searchStudents(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-9"
                   />
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#07A64F]">{configuredStudents.length}</div>
-                  <div className="text-sm text-gray-600">Configured Students</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1295D0]">
-                    {configuredStudents.filter(s => (s.currentBalance || 0) > 0).length}
+                {/* Stats */}
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-[#07A64F]">{configuredStudents.length}</div>
+                    <div className="text-xs text-gray-600">Configured</div>
                   </div>
-                  <div className="text-sm text-gray-600">With Dues</div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-[#1295D0]">
+                      {configuredStudents.filter(s => (s.currentBalance || 0) > 0).length}
+                    </div>
+                    <div className="text-xs text-gray-600">With Dues</div>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Students Table */}
+          {/* Compact Students Table */}
           <Card>
-            <CardHeader>
-
+            <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
-                <CardTitle>Student List ({filteredStudents.length} students)</CardTitle>
+                <CardTitle className="text-lg">Student List ({filteredStudents.length})</CardTitle>
                 {filteredStudents.length > studentsPerPage && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    Showing {startIndex + 1}-{Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length}
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    {startIndex + 1}-{Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length}
                   </div>
                 )}
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {filteredStudents.length > 0 ? (
-                <div>
+                <div className="max-h-96 overflow-y-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 bg-white z-10">
                       <TableRow>
-                        <TableHead>Student Details</TableHead>
-                        <TableHead>Room & Bed</TableHead>
-                        <TableHead>Course</TableHead>
-                        <TableHead>Monthly Fees</TableHead>
-                        <TableHead>Balance</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead className="py-2">Student</TableHead>
+                        <TableHead className="py-2">Room</TableHead>
+                        <TableHead className="py-2">Course</TableHead>
+                        <TableHead className="py-2">Monthly Fee</TableHead>
+                        <TableHead className="py-2">Balance</TableHead>
+                        <TableHead className="py-2">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedStudents.map((student) => (
-                        <TableRow key={student.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#07A64F] to-[#1295D0] flex items-center justify-center text-white font-bold">
+                        <TableRow key={student.id} className="hover:bg-gray-50">
+                          <TableCell className="py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#07A64F] to-[#1295D0] flex items-center justify-center text-white font-bold text-xs">
                                 {student.name.charAt(0)}
                               </div>
                               <div>
-                                <p className="font-medium">{student.name}</p>
-                                <p className="text-sm text-gray-500 flex items-center gap-1">
-                                  <Phone className="h-3 w-3" />
-                                  {student.phone}
-                                </p>
-                                <p className="text-xs text-gray-400">{student.email}</p>
+                                <p className="font-medium text-sm">{student.name}</p>
+                                <p className="text-xs text-gray-500">{student.phone}</p>
+                                <Badge variant={student.status === 'Active' ? 'default' : 'secondary'} className="text-xs mt-1">
+                                  {student.status}
+                                </Badge>
                               </div>
-
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Bed className="h-4 w-4 text-[#1295D0]" />
+                          <TableCell className="py-3">
+                            <div className="flex items-center gap-1">
+                              <Bed className="h-3 w-3 text-[#1295D0]" />
                               <div>
-                                <p className="font-medium">
-                                  {student.assignedRoomNumber || student.roomNumber || 'Not assigned'}
+                                <p className="text-sm font-medium">
+                                  {student.assignedRoomNumber || student.roomNumber || 'No room'}
                                 </p>
                                 {(student.assignedBedNumber || student.bedNumber) && (
-                                  <p className="text-sm text-gray-500">
+                                  <p className="text-xs text-gray-500">
                                     {student.assignedBedNumber || student.bedNumber}
                                   </p>
                                 )}
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-3">
                             <div>
-                              <p className="font-medium">{student.course || 'Not specified'}</p>
-                              <p className="text-sm text-gray-500">{student.institution || ''}</p>
+                              <p className="text-sm font-medium">{student.course || 'Not specified'}</p>
+                              <p className="text-xs text-gray-500">{student.institution || ''}</p>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="text-sm">Base: ₹{Number(student.baseMonthlyFee || 0).toLocaleString()}</div>
-                              {Number(student.laundryFee || 0) > 0 && (
-                                <div className="text-xs text-gray-500">Laundry: ₹{Number(student.laundryFee || 0).toLocaleString()}</div>
-                              )}
-                              {Number(student.foodFee || 0) > 0 && (
-                                <div className="text-xs text-gray-500">Food: ₹{Number(student.foodFee || 0).toLocaleString()}</div>
-                              )}
-                              <div className="font-medium text-[#1295D0] border-t pt-1">
-                                Total: ₹{(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0)).toLocaleString()}
+                          <TableCell className="py-3">
+                            <div className="text-sm">
+                              <div className="font-medium text-[#1295D0]">
+                                ₹{(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0)).toLocaleString()}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Base: ₹{Number(student.baseMonthlyFee || 0).toLocaleString()}
+                                {Number(student.laundryFee || 0) > 0 && ` + ₹${Number(student.laundryFee || 0).toLocaleString()}`}
+                                {Number(student.foodFee || 0) > 0 && ` + ₹${Number(student.foodFee || 0).toLocaleString()}`}
                               </div>
                             </div>
-
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-3">
                             {(student.currentBalance || 0) > 0 ? (
-                              <div className="text-red-600 font-medium">
-                                Due: ₹{(student.currentBalance || 0).toLocaleString()}
+                              <div className="text-red-600 font-medium text-sm">
+                                ₹{(student.currentBalance || 0).toLocaleString()}
                               </div>
                             ) : (
-                              <div className="text-green-600 font-medium">
+                              <div className="text-green-600 font-medium text-sm">
                                 Up to date
                               </div>
                             )}
                           </TableCell>
-                          <TableCell>
-                            <Badge variant={student.status === 'Active' ? 'default' : 'secondary'}>
-                              {student.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2 flex-wrap">
+                          <TableCell className="py-3">
+                            <div className="flex gap-1">
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1183,9 +1157,9 @@ export const StudentManagement = () => {
                                   setSelectedStudent(student);
                                   setShowDetailsDialog(true);
                                 }}
+                                className="h-7 px-2 text-xs"
                               >
-                                <User className="h-3 w-3 mr-1" />
-                                View Details
+                                <User className="h-3 w-3" />
                               </Button>
                               <Button
                                 size="sm"
@@ -1210,10 +1184,9 @@ export const StudentManagement = () => {
                                   });
                                   setShowEditDialog(true);
                                 }}
-                                className="text-[#07A64F] border-[#07A64F]/30 hover:bg-[#07A64F]/10"
+                                className="h-7 px-2 text-xs text-[#07A64F] border-[#07A64F]/30 hover:bg-[#07A64F]/10"
                               >
-                                <Edit className="h-3 w-3 mr-1" />
-                                Edit Details
+                                <Edit className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
@@ -1221,41 +1194,50 @@ export const StudentManagement = () => {
                       ))}
                     </TableBody>
                   </Table>
-
-                  {/* Pagination Controls */}
+                  {/* Compact Pagination */}
                   {filteredStudents.length > studentsPerPage && (
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                      <div className="text-sm text-gray-600">
-                        Showing {startIndex + 1}-{Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length} students
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                      <div className="text-xs text-gray-600">
+                        {startIndex + 1}-{Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                           disabled={currentPage === 1}
-                          className="flex items-center gap-1"
+                          className="h-7 px-2"
                         >
-                          <ChevronLeft className="h-4 w-4" />
-                          Previous
+                          <ChevronLeft className="h-3 w-3" />
                         </Button>
 
                         <div className="flex items-center gap-1">
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-             <Button
-                              key={page}
-                              variant={currentPage === page ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setCurrentPage(page)}
-                              className={`w-8 h-8 p-0 ${currentPage === page
-                                  ? "bg-[#1295D0] hover:bg-[#1295D0]/90"
-                                  : "hover:bg-gray-100"
-                                }`}
-                            >
-                              {page}
-                            </Button>
-
-                          ))}
+                          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                            let page;
+                            if (totalPages <= 5) {
+                              page = i + 1;
+                            } else if (currentPage <= 3) {
+                              page = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              page = totalPages - 4 + i;
+                            } else {
+                              page = currentPage - 2 + i;
+                            }
+                            return (
+                              <Button
+                                key={page}
+                                variant={currentPage === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentPage(page)}
+                                className={`w-7 h-7 p-0 text-xs ${currentPage === page
+                                    ? "bg-[#1295D0] hover:bg-[#1295D0]/90"
+                                    : "hover:bg-gray-100"
+                                  }`}
+                              >
+                                {page}
+                              </Button>
+                            );
+                          })}
                         </div>
 
                         <Button
@@ -1263,15 +1245,12 @@ export const StudentManagement = () => {
                           size="sm"
                           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
-                          className="flex items-center gap-1"
+                          className="h-7 px-2"
                         >
-                          Next
-
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
-
                   )}
                 </div>
 

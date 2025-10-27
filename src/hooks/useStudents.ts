@@ -74,6 +74,19 @@ export const useStudents = (initialFilters: StudentFilters = {}): UseStudentsSta
         filteredStudents = filteredStudents.filter(student => student.status === state.filters.status);
       }
 
+      // Sort students by updatedAt (most recently updated first), then by createdAt
+      filteredStudents.sort((a, b) => {
+        const aUpdated = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const bUpdated = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        if (aUpdated !== bUpdated) {
+          return bUpdated - aUpdated; // Most recent first
+        }
+        // If updatedAt is the same, sort by createdAt
+        const aCreated = new Date(a.createdAt || 0).getTime();
+        const bCreated = new Date(b.createdAt || 0).getTime();
+        return bCreated - aCreated; // Most recent first
+      });
+
       setState(prev => ({
         ...prev,
         students: filteredStudents,

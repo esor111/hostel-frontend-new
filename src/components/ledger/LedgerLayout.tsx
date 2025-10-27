@@ -1,138 +1,51 @@
-
-import { useState, useEffect, Suspense, lazy } from "react";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { LedgerRoutes } from "./LedgerRoutes";
 import { Sidebar } from "@/components/ledger/Sidebar";
-import { Dashboard } from "@/components/ledger/Dashboard";
-import { PerformanceMonitor } from "@/components/common/PerformanceMonitor.tsx";
-import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-
-// Lazy load heavy components for better performance
-const StudentManagement = lazy(() => 
-  import("@/components/ledger/StudentManagement").catch(err => {
-    console.error('Failed to load StudentManagement:', err);
-    return { default: () => <div>Error loading Student Management</div> };
-  })
-);
-const PaymentRecording = lazy(() => import("@/components/ledger/PaymentRecording").then(module => ({ default: module.PaymentRecording })));
-const StudentLedgerView = lazy(() => import("@/components/ledger/StudentLedgerView").then(module => ({ default: module.StudentLedgerView })));
-const DiscountManagement = lazy(() => import("@/components/ledger/DiscountManagement").then(module => ({ default: module.DiscountManagement })));
-const BillingManagement = lazy(() => import("@/components/ledger/BillingManagement").then(module => ({ default: module.BillingManagement })));
-const AdminCharging = lazy(() => import("@/components/ledger/AdminCharging").then(module => ({ default: module.AdminCharging })));
-const StudentCheckoutManagement = lazy(() => import("@/components/ledger/StudentCheckoutManagement").then(module => ({ default: module.StudentCheckoutManagement })));
-const ApiTestComponent = lazy(() => import("@/components/debug/ApiTestComponent").then(module => ({ default: module.ApiTestComponent })));
-
 import { Button } from "@/components/ui/button";
-import { useNavigate, useLocation } from "react-router-dom";
 import { KahaLogo } from "@/components/common/KahaLogo";
 import { Menu } from "lucide-react";
+import { PerformanceMonitor } from "@/components/common/PerformanceMonitor.tsx";
 
-// Loading component for lazy-loaded sections
-const SectionLoader = ({ sectionName }: { sectionName: string }) => (
-  <div className="flex items-center justify-center h-64">
-    <div className="text-center space-y-4">
-      <KahaLogo size="md" animated className="mx-auto" />
-      <div className="space-y-2">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-32 mx-auto"></div>
-        <div className="h-3 bg-gray-100 rounded animate-pulse w-24 mx-auto"></div>
-      </div>
-      <p className="text-sm text-gray-500">Loading {sectionName}...</p>
-    </div>
-  </div>
-);
-
-const Ledger = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+export const LedgerLayout = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Handle URL parameters for direct navigation
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const section = params.get('section');
-    if (section) {
-      const sectionMap: Record<string, string> = {
-        'dashboard': 'dashboard',
-        'students': 'students',
-        'student-management': 'students', // ✅ Add mapping for student-management
-        'payments': 'payments',
-        'ledger': 'ledger',
-        'ledgers': 'ledger',
-        'discounts': 'discounts',
-        'billing': 'billing',
-        'admin-charging': 'admin-charging',
-        'checkout': 'checkout'
-      };
-      if (sectionMap[section]) {
-        setActiveTab(sectionMap[section]);
-      }
+  // Extract active tab from current route
+  const getActiveTabFromPath = () => {
+    const pathSegments = location.pathname.split('/');
+    const lastSegment = pathSegments[pathSegments.length - 1];
+    
+    // Handle root ledger path
+    if (lastSegment === 'ledger' || !lastSegment) {
+      return 'dashboard';
     }
-  }, [location.search]);
+    
+    return lastSegment;
+  };
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return <Dashboard />;
-      case "students":
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<SectionLoader sectionName="Student Management" />}>
-              <StudentManagement />
-            </Suspense>
-          </ErrorBoundary>
-        );
-      case "payments":
-        return (
-          <Suspense fallback={<SectionLoader sectionName="Payment Recording" />}>
-            <PaymentRecording />
-          </Suspense>
-        );
-      case "ledger":
-        return (
-          <Suspense fallback={<SectionLoader sectionName="Student Ledger" />}>
-            <StudentLedgerView />
-          </Suspense>
-        );
-      case "discounts":
-        return (
-          <Suspense fallback={<SectionLoader sectionName="Discount Management" />}>
-            <DiscountManagement />
-          </Suspense>
-        );
-      case "billing":
-        return (
-          <Suspense fallback={<SectionLoader sectionName="Billing Management" />}>
-            <BillingManagement />
-          </Suspense>
-        );
-      case "admin-charging":
-        return (
-          <Suspense fallback={<SectionLoader sectionName="Admin Charging" />}>
-            <AdminCharging />
-          </Suspense>
-        );
-      case "checkout":
-        return (
-          <Suspense fallback={<SectionLoader sectionName="Student Checkout" />}>
-            <StudentCheckoutManagement />
-          </Suspense>
-        );
-      case "api-test":
-        return (
-          <Suspense fallback={<SectionLoader sectionName="API Test" />}>
-            <ApiTestComponent />
-          </Suspense>
-        );
-      case "debug-admin":
-        const DebugAdminCharges = lazy(() => import("@/debug-admin-charges"));
-        return (
-          <Suspense fallback={<SectionLoader sectionName="Debug Admin Charges" />}>
-            <DebugAdminCharges />
-          </Suspense>
-        );
-      default:
-        return <Dashboard />;
-    }
+  const activeTab = getActiveTabFromPath();
+
+  // Handle tab changes by navigating to routes
+  const handleTabChange = (tabId: string) => {
+    navigate(`/ledger/${tabId}`);
+  };
+
+  // Get display name for breadcrumb
+  const getDisplayName = (tab: string) => {
+    const displayNames: Record<string, string> = {
+      'dashboard': 'Dashboard',
+      'students': 'Student Management',
+      'payments': 'Payment Recording',
+      'ledger': 'Student Ledgers',
+      'billing': 'Automated Billing',
+      'discounts': 'Discount Management',
+      'admin-charging': 'Admin Charging',
+      'checkout': 'Student Checkout',
+      'api-test': 'API Test'
+    };
+    return displayNames[tab] || tab.replace('-', ' ');
   };
 
   return (
@@ -146,7 +59,7 @@ const Ledger = () => {
 
       <Sidebar 
         activeTab={activeTab} 
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
@@ -213,7 +126,7 @@ const Ledger = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => setActiveTab('payments')}
+                  onClick={() => navigate('/ledger/payments')}
                   className="border-[#07A64F]/30 text-[#07A64F] hover:bg-[#07A64F]/10 hover:border-[#07A64F]/50 hover:shadow-lg hover:shadow-[#07A64F]/20 transition-all duration-300 backdrop-blur-sm bg-white/50"
                 >
                   <span className="mr-2">💰</span>
@@ -222,7 +135,7 @@ const Ledger = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => setActiveTab('billing')}
+                  onClick={() => navigate('/ledger/billing')}
                   className="border-[#1295D0]/30 text-[#1295D0] hover:bg-[#1295D0]/10 hover:border-[#1295D0]/50 hover:shadow-lg hover:shadow-[#1295D0]/20 transition-all duration-300 backdrop-blur-sm bg-white/50"
                 >
                   <span className="mr-2">📊</span>
@@ -251,7 +164,7 @@ const Ledger = () => {
               <span className="text-[#07A64F] font-semibold">Kaha KLedger</span>
               <span className="text-slate-300">›</span>
               <span className="capitalize text-slate-700 font-semibold bg-white/60 px-2 py-0.5 rounded-md">
-                {activeTab === 'ledger' ? 'Student Ledgers' : activeTab.replace('-', ' ')}
+                {getDisplayName(activeTab)}
               </span>
             </div>
           </div>
@@ -266,7 +179,8 @@ const Ledger = () => {
           }}></div>
           
           <div className="relative z-10">
-            {renderContent()}
+            {/* Nested routes render here */}
+            <LedgerRoutes />
           </div>
         </div>
       </div>
@@ -276,5 +190,3 @@ const Ledger = () => {
     </div>
   );
 };
-
-export default Ledger;

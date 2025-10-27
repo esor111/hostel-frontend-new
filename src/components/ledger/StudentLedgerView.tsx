@@ -67,8 +67,7 @@ export const StudentLedgerView = () => {
     joinDate: String(student.joinDate || new Date().toISOString().split('T')[0]),
     enrollmentDate: String(student.createdAt || new Date().toISOString().split('T')[0]),
     status: String(student.status || 'Active'),
-    isCheckedOut: Boolean(student.isCheckedOut || false),
-    checkoutDate: student.checkoutDate || null,
+
     currentBalance: Number(student.balance || 0),
     advanceBalance: 0, // Default advance balance
     totalPaid: 0,
@@ -95,15 +94,26 @@ export const StudentLedgerView = () => {
     );
   });
 
-  // Handle URL parameters to auto-select student
+  // Auto-select first student when search results change and current selection is not in results
+  useEffect(() => {
+    if (students.length > 0 && selectedStudent && !students.find(s => s.id === selectedStudent)) {
+      // Current selected student is not in filtered results, select the first one
+      setSelectedStudent(students[0].id);
+    }
+  }, [students, selectedStudent]);
+
+  // Handle URL parameters to auto-select student, or select first student by default
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const studentParam = params.get('student');
     
     if (studentParam && students && students.length > 0 && students.find(s => s.id === studentParam)) {
       setSelectedStudent(studentParam);
+    } else if (!selectedStudent && students && students.length > 0) {
+      // Auto-select the first student if no student is selected and no URL parameter
+      setSelectedStudent(students[0].id);
     }
-  }, [location.search, students]);
+  }, [location.search, students, selectedStudent]);
 
   // Fetch ledger data when student is selected
   useEffect(() => {
@@ -253,130 +263,119 @@ export const StudentLedgerView = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-gray-900">📋 Student Ledger View</h2>
-        <div className="flex space-x-2">
-
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              refreshStudents();
-              if (selectedStudent) {
-                refreshLedger();
-              }
-            }}
-            disabled={studentsLoading || entriesLoading}
-            className="flex items-center gap-2"
-          >
-            <svg 
-              className={`h-4 w-4 ${studentsLoading || entriesLoading ? 'animate-spin' : ''}`} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh Data
-          </Button>
-          {/* Show print and download options only after student selection */}
-          {selectedStudent && (
-            <>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  // Print functionality
-                  window.print();
-                }}
-              >
-                🖨️ Print Ledger
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  // Download PDF functionality - placeholder for now
-                  alert('PDF download functionality will be implemented');
-                }}
-              >
-                📄 Download PDF
-              </Button>
-            </>
-          )}
-
-        </div>
-      </div>
-
-      {/* Student Selection with Enhanced Search */}
+    <div className="space-y-4">
+      {/* Compact Header with Student Selection */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>👤 Select Student</span>
-            {selectedStudent && (
-              <Badge variant="outline" className="text-green-600">
-                Auto-selected from navigation
-              </Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-
-          {/* Search Students */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search by name, ID, room number, or course..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 max-w-md"
-            />
-          </div>
-          
-          {/* Student Dropdown */}
-          <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-            <SelectTrigger className="max-w-md">
-              <SelectValue placeholder="Choose student to view ledger" />
-            </SelectTrigger>
-            <SelectContent>
-              {students && students.length > 0 ? students.map((student) => (
-                <SelectItem key={student.id} value={String(student.id)}>
-                  {String(student.name)} - Room {String(student.roomNumber || 'N/A')}
-                </SelectItem>
-              )) : (
-                <SelectItem value="no-students" disabled>
-                  {searchTerm ? 'No students match your search' : 'No students available'}
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-          
-          {searchTerm && (
-            <div className="text-sm text-gray-500">
-              {students.length} student{students.length !== 1 ? 's' : ''} found
+        <CardContent className="p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Left side: Title and Student Selection */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
+              <h2 className="text-xl font-bold text-gray-900 whitespace-nowrap">📋 Student Ledger</h2>
+              
+              {/* Compact Student Selection */}
+              <div className="flex items-center gap-3 flex-1">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search students..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-9"
+                  />
+                </div>
+                
+                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                  <SelectTrigger className="w-64 h-9">
+                    <SelectValue placeholder="Select student" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students && students.length > 0 ? students.map((student) => (
+                      <SelectItem key={student.id} value={String(student.id)}>
+                        {String(student.name)} - Room {String(student.roomNumber || 'N/A')}
+                      </SelectItem>
+                    )) : (
+                      <SelectItem value="no-students" disabled>
+                        {searchTerm ? 'No students match your search' : 'No students available'}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          )}
 
+            {/* Right side: Action buttons */}
+            <div className="flex items-center gap-2">
+              {selectedStudent && (
+                <Badge variant="outline" className="text-green-600 text-xs">
+                  {location.search.includes('student=') ? 'From navigation' : 'Auto-selected'}
+                </Badge>
+              )}
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  refreshStudents();
+                  if (selectedStudent) {
+                    refreshLedger();
+                  }
+                }}
+                disabled={studentsLoading || entriesLoading}
+                className="h-9"
+              >
+                <svg 
+                  className={`h-4 w-4 ${studentsLoading || entriesLoading ? 'animate-spin' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </Button>
+              
+              {selectedStudent && (
+                <>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.print()}
+                    className="h-9"
+                  >
+                    🖨️
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => alert('PDF download functionality will be implemented')}
+                    className="h-9"
+                  >
+                    📄
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {selectedStudent && selectedStudentData && (
         <>
-          {/* Student Info Header */}
+          {/* Compact Student Info Header */}
           <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-2xl">👤</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-lg">👤</span>
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900">{selectedStudentData.name}</h3>
-                    <p className="text-gray-600">Room {selectedStudentData.roomNumber} • {selectedStudentData.course}</p>
-                    <p className="text-sm text-gray-500">Enrolled: {new Date(selectedStudentData.enrollmentDate).toLocaleDateString()}</p>
+                    <h3 className="text-lg font-bold text-gray-900">{selectedStudentData.name}</h3>
+                    <p className="text-sm text-gray-600">Room {selectedStudentData.roomNumber} • {selectedStudentData.course}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => window.history.back()}>
-                    ← Back to Students
+                    ← Back
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => {
                     const params = new URLSearchParams(location.search);
@@ -384,7 +383,7 @@ export const StudentLedgerView = () => {
                     params.set('student', selectedStudent);
                     window.location.href = `/ledger?${params.toString()}`;
                   }}>
-                    💰 Record Payment
+                    💰 Payment
                   </Button>
                 </div>
               </div>
@@ -400,116 +399,84 @@ export const StudentLedgerView = () => {
             loading={entriesLoading}
           />
 
-          {/* Student Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Compact Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 {balanceLoading ? (
                   <div className="animate-pulse">
-                    <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-6 bg-gray-200 rounded mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
                   </div>
                 ) : (
                   <>
-                    <div className={`text-2xl font-bold ${getBalanceTypeColor(studentBalance?.balanceType || 'Nil')}`}>
+                    <div className={`text-lg font-bold ${getBalanceTypeColor(studentBalance?.balanceType || 'Nil')}`}>
                       {getFormattedBalance(Math.abs(currentBalance))}
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Current {currentBalance >= 0 ? 'Outstanding' : 'Advance'}
-                    </div>
-                    <div className="text-xs mt-1">
-                      {currentBalance >= 0 ? '🔴 Amount Due' : '🟢 Credit Balance'}
+                    <div className="text-xs text-gray-500">
+                      {currentBalance >= 0 ? '🔴 Outstanding' : '🟢 Advance'}
                     </div>
                   </>
                 )}
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-red-600">
+              <CardContent className="p-3">
+                <div className="text-lg font-bold text-red-600">
                   {getFormattedBalance(totalDebits)}
                 </div>
-                <div className="text-sm text-gray-500">
-                  {Object.keys(filters).length > 0 ? 'Filtered Charges' : 'Total Charges'}
+                <div className="text-xs text-gray-500">
+                  📈 {Object.keys(filters).length > 0 ? 'Filtered' : 'Total'} Charges
                 </div>
-                <div className="text-xs mt-1 text-red-600">
-                  📈 {Object.keys(filters).length > 0 ? 'Filtered invoices' : 'All invoices'}
-                </div>
-                {Object.keys(filters).length > 0 && (
-                  <div className="text-xs mt-1 text-gray-400">
-                    Total: {getFormattedBalance(ledgerEntries.reduce((sum, entry) => sum + (entry.debit || 0), 0))}
-                  </div>
-                )}
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-green-600">
+              <CardContent className="p-3">
+                <div className="text-lg font-bold text-green-600">
                   {getFormattedBalance(totalCredits)}
                 </div>
-                <div className="text-sm text-gray-500">
-                  {Object.keys(filters).length > 0 ? 'Filtered Payments' : 'Total Payments'}
+                <div className="text-xs text-gray-500">
+                  💰 {Object.keys(filters).length > 0 ? 'Filtered' : 'Total'} Payments
                 </div>
-                <div className="text-xs mt-1 text-green-600">
-                  💰 {Object.keys(filters).length > 0 ? 'Filtered credits' : 'All credits'}
-                </div>
-                {Object.keys(filters).length > 0 && (
-                  <div className="text-xs mt-1 text-gray-400">
-                    Total: {getFormattedBalance(ledgerEntries.reduce((sum, entry) => sum + (entry.credit || 0), 0))}
-                  </div>
-                )}
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-gray-600">
+              <CardContent className="p-3">
+                <div className="text-lg font-bold text-gray-600">
                   {filteredEntries.length}
                 </div>
-                <div className="text-sm text-gray-500">
-                  {Object.keys(filters).length > 0 ? 'Filtered Transactions' : 'Total Transactions'}
+                <div className="text-xs text-gray-500">
+                  📋 {Object.keys(filters).length > 0 ? 'Filtered' : 'Total'} Entries
                 </div>
-                <div className="text-xs mt-1 text-gray-600">
-                  📋 {Object.keys(filters).length > 0 ? 'Matching entries' : 'All entries'}
-                </div>
-                {Object.keys(filters).length > 0 && (
-                  <div className="text-xs mt-1 text-gray-400">
-                    Total: {ledgerEntries.length} entries
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Ledger Table */}
+          {/* Compact Ledger Table */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle>
-                  📊 Ledger for {students.find(s => s.id === selectedStudent)?.name}
+                <CardTitle className="text-lg">
+                  📊 Transaction History
                 </CardTitle>
                 {Object.keys(filters).length > 0 && (
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-blue-600">
-                      {filteredEntries.length} of {ledgerEntries.length} entries shown
+                    <Badge variant="outline" className="text-blue-600 text-xs">
+                      {filteredEntries.length} of {ledgerEntries.length}
                     </Badge>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={handleClearFilters}
-                      className="text-muted-foreground hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs"
                     >
                       Show All
                     </Button>
                   </div>
                 )}
               </div>
-              {Object.keys(filters).length > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  Showing filtered results. Use filters above to adjust the date range and entry types.
-                </div>
-              )}
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
 
               {entriesLoading ? (
                 <div className="flex items-center justify-center py-8">
@@ -542,100 +509,105 @@ export const StudentLedgerView = () => {
                   )}
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Reference</TableHead>
-                      <TableHead className="text-right">Debit</TableHead>
-                      <TableHead className="text-right">Credit</TableHead>
-                      <TableHead className="text-right">Balance</TableHead>
-
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEntries.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <span>{getEntryTypeIcon(entry.type)}</span>
-                            {getTypeBadge(entry.type)}
-                          </div>
-                        </TableCell>
-                        <TableCell>{entry.description}</TableCell>
-                        <TableCell>
-                          {entry.referenceId && (
-                            <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                              {entry.referenceId}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {(entry.debit || 0) > 0 && (
-                            <span className="text-red-600 font-medium">
-                              {getFormattedBalance(entry.debit || 0)}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {(entry.credit || 0) > 0 && (
-                            <span className="text-green-600 font-medium">
-                              {getFormattedBalance(entry.credit || 0)}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-bold">
-                          <span className={getBalanceTypeColor(entry.balanceType)}>
-                            {getFormattedBalance(Math.abs(entry.balance || 0))}
-                            {entry.balanceType !== 'Nil' && ` ${entry.balanceType}`}
-                          </span>
-                        </TableCell>
+                <div className="max-h-96 overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-white z-10">
+                      <TableRow>
+                        <TableHead className="py-2">Date</TableHead>
+                        <TableHead className="py-2">Type</TableHead>
+                        <TableHead className="py-2">Description</TableHead>
+                        <TableHead className="py-2 text-right">Debit</TableHead>
+                        <TableHead className="py-2 text-right">Credit</TableHead>
+                        <TableHead className="py-2 text-right">Balance</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredEntries.map((entry) => (
+                        <TableRow key={entry.id} className="hover:bg-gray-50">
+                          <TableCell className="py-2 text-sm">
+                            {new Date(entry.date).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: '2-digit'
+                            })}
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <div className="flex items-center space-x-1">
+                              <span className="text-sm">{getEntryTypeIcon(entry.type)}</span>
+                              {getTypeBadge(entry.type)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2 text-sm max-w-xs">
+                            <div className="truncate" title={entry.description}>
+                              {entry.description}
+                            </div>
+                            {entry.referenceId && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Ref: {entry.referenceId}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2 text-right">
+                            {(entry.debit || 0) > 0 && (
+                              <span className="text-red-600 font-medium text-sm">
+                                {getFormattedBalance(entry.debit || 0)}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2 text-right">
+                            {(entry.credit || 0) > 0 && (
+                              <span className="text-green-600 font-medium text-sm">
+                                {getFormattedBalance(entry.credit || 0)}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2 text-right font-bold">
+                            <span className={`text-sm ${getBalanceTypeColor(entry.balanceType)}`}>
+                              {getFormattedBalance(Math.abs(entry.balance || 0))}
+                              <span className="text-xs ml-1">{entry.balanceType !== 'Nil' && entry.balanceType}</span>
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
 
-              {/* Running Balance Info */}
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              {/* Compact Balance Summary */}
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg border-t">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">
-                    {Object.keys(filters).length > 0 ? 'Current Account Balance:' : 'Final Balance:'}
+                  <span className="text-sm font-medium">
+                    {Object.keys(filters).length > 0 ? 'Account Balance:' : 'Current Balance:'}
                   </span>
                   {balanceLoading ? (
                     <div className="animate-pulse">
-                      <div className="h-6 bg-gray-200 rounded w-32"></div>
+                      <div className="h-5 bg-gray-200 rounded w-24"></div>
                     </div>
                   ) : (
-                    <span className={`text-xl font-bold ${getBalanceTypeColor(studentBalance?.balanceType || 'Nil')}`}>
-                      {getFormattedBalance(Math.abs(currentBalance))} {currentBalance >= 0 ? 'Outstanding' : 'Advance'}
+                    <span className={`text-lg font-bold ${getBalanceTypeColor(studentBalance?.balanceType || 'Nil')}`}>
+                      {getFormattedBalance(Math.abs(currentBalance))} {currentBalance >= 0 ? 'Due' : 'Advance'}
                     </span>
                   )}
                 </div>
                 
+                <div className="text-xs text-gray-600 mt-1">
+                  {currentBalance >= 0 
+                    ? '🔴 Outstanding amount to be paid'
+                    : '🟢 Advance balance available'
+                  }
+                </div>
+                
                 {Object.keys(filters).length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">Filtered Period Balance:</span>
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-600">Filtered Period:</span>
                       <span className={`font-semibold ${filteredBalance >= 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {getFormattedBalance(Math.abs(filteredBalance))} {filteredBalance >= 0 ? 'Net Charges' : 'Net Credits'}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      This shows the net activity for the selected time period only
-                    </div>
                   </div>
                 )}
-                
-                <div className="text-sm text-gray-600 mt-2">
-                  {currentBalance >= 0 
-                    ? '🔴 Student has outstanding dues to pay'
-                    : '🟢 Student has advance balance available'
-                  }
-                </div>
               </div>
             </CardContent>
           </Card>

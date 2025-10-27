@@ -198,23 +198,45 @@ export const PaymentRecording = () => {
   const hasError = studentsError || paymentsError;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-gray-900">💰 Payment Recording</h2>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => loadPayments()}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button onClick={() => setShowPaymentForm(true)} disabled={isLoading}>
-            ➕ Record New Payment
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-4">
+      {/* Compact Header */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-gray-900">💰 Payment Recording</h2>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-green-600 text-xs">
+                  {studentsWithDues.filter(s => s.outstandingDue === 0).length} Paid Up
+                </Badge>
+                <Badge variant="outline" className="text-red-600 text-xs">
+                  {studentsWithDues.filter(s => s.outstandingDue > 0).length} Outstanding
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => loadPayments()}
+                disabled={isLoading}
+                className="h-9"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button 
+                onClick={() => setShowPaymentForm(true)} 
+                disabled={isLoading}
+                size="sm"
+                className="h-9"
+              >
+                ➕ Record Payment
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Error Alert */}
       {hasError && (
@@ -251,135 +273,151 @@ export const PaymentRecording = () => {
         </Card>
       )}
 
-      {/* Outstanding Dues Summary */}
-      {!isLoading && (
+      {/* Compact Outstanding Dues */}
+      {!isLoading && studentsWithDues.filter(s => s.outstandingDue > 0).length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>🚨 Students with Outstanding Dues</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              🚨 Outstanding Dues ({studentsWithDues.filter(s => s.outstandingDue > 0).length})
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            {studentsWithDues.filter(s => s.outstandingDue > 0).length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
-                <p>No outstanding dues! All students are up to date.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="pt-0">
+            <div className="max-h-64 overflow-y-auto">
+              <div className="space-y-2">
                 {studentsWithDues.filter(s => s.outstandingDue > 0).map((student) => (
-                  <div key={student.id} className="p-4 border rounded-lg bg-red-50 border-red-200">
-                    <div className="font-medium">{student.name}</div>
-                    <div className="text-sm text-gray-600">Room: {student.room}</div>
-                    <div className="text-lg font-bold text-red-600 mt-2">
-                      NPR {student.outstandingDue.toLocaleString()}
+                  <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg bg-red-50 border-red-200">
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{student.name}</div>
+                      <div className="text-xs text-gray-600">Room: {student.room}</div>
                     </div>
-                    <Button 
-                      size="sm" 
-                      className="mt-2 w-full"
-                      onClick={() => {
-                        setSelectedStudent(student.id);
-                        setPaymentAmount(student.outstandingDue.toString());
-                        setShowPaymentForm(true);
-                      }}
-                    >
-                      💰 Record Payment
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="font-bold text-red-600 text-sm">
+                          ₹{student.outstandingDue.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">Outstanding</div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        className="h-8 px-3 text-xs"
+                        onClick={() => {
+                          setSelectedStudent(student.id);
+                          setPaymentAmount(student.outstandingDue.toString());
+                          setShowPaymentForm(true);
+                        }}
+                      >
+                        💰 Pay
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Recent Payments */}
+      {/* Compact Recent Payments */}
       {!isLoading && (
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Payments</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Recent Payments ({(payments || []).length})</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {(payments || []).length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <DollarSign className="h-12 w-12 mx-auto mb-4" />
                 <p>No payments recorded yet.</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Payment ID</TableHead>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Payment Method</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(payments || []).slice(0, 10).map((payment) => {
-                    const student = students.find(s => s.id === payment.studentId);
-                    return (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-medium">{payment.id}</TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{payment.studentName || student?.name || 'Unknown'}</div>
-                            <div className="text-sm text-gray-500">
-                              Room: {student?.roomNumber || 'N/A'}
+              <div className="max-h-80 overflow-y-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-white z-10">
+                    <TableRow>
+                      <TableHead className="py-2">Student</TableHead>
+                      <TableHead className="py-2">Amount</TableHead>
+                      <TableHead className="py-2">Method</TableHead>
+                      <TableHead className="py-2">Date</TableHead>
+                      <TableHead className="py-2">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(payments || []).slice(0, 20).map((payment) => {
+                      const student = students.find(s => s.id === payment.studentId);
+                      return (
+                        <TableRow key={payment.id} className="hover:bg-gray-50">
+                          <TableCell className="py-2">
+                            <div>
+                              <div className="font-medium text-sm">{payment.studentName || student?.name || 'Unknown'}</div>
+                              <div className="text-xs text-gray-500">
+                                Room: {student?.roomNumber || 'N/A'}
+                              </div>
+                              {payment.reference && (
+                                <div className="text-xs text-gray-400">
+                                  Ref: {payment.reference}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-bold text-green-600">
-                          NPR {payment.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{payment.paymentMethod}</Badge>
-                        </TableCell>
-                        <TableCell>{payment.reference || "-"}</TableCell>
-                        <TableCell>{new Date(payment.paymentDate).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={payment.status === 'Completed' ? 'default' : 
-                                   payment.status === 'Pending' ? 'secondary' : 
-                                   payment.status === 'Failed' ? 'destructive' : 'outline'}
-                          >
-                            {payment.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                          </TableCell>
+                          <TableCell className="py-2 font-bold text-green-600 text-sm">
+                            ₹{payment.amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Badge variant="outline" className="text-xs">{payment.paymentMethod}</Badge>
+                          </TableCell>
+                          <TableCell className="py-2 text-sm">
+                            {new Date(payment.paymentDate).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: '2-digit'
+                            })}
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Badge 
+                              variant={payment.status === 'Completed' ? 'default' : 
+                                     payment.status === 'Pending' ? 'secondary' : 
+                                     payment.status === 'Failed' ? 'destructive' : 'outline'}
+                              className="text-xs"
+                            >
+                              {payment.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* Payment Recording Form Modal */}
+      {/* Compact Payment Form Modal */}
       {showPaymentForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-lg m-4">
-            <CardHeader>
-              <CardTitle>💰 Record New Payment</CardTitle>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">💰 Record Payment</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <div>
-                <Label htmlFor="student">Select Student *</Label>
+                <Label htmlFor="student" className="text-sm">Select Student *</Label>
                 <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                  <SelectTrigger className={!selectedStudent ? 'border-red-300' : ''}>
+                  <SelectTrigger className={`h-9 ${!selectedStudent ? 'border-red-300' : ''}`}>
                     <SelectValue placeholder="Choose student" />
                   </SelectTrigger>
                   <SelectContent>
                     {studentsWithDues.length > 0 ? studentsWithDues.map((student) => (
                       <SelectItem key={student.id} value={student.id}>
-                        {student.name} - Room {student.room}
-                        {student.outstandingDue > 0 && (
-                          <span className="text-red-600 ml-2">
-                            (Due: NPR {student.outstandingDue.toLocaleString()})
-                          </span>
-                        )}
+                        <div className="flex justify-between items-center w-full">
+                          <span>{student.name} - Room {student.room}</span>
+                          {student.outstandingDue > 0 && (
+                            <span className="text-red-600 text-xs ml-2">
+                              ₹{student.outstandingDue.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       </SelectItem>
                     )) : (
                       <SelectItem value="" disabled>
@@ -394,7 +432,7 @@ export const PaymentRecording = () => {
               </div>
 
               <div>
-                <Label htmlFor="amount">Payment Amount (NPR) *</Label>
+                <Label htmlFor="amount" className="text-sm">Payment Amount (₹) *</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -404,22 +442,22 @@ export const PaymentRecording = () => {
                   placeholder="Enter amount"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  className={!paymentAmount || parseFloat(paymentAmount) <= 0 ? 'border-red-300' : ''}
+                  className={`h-9 ${!paymentAmount || parseFloat(paymentAmount) <= 0 ? 'border-red-300' : ''}`}
                 />
-                {(!paymentAmount || parseFloat(paymentAmount) <= 0) && (
-                  <p className="text-xs text-red-500 mt-1">Please enter a valid amount</p>
-                )}
                 {selectedStudent && studentsWithDues.find(s => s.id === selectedStudent)?.outstandingDue > 0 && (
                   <p className="text-xs text-blue-600 mt-1">
-                    Outstanding due: NPR {studentsWithDues.find(s => s.id === selectedStudent)?.outstandingDue.toLocaleString()}
+                    Outstanding: ₹{studentsWithDues.find(s => s.id === selectedStudent)?.outstandingDue.toLocaleString()}
                   </p>
+                )}
+                {(!paymentAmount || parseFloat(paymentAmount) <= 0) && (
+                  <p className="text-xs text-red-500 mt-1">Please enter a valid amount</p>
                 )}
               </div>
 
               <div>
-                <Label htmlFor="mode">Payment Method *</Label>
+                <Label htmlFor="mode" className="text-sm">Payment Method *</Label>
                 <Select value={paymentMode} onValueChange={(value) => setPaymentMode(value as CreatePaymentDto['paymentMethod'])}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
                   <SelectContent>
@@ -434,51 +472,58 @@ export const PaymentRecording = () => {
 
               {needsReference && (
                 <div>
-                  <Label htmlFor="reference">
-                    Reference ID * 
-                    {paymentMode === "Online" && " (Transaction ID)"}
-                    {paymentMode === "UPI" && " (UPI Transaction ID)"}
-                    {paymentMode === "Bank Transfer" && " (Bank Reference Number)"}
-                    {paymentMode === "Mobile Wallet" && " (Wallet Transaction ID)"}
-                    {paymentMode === "Cheque" && " (Cheque Number)"}
+                  <Label htmlFor="reference" className="text-sm">
+                    Reference ID *
+                    <span className="text-xs text-gray-500 ml-1">
+                      {paymentMode === "Online" && "(Transaction ID)"}
+                      {paymentMode === "UPI" && "(UPI ID)"}
+                      {paymentMode === "Bank Transfer" && "(Bank Ref)"}
+                      {paymentMode === "Mobile Wallet" && "(Wallet ID)"}
+                      {paymentMode === "Cheque" && "(Cheque No)"}
+                    </span>
                   </Label>
                   <Input
                     id="reference"
                     placeholder="Enter reference ID"
                     value={referenceId}
                     onChange={(e) => setReferenceId(e.target.value)}
+                    className="h-9"
                   />
                 </div>
               )}
 
               <div>
-                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Label htmlFor="notes" className="text-sm">Notes (Optional)</Label>
                 <Input
                   id="notes"
-                  placeholder="Additional notes about the payment"
+                  placeholder="Additional notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  className="h-9"
                 />
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-800 mb-2">💡 Payment Application Rules:</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• Payments are applied to oldest dues first</li>
-                  <li>• Excess amount becomes advance balance</li>
-                  <li>• Advance balance auto-applies to future invoices</li>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <h4 className="font-medium text-blue-800 mb-1 text-sm">💡 Payment Rules:</h4>
+                <ul className="text-xs text-blue-700 space-y-0.5">
+                  <li>• Applied to oldest dues first</li>
+                  <li>• Excess becomes advance balance</li>
+                  <li>• Auto-applies to future invoices</li>
                 </ul>
               </div>
 
-              <div className="flex justify-end space-x-2 pt-4">
+              <div className="flex justify-end space-x-2 pt-3 border-t">
                 <Button 
                   variant="outline" 
+                  size="sm"
                   onClick={() => setShowPaymentForm(false)}
                   disabled={submitting}
+                  className="h-9"
                 >
                   Cancel
                 </Button>
                 <Button 
+                  size="sm"
                   onClick={handlePaymentSubmit}
                   disabled={
                     submitting || 
@@ -487,10 +532,11 @@ export const PaymentRecording = () => {
                     !paymentMode || 
                     (needsReference && !referenceId)
                   }
+                  className="h-9"
                 >
                   {submitting ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       Recording...
                     </>
                   ) : (

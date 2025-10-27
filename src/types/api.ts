@@ -47,6 +47,7 @@ export interface Student {
   advanceBalance?: number;
   bookingRequestId?: string;
   updatedAt?: string;
+  createdAt?: string;
   isConfigured?: boolean;
   bedNumber?: string;
 }

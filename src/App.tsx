@@ -15,7 +15,7 @@ import AuthGuard from "@/components/auth/AuthGuard";
 const Landing = lazy(() => import("./pages/Landing"));
 const Login = lazy(() => import("./pages/Login"));
 const Index = lazy(() => import("./pages/Index"));
-const Ledger = lazy(() => import("./pages/Ledger"));
+const LedgerLayout = lazy(() => import("./components/ledger/LedgerLayout").then(module => ({ default: module.LedgerLayout })));
 const HostelProfile = lazy(() => import("./pages/HostelProfile"));
 const BookingRequests = lazy(() => import("./pages/BookingRequests"));
 const RoomManagement = lazy(() => import("./pages/RoomManagement"));
@@ -160,12 +160,10 @@ const App = () => {
                       }
                     />
                     <Route
-                      path="/ledger"
+                      path="/ledger/*"
                       element={
                         <AuthGuard>
-                          <Suspense fallback={<LoadingFallback componentName="Ledger" />}>
-                            <Ledger />
-                          </Suspense>
+                          <LedgerLayout />
                         </AuthGuard>
                       }
                     />
@@ -174,7 +172,7 @@ const App = () => {
                       element={
                         <AuthGuard>
                           <Suspense fallback={<LoadingFallback componentName="Checkout" />}>
-                            <Ledger />
+                            <LedgerLayout />
                           </Suspense>
                         </AuthGuard>
                       }
