@@ -59,6 +59,9 @@ export interface CreateStudentDto {
   address?: string;
   enrollmentDate?: string;
   guardian?: GuardianInfo;
+  // Flat guardian fields (used internally for backend compatibility)
+  guardianName?: string;
+  guardianPhone?: string;
   course?: string;
   institution?: string;
 }
@@ -71,6 +74,9 @@ export interface UpdateStudentDto {
   status?: 'Active' | 'Inactive' | 'Suspended' | 'Graduated';
   address?: string;
   guardian?: GuardianInfo;
+  // Flat guardian fields (used internally for backend compatibility)
+  guardianName?: string;
+  guardianPhone?: string;
   course?: string;
   institution?: string;
 }

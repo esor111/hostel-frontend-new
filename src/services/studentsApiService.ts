@@ -134,7 +134,20 @@ export class StudentsApiService {
    * Create a new student
    */
   async createStudent(studentData: CreateStudentDto): Promise<Student> {
-    const result = await this.apiService.post<any>(API_ENDPOINTS.STUDENTS.BASE, studentData);
+    // Transform nested guardian object to flat format expected by backend DTO
+    const transformedData = { ...studentData };
+    
+    if (studentData.guardian) {
+      console.log('🔄 Transforming guardian data for creation:', studentData.guardian);
+      // Extract guardian data to flat format
+      transformedData.guardianName = studentData.guardian.name;
+      transformedData.guardianPhone = studentData.guardian.phone;
+      // Remove the nested guardian object as it's not expected by the DTO
+      delete transformedData.guardian;
+      console.log('✅ Transformed creation data:', transformedData);
+    }
+    
+    const result = await this.apiService.post<any>(API_ENDPOINTS.STUDENTS.BASE, transformedData);
     
     // Handle backend response format
     if (result.data) {
@@ -147,7 +160,20 @@ export class StudentsApiService {
    * Update an existing student
    */
   async updateStudent(id: string, updateData: UpdateStudentDto): Promise<Student> {
-    const result = await this.apiService.put<any>(API_ENDPOINTS.STUDENTS.BY_ID(id), updateData);
+    // Transform nested guardian object to flat format expected by backend DTO
+    const transformedData = { ...updateData };
+    
+    if (updateData.guardian) {
+      console.log('🔄 Transforming guardian data:', updateData.guardian);
+      // Extract guardian data to flat format
+      transformedData.guardianName = updateData.guardian.name;
+      transformedData.guardianPhone = updateData.guardian.phone;
+      // Remove the nested guardian object as it's not expected by the DTO
+      delete transformedData.guardian;
+      console.log('✅ Transformed data:', transformedData);
+    }
+    
+    const result = await this.apiService.put<any>(API_ENDPOINTS.STUDENTS.BY_ID(id), transformedData);
     
     // Handle backend response format
     if (result.data) {
