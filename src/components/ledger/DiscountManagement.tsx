@@ -126,7 +126,7 @@ export const DiscountManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-[#231F20]">🏷️ Discount Management</h2>
         <div className="flex gap-2">
