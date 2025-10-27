@@ -124,35 +124,6 @@ export const Dashboard = memo(() => {
 
   return (
     <div className="space-y-8">
-      {/* Premium Header */}
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#07A64F]/5 via-[#1295D0]/5 to-[#07A64F]/5 rounded-3xl blur-xl"></div>
-        <div className="relative bg-white/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl shadow-black/5">
-          <div className="flex justify-between items-start">
-            <div className="flex justify-between items-start">
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-2xl flex items-center justify-center shadow-lg shadow-[#07A64F]/30">
-                    <span className="text-2xl">📊</span>
-                  </div>
-                  <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-[#07A64F] via-[#1295D0] to-[#07A64F] bg-clip-text text-transparent tracking-tight">
-                      Kaha KLedger
-                    </h1>
-
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-              </div>
-            </div>
-
-
-          </div>
-        </div>
-      </div>
-
       {/* Premium Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div className="group relative">
