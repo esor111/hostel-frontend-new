@@ -194,12 +194,6 @@ const Ledger = () => {
               
               {/* Enhanced Brand Section */}
               <div className="border-l border-slate-200/60 pl-6">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-[#07A64F] via-[#1295D0] to-[#07A64F] bg-clip-text text-transparent tracking-tight">
-                  Kaha KLedger
-                </h1>
-                <p className="text-slate-600 font-medium tracking-wide">
-                  Premium Financial Management Suite
-                </p>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="w-2 h-2 bg-[#07A64F] rounded-full animate-pulse"></div>
                   <span className="text-xs text-slate-500 font-medium">Live System Active</span>
