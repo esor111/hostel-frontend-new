@@ -1,30 +1,7 @@
 import { ApiService } from './apiService';
 import { handleApiError } from '../utils/errorHandler';
 
-// Helper function to get hostelId from auth context
-const getHostelId = (): string | null => {
-  try {
-    // Get the selected business from localStorage (auth service stores it separately)
-    const selectedBusinessData = localStorage.getItem('kaha_selected_business');
-    console.log('🔍 DEBUG: Raw selectedBusiness from localStorage:', selectedBusinessData);
-    
-    if (selectedBusinessData) {
-      const selectedBusiness = JSON.parse(selectedBusinessData);
-      console.log('🔍 DEBUG: Parsed selectedBusiness:', selectedBusiness);
-      console.log('🔍 DEBUG: selectedBusiness.id:', selectedBusiness.id);
-      
-      const hostelId = selectedBusiness.id;
-      console.log('🏨 DEBUG: Using hostelId from selected business:', hostelId);
-      return hostelId;
-    }
-    
-    console.warn('⚠️ DEBUG: No selected business found in localStorage');
-    return null;
-  } catch (error) {
-    console.error('❌ DEBUG: Failed to get hostelId from auth context:', error);
-    return null;
-  }
-};
+
 
 export enum AdminChargeType {
   ONE_TIME = 'one-time',
@@ -308,7 +285,10 @@ class AdminChargesApiService {
 
       const response = await this.apiService.get<{ data: AdminCharge[] }>(`/admin-charges/student/${studentId}`);
 
-      console.log('✅ Student charges:', response);
+      console.log('✅ Student charges API response:', response);
+      console.log('✅ Student charges data:', response?.data);
+      console.log('✅ Student charges length:', response?.data?.length || 0);
+      
       return response?.data || [];
     } catch (error) {
       console.error(`❌ Failed to fetch charges for student ${studentId}:`, error);
@@ -352,7 +332,7 @@ class AdminChargesApiService {
     try {
       console.log('🗑️ Bulk deleting charges...', chargeIds);
 
-      await this.apiService.delete('/admin-charges/bulk-delete', { chargeIds });
+      await this.apiService.post('/admin-charges/bulk-delete', { chargeIds });
 
       console.log('✅ Charges deleted successfully');
     } catch (error) {

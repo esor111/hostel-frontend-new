@@ -9,19 +9,18 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminCharges } from '@/hooks/useAdminCharges';
 import { useStudents } from '@/hooks/useStudents';
-import { adminChargesApiService, AdminChargeType, AdminCharge } from '../../services/adminChargesApiService';
+import { adminChargesApiService, AdminChargeType } from '../../services/adminChargesApiService';
+import { ledgerApiService } from '../../services/ledgerApiService';
+import { LedgerEntry } from '../../types/api';
 import {
   Zap,
   Users,
   DollarSign,
   AlertCircle,
-  CheckCircle,
   Plus,
-  Clock,
   RefreshCw,
   ChevronDown,
-  ChevronUp,
-  FileText
+  ChevronUp
 } from 'lucide-react';
 
 
@@ -54,11 +53,11 @@ export const AdminCharging = () => {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showBulkCharge, setShowBulkCharge] = useState(false);
-  
-  // Enhanced overdue students functionality
-  const [studentCharges, setStudentCharges] = useState<Record<string, AdminCharge[]>>({});
+
+  // Enhanced students functionality
+  const [studentLedgerEntries, setStudentLedgerEntries] = useState<Record<string, LedgerEntry[]>>({});
   const [expandedStudents, setExpandedStudents] = useState<Set<string>>(new Set());
-  const [loadingCharges, setLoadingCharges] = useState<Set<string>>(new Set());
+  const [loadingEntries, setLoadingEntries] = useState<Set<string>>(new Set());
 
   useEffect(() => {
 
@@ -221,29 +220,33 @@ export const AdminCharging = () => {
     return typeMap[type] || type;
   };
 
-  // Load charges for a specific student
-  const loadStudentCharges = async (studentId: string) => {
-    if (studentCharges[studentId]) {
+  // Load ledger entries for a specific student
+  const loadStudentLedgerEntries = async (studentId: string) => {
+    if (studentLedgerEntries[studentId]) {
+      console.log(`📋 Ledger entries already loaded for student ${studentId}:`, studentLedgerEntries[studentId]);
       return; // Already loaded
     }
 
-    setLoadingCharges(prev => new Set([...prev, studentId]));
-    
+    console.log(`🔄 Loading ledger entries for student ${studentId}...`);
+    setLoadingEntries(prev => new Set([...prev, studentId]));
+
     try {
-      const charges = await adminChargesApiService.getStudentCharges(studentId);
-      setStudentCharges(prev => ({
+      const entries = await ledgerApiService.getStudentLedger(studentId);
+      console.log(`✅ Loaded ${entries.length} ledger entries for student ${studentId}:`, entries);
+
+      setStudentLedgerEntries(prev => ({
         ...prev,
-        [studentId]: charges
+        [studentId]: entries
       }));
     } catch (error) {
-      console.error(`Failed to load charges for student ${studentId}:`, error);
+      console.error(`❌ Failed to load ledger entries for student ${studentId}:`, error);
       toast({
-        title: 'Error Loading Charges',
-        description: 'Failed to load student charges. Please try again.',
+        title: 'Error Loading Entries',
+        description: 'Failed to load student ledger entries. Please try again.',
         variant: 'destructive'
       });
     } finally {
-      setLoadingCharges(prev => {
+      setLoadingEntries(prev => {
         const newSet = new Set(prev);
         newSet.delete(studentId);
         return newSet;
@@ -254,7 +257,7 @@ export const AdminCharging = () => {
   // Toggle expanded state for a student
   const toggleStudentExpanded = async (studentId: string) => {
     const isExpanded = expandedStudents.has(studentId);
-    
+
     if (isExpanded) {
       // Collapse
       setExpandedStudents(prev => {
@@ -263,15 +266,15 @@ export const AdminCharging = () => {
         return newSet;
       });
     } else {
-      // Expand and load charges
+      // Expand and load ledger entries
       setExpandedStudents(prev => new Set([...prev, studentId]));
-      await loadStudentCharges(studentId);
+      await loadStudentLedgerEntries(studentId);
     }
   };
 
 
 
-  const handleQuickCharge = async (studentId: string, type: string, suggestedAmount: number) => {
+  const handleQuickCharge = async (studentId: string, suggestedAmount: number) => {
     setIsProcessing(true);
 
     try {
@@ -375,9 +378,7 @@ export const AdminCharging = () => {
                   <p className="text-2xl font-bold text-blue-700">
                     {todaySummary?.totalCharges || stats?.totalCharges || 0}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Raw: {JSON.stringify(todaySummary?.totalCharges)} | {JSON.stringify(stats?.totalCharges)}
-                  </p>
+
                 </div>
                 <Zap className="h-8 w-8 text-blue-600" />
               </div>
@@ -394,9 +395,7 @@ export const AdminCharging = () => {
                       ((stats?.totalPendingAmount || 0) + (stats?.totalAppliedAmount || 0))
                     ).toLocaleString()}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Raw: {JSON.stringify(todaySummary?.totalAmount)} | {JSON.stringify(stats?.totalPendingAmount)} + {JSON.stringify(stats?.totalAppliedAmount)}
-                  </p>
+
                 </div>
                 <DollarSign className="h-8 w-8 text-green-600" />
               </div>
@@ -411,9 +410,7 @@ export const AdminCharging = () => {
                   <p className="text-2xl font-bold text-purple-700">
                     {todaySummary?.studentsCharged || 0}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Raw: {JSON.stringify(todaySummary?.studentsCharged)}
-                  </p>
+
                 </div>
                 <Users className="h-8 w-8 text-purple-600" />
               </div>
@@ -590,9 +587,9 @@ export const AdminCharging = () => {
               {students.length > 0 ? (
                 students.map((student) => {
                   const isExpanded = expandedStudents.has(student.id);
-                  const charges = studentCharges[student.id] || [];
-                  const isLoadingCharges = loadingCharges.has(student.id);
-                  
+                  const entries = studentLedgerEntries[student.id] || [];
+                  const isLoadingEntries = loadingEntries.has(student.id);
+
                   return (
                     <div key={student.id} className="border rounded-lg p-3 hover:bg-gray-50">
                       <div className="flex justify-between items-center">
@@ -607,50 +604,61 @@ export const AdminCharging = () => {
                             )}
                           </div>
                         </div>
-                        
+
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => toggleStudentExpanded(student.id)}
-                          disabled={isLoadingCharges}
+                          disabled={isLoadingEntries}
                         >
-                          {isLoadingCharges ? (
+                          {isLoadingEntries ? (
                             <RefreshCw className="h-4 w-4 animate-spin" />
                           ) : isExpanded ? (
                             <ChevronUp className="h-4 w-4" />
                           ) : (
                             <ChevronDown className="h-4 w-4" />
                           )}
-                          Charges ({charges.length})
+                          Charges ({entries.length})
                         </Button>
                       </div>
 
                       {isExpanded && (
                         <div className="mt-3 pt-3 border-t">
-                          {charges.length > 0 ? (
+                          {entries.length > 0 ? (
                             <div className="space-y-2">
-                              {charges.map((charge) => (
-                                <div key={charge.id} className="bg-gray-50 rounded p-2 text-sm">
+                              {entries.slice(0, 10).map((entry) => (
+                                <div key={entry.id} className="bg-gray-50 rounded p-2 text-sm">
                                   <div className="flex justify-between items-start">
                                     <div>
-                                      <p className="font-medium">{charge.title}</p>
-                                      <p className="text-gray-600">NPR {charge.amount.toLocaleString()}</p>
+                                      <p className="font-medium">{entry.description}</p>
                                       <p className="text-xs text-gray-500">
-                                        {new Date(charge.createdAt).toLocaleDateString()}
+                                        {entry.date ? new Date(entry.date).toLocaleDateString() : 'No date'}
                                       </p>
                                     </div>
-                                    <div className="flex items-center">
-                                      <Badge variant="default" className="text-xs">
-                                        Applied
-                                      </Badge>
+                                    <div className="text-right">
+                                      {entry.debit > 0 && (
+                                        <p className="text-red-600 font-medium">
+                                          -NPR {entry.debit.toLocaleString()}
+                                        </p>
+                                      )}
+                                      {entry.credit > 0 && (
+                                        <p className="text-green-600 font-medium">
+                                          +NPR {entry.credit.toLocaleString()}
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
                               ))}
+                              {entries.length > 10 && (
+                                <p className="text-xs text-gray-500 text-center">
+                                  ... and {entries.length - 10} more entries
+                                </p>
+                              )}
                             </div>
                           ) : (
                             <p className="text-gray-500 text-sm text-center py-2">
-                              No charges found
+                              No ledger entries found
                             </p>
                           )}
                         </div>
@@ -669,6 +677,49 @@ export const AdminCharging = () => {
         </Card>
       </div>
 
+      {/* Overdue Students Section */}
+      {overdueStudents.length > 0 && (
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-600" />
+              Overdue Students ({overdueStudents.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {overdueStudents.map((student) => (
+                <div key={student.id} className="border border-orange-200 rounded-lg p-3 bg-orange-50">
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-orange-900">{student.name}</p>
+                        <span className="text-sm text-orange-700">Room {student.roomNumber}</span>
+                        <Badge variant="destructive">
+                          {student.daysOverdue} days overdue
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-orange-800 mt-1">
+                        Balance: NPR {student.currentBalance?.toLocaleString() || '0'}
+                      </p>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                      onClick={() => handleQuickCharge(student.id, student.suggestedLateFee || 100)}
+                      disabled={isProcessing}
+                    >
+                      Quick Charge NPR {student.suggestedLateFee || 100}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
     </div>
   );
