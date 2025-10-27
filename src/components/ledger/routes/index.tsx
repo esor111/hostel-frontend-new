@@ -16,58 +16,58 @@ export const SectionLoader = ({ sectionName }: { sectionName: string }) => (
 );
 
 // Route-level lazy loading for optimal code splitting
-export const LazyDashboard = lazy(() => 
-  import("@/components/ledger/Dashboard").then(module => ({ 
-    default: module.Dashboard 
+export const LazyDashboard = lazy(() =>
+  import("@/components/ledger/Dashboard").then(module => ({
+    default: module.Dashboard
   }))
 );
 
-export const LazyStudentManagement = lazy(() => 
+export const LazyStudentManagement = lazy(() =>
   import("@/components/ledger/StudentManagement").catch(err => {
     console.error('Failed to load StudentManagement:', err);
     return { default: () => <div>Error loading Student Management</div> };
   })
 );
 
-export const LazyPaymentRecording = lazy(() => 
-  import("@/components/ledger/PaymentRecording").then(module => ({ 
-    default: module.PaymentRecording 
+export const LazyPaymentRecording = lazy(() =>
+  import("@/components/ledger/PaymentRecording").then(module => ({
+    default: module.PaymentRecording
   }))
 );
 
-export const LazyStudentLedgerView = lazy(() => 
-  import("@/components/ledger/StudentLedgerView").then(module => ({ 
-    default: module.StudentLedgerView 
+export const LazyStudentLedgerView = lazy(() =>
+  import("@/components/ledger/StudentLedgerView").then(module => ({
+    default: module.StudentLedgerView
   }))
 );
 
-export const LazyDiscountManagement = lazy(() => 
-  import("@/components/ledger/DiscountManagement").then(module => ({ 
-    default: module.DiscountManagement 
+export const LazyDiscountManagement = lazy(() =>
+  import("@/components/ledger/DiscountManagement").then(module => ({
+    default: module.DiscountManagement
   }))
 );
 
-export const LazyBillingManagement = lazy(() => 
-  import("@/components/ledger/BillingManagement").then(module => ({ 
-    default: module.BillingManagement 
+export const LazyBillingManagement = lazy(() =>
+  import("@/components/ledger/BillingManagement").then(module => ({
+    default: module.BillingManagement
   }))
 );
 
-export const LazyAdminCharging = lazy(() => 
-  import("@/components/ledger/AdminCharging").then(module => ({ 
-    default: module.AdminCharging 
+export const LazyAdminCharging = lazy(() =>
+  import("@/components/ledger/AdminCharging").then(module => ({
+    default: module.AdminCharging
   }))
 );
 
-export const LazyStudentCheckoutManagement = lazy(() => 
-  import("@/components/ledger/StudentCheckoutManagement").then(module => ({ 
-    default: module.StudentCheckoutManagement 
+export const LazyStudentCheckoutManagement = lazy(() =>
+  import("@/components/ledger/StudentCheckoutManagement").then(module => ({
+    default: module.StudentCheckoutManagement
   }))
 );
 
-export const LazyApiTestComponent = lazy(() => 
-  import("@/components/debug/ApiTestComponent").then(module => ({ 
-    default: module.ApiTestComponent 
+export const LazyApiTestComponent = lazy(() =>
+  import("@/components/debug/ApiTestComponent").then(module => ({
+    default: module.ApiTestComponent
   }))
 );
 

@@ -9,37 +9,44 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminCharges } from '@/hooks/useAdminCharges';
 import { useStudents } from '@/hooks/useStudents';
-import { adminChargesApiService, AdminChargeType } from '../../services/adminChargesApiService';
-import { 
-  Zap, 
-  Users, 
-  DollarSign, 
-  AlertCircle, 
-  CheckCircle, 
+import { adminChargesApiService, AdminChargeType, AdminCharge } from '../../services/adminChargesApiService';
+import {
+  Zap,
+  Users,
+  DollarSign,
+  AlertCircle,
+  CheckCircle,
   Plus,
   Clock,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  FileText,
+  CreditCard,
+  X,
+  Eye
 } from 'lucide-react';
 
 
 export const AdminCharging = () => {
   const { toast } = useToast();
-  
+
   // Use real API hooks
-  const { 
-    loading: chargesLoading, 
-    error: chargesError, 
-    stats, 
-    createCharge, 
-    refreshData: refreshCharges 
+  const {
+    loading: chargesLoading,
+    error: chargesError,
+    stats,
+    createCharge,
+    refreshData: refreshCharges
   } = useAdminCharges();
-  
-  const { 
-    students, 
-    loading: studentsLoading, 
-    error: studentsError 
+
+  const {
+    students,
+    loading: studentsLoading,
+    error: studentsError
   } = useStudents();
-  
+
   const [selectedStudent, setSelectedStudent] = useState('');
   const [chargeType, setChargeType] = useState('');
   const [customDescription, setCustomDescription] = useState('');
@@ -51,6 +58,11 @@ export const AdminCharging = () => {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showBulkCharge, setShowBulkCharge] = useState(false);
+  
+  // Enhanced overdue students functionality
+  const [studentCharges, setStudentCharges] = useState<Record<string, AdminCharge[]>>({});
+  const [expandedStudents, setExpandedStudents] = useState<Set<string>>(new Set());
+  const [loadingCharges, setLoadingCharges] = useState<Set<string>>(new Set());
 
   useEffect(() => {
 
@@ -75,7 +87,7 @@ export const AdminCharging = () => {
     } catch (error) {
       console.error('Error loading overdue students:', error);
       // Fallback to filtering from existing students
-      const fallbackOverdue = students.filter(student => 
+      const fallbackOverdue = students.filter(student =>
         student.currentBalance && student.currentBalance > 0
       ).map(student => ({
         ...student,
@@ -90,7 +102,7 @@ export const AdminCharging = () => {
     setSummaryLoading(true);
     try {
       const response = await adminChargesApiService.getTodaySummary();
-      
+
       if (response && typeof response === 'object') {
         setTodaySummary(response);
       } else {
@@ -142,8 +154,9 @@ export const AdminCharging = () => {
 
     try {
       const studentIds = showBulkCharge ? selectedStudents : [selectedStudent];
-      
+
       // Create charges for each selected student
+      const createdCharges = [];
       for (const studentId of studentIds) {
         const chargeData = {
           studentId: studentId,
@@ -156,10 +169,13 @@ export const AdminCharging = () => {
           createdBy: 'Admin'
         };
 
-        await createCharge(chargeData);
+        console.log('🔄 Creating charge for student:', studentId, chargeData);
+        const newCharge = await createCharge(chargeData);
+        console.log('✅ Charge created successfully:', newCharge);
+        createdCharges.push(newCharge);
       }
 
-      const studentNames = studentIds.map(id => 
+      const studentNames = studentIds.map(id =>
         students.find(s => s.id === id)?.name || 'Student'
       ).join(', ');
 
@@ -168,7 +184,7 @@ export const AdminCharging = () => {
         description: `NPR ${amount} charge added to ${studentNames}`,
       });
 
-      // Reset form
+      // 🔧 FIX: Only reset form on successful creation
       setSelectedStudent('');
       setSelectedStudents([]);
       setChargeType('');
@@ -182,11 +198,18 @@ export const AdminCharging = () => {
       await loadTodaySummary();
 
     } catch (error) {
+      console.error('❌ Error creating admin charge:', error);
+
+      // 🔧 FIX: Show detailed error message and don't reset form
+      const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
+
       toast({
-        title: 'Error Adding Charge',
-        description: error.message,
+        title: 'Failed to Create Charge',
+        description: `Error: ${errorMessage}. Please check the details and try again.`,
         variant: 'destructive'
       });
+
+      // 🔧 FIX: Don't reset form on error so user can retry
     } finally {
       setIsProcessing(false);
     }
@@ -200,6 +223,117 @@ export const AdminCharging = () => {
       'maintenance_fee': 'Maintenance Fee'
     };
     return typeMap[type] || type;
+  };
+
+  // Load charges for a specific student
+  const loadStudentCharges = async (studentId: string) => {
+    if (studentCharges[studentId]) {
+      return; // Already loaded
+    }
+
+    setLoadingCharges(prev => new Set([...prev, studentId]));
+    
+    try {
+      const charges = await adminChargesApiService.getStudentCharges(studentId);
+      setStudentCharges(prev => ({
+        ...prev,
+        [studentId]: charges
+      }));
+    } catch (error) {
+      console.error(`Failed to load charges for student ${studentId}:`, error);
+      toast({
+        title: 'Error Loading Charges',
+        description: 'Failed to load student charges. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingCharges(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(studentId);
+        return newSet;
+      });
+    }
+  };
+
+  // Toggle expanded state for a student
+  const toggleStudentExpanded = async (studentId: string) => {
+    const isExpanded = expandedStudents.has(studentId);
+    
+    if (isExpanded) {
+      // Collapse
+      setExpandedStudents(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(studentId);
+        return newSet;
+      });
+    } else {
+      // Expand and load charges
+      setExpandedStudents(prev => new Set([...prev, studentId]));
+      await loadStudentCharges(studentId);
+    }
+  };
+
+  // Apply a charge to ledger
+  const applyChargeToLedger = async (chargeId: string, studentId: string) => {
+    try {
+      setIsProcessing(true);
+      await adminChargesApiService.applyCharge(chargeId);
+      
+      toast({
+        title: 'Charge Applied',
+        description: 'Charge has been applied to student ledger successfully.',
+      });
+
+      // Refresh charges for this student
+      setStudentCharges(prev => ({
+        ...prev,
+        [studentId]: undefined // Force reload
+      }));
+      await loadStudentCharges(studentId);
+      
+      // Refresh overall data
+      await refreshCharges();
+      await loadTodaySummary();
+    } catch (error) {
+      toast({
+        title: 'Error Applying Charge',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Cancel a charge
+  const cancelCharge = async (chargeId: string, studentId: string) => {
+    try {
+      setIsProcessing(true);
+      await adminChargesApiService.cancelCharge(chargeId);
+      
+      toast({
+        title: 'Charge Cancelled',
+        description: 'Charge has been cancelled successfully.',
+      });
+
+      // Refresh charges for this student
+      setStudentCharges(prev => ({
+        ...prev,
+        [studentId]: undefined // Force reload
+      }));
+      await loadStudentCharges(studentId);
+      
+      // Refresh overall data
+      await refreshCharges();
+    } catch (error) {
+      toast({
+        title: 'Error Cancelling Charge',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleQuickCharge = async (studentId: string, type: string, suggestedAmount: number) => {
@@ -246,12 +380,11 @@ export const AdminCharging = () => {
   return (
     <div className="space-y-6">
 
-      
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">⚡ Admin Charging System</h2>
-          <p className="text-gray-600 mt-1">Complete flexibility to charge students for any reason</p>
+          <h2 className="text-3xl font-bold text-gray-900">⚡ Admin Charging</h2>
           {(chargesError || studentsError) && (
             <div className="mt-2 text-sm text-red-600">
               Error: {chargesError || studentsError}
@@ -259,8 +392,8 @@ export const AdminCharging = () => {
           )}
         </div>
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               refreshCharges();
               loadTodaySummary();
@@ -272,8 +405,8 @@ export const AdminCharging = () => {
             Refresh
           </Button>
 
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setShowBulkCharge(!showBulkCharge)}
           >
             <Users className="h-4 w-4 mr-2" />
@@ -283,7 +416,7 @@ export const AdminCharging = () => {
       </div>
 
       {/* Today's Summary */}
-      
+
       {summaryLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
@@ -322,9 +455,9 @@ export const AdminCharging = () => {
                 <div>
                   <p className="text-sm text-green-600 font-medium">Total Amount</p>
                   <p className="text-2xl font-bold text-green-700">
-                    NPR {(todaySummary?.totalAmount || 
-                          ((stats?.totalPendingAmount || 0) + (stats?.totalAppliedAmount || 0))
-                         ).toLocaleString()}
+                    NPR {(todaySummary?.totalAmount ||
+                      ((stats?.totalPendingAmount || 0) + (stats?.totalAppliedAmount || 0))
+                    ).toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500">
                     Raw: {JSON.stringify(todaySummary?.totalAmount)} | {JSON.stringify(stats?.totalPendingAmount)} + {JSON.stringify(stats?.totalAppliedAmount)}
@@ -401,7 +534,7 @@ export const AdminCharging = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                
+
                 {selectedStudentData && (
                   <div className="bg-blue-50 p-3 rounded-lg">
                     <p className="text-sm text-blue-800">
@@ -495,80 +628,130 @@ export const AdminCharging = () => {
               />
             </div>
 
-            <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
-                <div className="text-sm text-yellow-800">
-                  <p className="font-medium">Charge will be:</p>
-                  <ul className="mt-1 space-y-1">
-                    <li>• Added directly to student ledger</li>
-                    <li>• Student will be notified via system</li>
-                    <li>• Balance will be updated immediately</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
 
-            <Button 
+
+            <Button
               onClick={handleAddCharge}
               disabled={isProcessing || chargesLoading || studentsLoading}
               className="w-full"
             >
-              {isProcessing ? 'Processing...' : 
-               (chargesLoading || studentsLoading) ? 'Loading...' :
-               showBulkCharge ? `Apply to ${selectedStudents.length} Students` : 'Add Charge to Ledger'}
+              {isProcessing ? 'Processing...' :
+                (chargesLoading || studentsLoading) ? 'Loading...' :
+                  showBulkCharge ? `Apply to ${selectedStudents.length} Students` : 'Add Charge to Ledger'}
             </Button>
           </CardContent>
         </Card>
 
-        {/* Overdue Students */}
+        {/* Students & Charges */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Students with Overdue Payments ({overdueStudents.length})
+              <Users className="h-5 w-5" />
+              Students & Charges ({students.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {overdueStudents.length > 0 ? (
-                overdueStudents.map((student) => (
-                  <div key={student.id} className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold text-gray-900">{student.name}</p>
-                        <p className="text-sm text-gray-600">Room: {student.roomNumber}</p>
-                        <p className="text-sm text-red-600">
-                          {student.daysOverdue} days overdue • NPR {(student.currentBalance || 0).toLocaleString()} due
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600 mb-2">
-                          Suggested: NPR {student.suggestedLateFee}
-                        </p>
+              {students.length > 0 ? (
+                students.map((student) => {
+                  const isExpanded = expandedStudents.has(student.id);
+                  const charges = studentCharges[student.id] || [];
+                  const isLoadingCharges = loadingCharges.has(student.id);
+                  
+                  return (
+                    <div key={student.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{student.name}</p>
+                            <span className="text-sm text-gray-500">Room {student.roomNumber}</span>
+                            {student.currentBalance > 0 && (
+                              <Badge variant="destructive" className="text-xs">
+                                NPR {student.currentBalance.toLocaleString()} due
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        
                         <Button
                           size="sm"
-                          onClick={() => handleQuickCharge(student.id, 'late_fee_overdue', student.suggestedLateFee)}
-                          disabled={isProcessing}
-                          className="bg-red-600 hover:bg-red-700"
+                          variant="outline"
+                          onClick={() => toggleStudentExpanded(student.id)}
+                          disabled={isLoadingCharges}
                         >
-                          Quick Charge
+                          {isLoadingCharges ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                          Charges ({charges.length})
                         </Button>
                       </div>
+
+                      {isExpanded && (
+                        <div className="mt-3 pt-3 border-t">
+                          {charges.length > 0 ? (
+                            <div className="space-y-2">
+                              {charges.map((charge) => (
+                                <div key={charge.id} className="bg-gray-50 rounded p-2 text-sm">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-medium">{charge.title}</p>
+                                      <p className="text-gray-600">NPR {charge.amount.toLocaleString()}</p>
+                                      <p className="text-xs text-gray-500">
+                                        {new Date(charge.createdAt).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Badge 
+                                        variant={
+                                          charge.status === 'pending' ? 'secondary' :
+                                          charge.status === 'applied' ? 'default' : 'destructive'
+                                        }
+                                        className="text-xs"
+                                      >
+                                        {charge.status}
+                                      </Badge>
+                                      {charge.status === 'pending' && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => applyChargeToLedger(charge.id, student.id)}
+                                          disabled={isProcessing}
+                                          className="text-xs px-2 py-1 h-6"
+                                        >
+                                          Apply
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 text-sm text-center py-2">
+                              No charges found
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-8">
-                  <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
-                  <p className="text-gray-600">No overdue payments!</p>
-                  <p className="text-sm text-gray-500">All students are up to date</p>
+                  <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-600">No students found</p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+
     </div>
   );
 };

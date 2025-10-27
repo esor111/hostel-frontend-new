@@ -659,7 +659,7 @@ export const StudentManagement = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const refreshParam = params.get('refresh');
-    
+
     if (refreshParam) {
 
       refreshData().then(() => {
@@ -699,14 +699,14 @@ export const StudentManagement = () => {
   // Pagination state for Student List & Management
   const [currentPage, setCurrentPage] = useState(1);
   const [studentsPerPage] = useState(6); // 6 students per page for better visibility
-  
+
   // Pagination state for Pending Configuration
   const [pendingCurrentPage, setPendingCurrentPage] = useState(1);
   const [pendingStudentsPerPage] = useState(4); // 4 pending students per page
 
   // Separate students into pending configuration and configured
   // Primary filter: isConfigured = false (more reliable than status)
-  const pendingStudents = students?.filter(student => 
+  const pendingStudents = students?.filter(student =>
     !student.isConfigured
   ) || [];
   const configuredStudents = students?.filter(student => student.isConfigured) || [];
@@ -730,7 +730,7 @@ export const StudentManagement = () => {
   const startIndex = (currentPage - 1) * studentsPerPage;
   const endIndex = startIndex + studentsPerPage;
   const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
-  
+
   // Pagination calculations for Pending Configuration
   const pendingTotalPages = Math.ceil(pendingStudents.length / pendingStudentsPerPage);
   const pendingStartIndex = (pendingCurrentPage - 1) * pendingStudentsPerPage;
@@ -763,7 +763,7 @@ export const StudentManagement = () => {
 
       // Switch to student list tab to show the configured student
       setActiveTab("students");
-      
+
       // Reset to first page to ensure the newly configured student is visible
       setCurrentPage(1);
 
@@ -853,7 +853,7 @@ export const StudentManagement = () => {
                 <p className="text-sm text-[#231F20]/70">Enroll and manage student records</p>
               </div>
             </div>
-            
+
             {/* Quick Stats */}
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="text-[#1295D0] border-[#1295D0]/30 text-xs">
@@ -957,7 +957,7 @@ export const StudentManagement = () => {
                       </CardContent>
                     </Card>
                   ))}
-                  
+
                   {/* Pagination Controls for Pending Students */}
                   {pendingTotalPages > 1 && (
                     <div className="flex items-center justify-center gap-2 mt-6">
@@ -971,7 +971,7 @@ export const StudentManagement = () => {
                         <ChevronLeft className="h-4 w-4" />
                         Previous
                       </Button>
-                      
+
                       <div className="flex items-center gap-1">
                         {Array.from({ length: pendingTotalPages }, (_, i) => i + 1).map((page) => (
                           <Button
@@ -979,17 +979,16 @@ export const StudentManagement = () => {
                             variant={page === pendingCurrentPage ? "default" : "outline"}
                             size="sm"
                             onClick={() => setPendingCurrentPage(page)}
-                            className={`w-10 h-10 ${
-                              page === pendingCurrentPage 
-                                ? "bg-[#07A64F] hover:bg-[#07A64F]/90" 
+                            className={`w-10 h-10 ${page === pendingCurrentPage
+                                ? "bg-[#07A64F] hover:bg-[#07A64F]/90"
                                 : ""
-                            }`}
+                              }`}
                           >
                             {page}
                           </Button>
                         ))}
                       </div>
-                      
+
                       <Button
                         variant="outline"
                         size="sm"
@@ -1230,8 +1229,8 @@ export const StudentManagement = () => {
                                 size="sm"
                                 onClick={() => setCurrentPage(page)}
                                 className={`w-7 h-7 p-0 text-xs ${currentPage === page
-                                    ? "bg-[#1295D0] hover:bg-[#1295D0]/90"
-                                    : "hover:bg-gray-100"
+                                  ? "bg-[#1295D0] hover:bg-[#1295D0]/90"
+                                  : "hover:bg-gray-100"
                                   }`}
                               >
                                 {page}
@@ -1730,7 +1729,7 @@ export const StudentManagement = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-blue-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex items-center gap-2">

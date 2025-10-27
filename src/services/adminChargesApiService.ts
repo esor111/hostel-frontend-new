@@ -1,6 +1,31 @@
 import { ApiService } from './apiService';
 import { handleApiError } from '../utils/errorHandler';
 
+// Helper function to get hostelId from auth context
+const getHostelId = (): string | null => {
+  try {
+    // Get the selected business from localStorage (auth service stores it separately)
+    const selectedBusinessData = localStorage.getItem('kaha_selected_business');
+    console.log('🔍 DEBUG: Raw selectedBusiness from localStorage:', selectedBusinessData);
+    
+    if (selectedBusinessData) {
+      const selectedBusiness = JSON.parse(selectedBusinessData);
+      console.log('🔍 DEBUG: Parsed selectedBusiness:', selectedBusiness);
+      console.log('🔍 DEBUG: selectedBusiness.id:', selectedBusiness.id);
+      
+      const hostelId = selectedBusiness.id;
+      console.log('🏨 DEBUG: Using hostelId from selected business:', hostelId);
+      return hostelId;
+    }
+    
+    console.warn('⚠️ DEBUG: No selected business found in localStorage');
+    return null;
+  } catch (error) {
+    console.error('❌ DEBUG: Failed to get hostelId from auth context:', error);
+    return null;
+  }
+};
+
 export enum AdminChargeType {
   ONE_TIME = 'one-time',
   MONTHLY = 'monthly',
@@ -203,6 +228,9 @@ class AdminChargesApiService {
   async createAdminCharge(chargeData: CreateAdminChargeDto): Promise<AdminCharge> {
     try {
       console.log('➕ Creating new admin charge...', chargeData);
+
+      // 🔧 BACKEND FIX: hostelId is now handled by backend service from student record
+      // No need to send hostelId in request body - backend gets it from student.hostelId
 
       const response = await this.apiService.post<{ data: AdminCharge }>('/admin-charges', chargeData);
 
