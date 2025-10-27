@@ -140,7 +140,7 @@ export const PaymentRecording = () => {
         reference: referenceId?.trim() || undefined,
         notes: notes?.trim() || undefined,
         status: "Completed",
-        createdBy: "admin"
+        processedBy: "admin"
       };
 
 

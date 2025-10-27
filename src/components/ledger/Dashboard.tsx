@@ -21,39 +21,7 @@ export const Dashboard = memo(() => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Refresh function
-  const refreshDashboard = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
 
-      
-      const [
-        stats,
-        checkedOutData,
-        totalCollectedAmount,
-        outstandingDues
-      ] = await Promise.all([
-        dashboardApiService.getDashboardStats(),
-        dashboardApiService.getCheckedOutWithDues(),
-        dashboardApiService.getTotalCollected(),
-        dashboardApiService.getTotalOutstandingDues()
-      ]);
-      
-      setDashboardStats(stats);
-      setCheckedOutWithDues(checkedOutData);
-      setTotalCollected(totalCollectedAmount);
-      setTotalOutstandingDues(outstandingDues);
-      
-
-    } catch (error) {
-      console.error('❌ Error refreshing dashboard:', error);
-      setError(error instanceof Error ? error.message : 'Failed to refresh dashboard');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Load data on mount
   useEffect(() => {
@@ -169,35 +137,16 @@ export const Dashboard = memo(() => {
                   </div>
                   <div>
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-[#07A64F] via-[#1295D0] to-[#07A64F] bg-clip-text text-transparent tracking-tight">
-                      Financial Dashboard
+                      Kaha KLedger
                     </h1>
                     <div className="text-slate-600 font-medium text-lg">
-                      {loading ? 'Loading...' : error ? 'Error Loading Data' : 'Real-time Analytics & Insights'}
-                      {!loading && !error && (
-                        <span className="ml-2 inline-flex items-center gap-1 text-sm">
-                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse inline-block"></span>
-                          Live Data
-                        </span>
-                      )}
+                      Student Financial Management System
                     </div>
                   </div>
                 </div>
               </div>
               
               <div className="flex items-center gap-2">
-                <Button
-                  onClick={refreshDashboard}
-                  disabled={loading}
-                  variant="outline"
-                  className="bg-white/80 backdrop-blur-sm border-white/20 hover:bg-white/90"
-                >
-                  {loading ? (
-                    <div className="w-4 h-4 border-2 border-[#1295D0] border-t-transparent rounded-full animate-spin mr-2" />
-                  ) : (
-                    <span className="mr-2">🔄</span>
-                  )}
-                  {loading ? 'Refreshing...' : 'Refresh'}
-                </Button>
               </div>
             </div>
 

@@ -33,7 +33,7 @@ export interface CreatePaymentDto {
   status?: Payment['status'];
   transactionId?: string;
   receiptNumber?: string;
-  createdBy?: string; // Changed from processedBy to match backend
+  processedBy?: string; // Matches backend DTO field name
   bankName?: string;
   chequeNumber?: string;
   chequeDate?: string;
@@ -223,7 +223,7 @@ export class PaymentsApiService {
       paymentMethod: paymentData.paymentMethod,
       paymentDate: paymentData.paymentDate || new Date().toISOString().split('T')[0],
       status: paymentData.status || 'Completed',
-      createdBy: paymentData.createdBy || 'admin', // Use createdBy instead of processedBy
+      processedBy: paymentData.processedBy || 'admin', // Matches backend DTO field name
       ...(paymentData.reference && { reference: paymentData.reference }),
       ...(paymentData.notes && { notes: paymentData.notes }),
       ...(paymentData.transactionId && { transactionId: paymentData.transactionId }),
