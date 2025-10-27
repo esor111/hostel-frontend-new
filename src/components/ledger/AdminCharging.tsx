@@ -21,11 +21,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  Calendar,
-  FileText,
-  CreditCard,
-  X,
-  Eye
+  FileText
 } from 'lucide-react';
 
 
@@ -273,68 +269,7 @@ export const AdminCharging = () => {
     }
   };
 
-  // Apply a charge to ledger
-  const applyChargeToLedger = async (chargeId: string, studentId: string) => {
-    try {
-      setIsProcessing(true);
-      await adminChargesApiService.applyCharge(chargeId);
-      
-      toast({
-        title: 'Charge Applied',
-        description: 'Charge has been applied to student ledger successfully.',
-      });
 
-      // Refresh charges for this student
-      setStudentCharges(prev => ({
-        ...prev,
-        [studentId]: undefined // Force reload
-      }));
-      await loadStudentCharges(studentId);
-      
-      // Refresh overall data
-      await refreshCharges();
-      await loadTodaySummary();
-    } catch (error) {
-      toast({
-        title: 'Error Applying Charge',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Cancel a charge
-  const cancelCharge = async (chargeId: string, studentId: string) => {
-    try {
-      setIsProcessing(true);
-      await adminChargesApiService.cancelCharge(chargeId);
-      
-      toast({
-        title: 'Charge Cancelled',
-        description: 'Charge has been cancelled successfully.',
-      });
-
-      // Refresh charges for this student
-      setStudentCharges(prev => ({
-        ...prev,
-        [studentId]: undefined // Force reload
-      }));
-      await loadStudentCharges(studentId);
-      
-      // Refresh overall data
-      await refreshCharges();
-    } catch (error) {
-      toast({
-        title: 'Error Cancelling Charge',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleQuickCharge = async (studentId: string, type: string, suggestedAmount: number) => {
     setIsProcessing(true);
@@ -704,27 +639,10 @@ export const AdminCharging = () => {
                                         {new Date(charge.createdAt).toLocaleDateString()}
                                       </p>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                      <Badge 
-                                        variant={
-                                          charge.status === 'pending' ? 'secondary' :
-                                          charge.status === 'applied' ? 'default' : 'destructive'
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {charge.status}
+                                    <div className="flex items-center">
+                                      <Badge variant="default" className="text-xs">
+                                        Applied
                                       </Badge>
-                                      {charge.status === 'pending' && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => applyChargeToLedger(charge.id, student.id)}
-                                          disabled={isProcessing}
-                                          className="text-xs px-2 py-1 h-6"
-                                        >
-                                          Apply
-                                        </Button>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
