@@ -86,7 +86,7 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
 
   return (
     <div className={cn(
-      "bg-white/80 backdrop-blur-xl shadow-2xl shadow-black/10 border-r border-white/20 relative overflow-hidden flex-shrink-0 transition-all duration-300 ease-in-out",
+      "bg-white/80 backdrop-blur-xl shadow-2xl shadow-black/10 border-r border-white/20 relative flex-shrink-0 transition-all duration-300 ease-in-out flex flex-col h-full",
       isCollapsed ? "w-16 min-w-16" : "w-72 min-w-72"
     )}>
       {/* Sidebar Background Elements */}
@@ -162,7 +162,7 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
       
       {/* Navigation Menu */}
       <nav className={cn(
-        "relative z-10 space-y-2 flex-1 overflow-y-auto transition-all duration-300",
+        "relative z-10 space-y-2 flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300",
         isCollapsed ? "p-2" : "p-4"
       )}>
         {menuItems.map((item, index) => {
@@ -255,7 +255,7 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
       
       {/* Footer */}
       {!isCollapsed && (
-        <div className="relative z-10 p-4 border-t border-white/20 mt-auto">
+        <div className="relative z-10 p-4 border-t border-white/20 flex-shrink-0">
           <div className="text-center">
             <div className="text-xs text-slate-400 font-medium">
               Powered by Kaha Technology

@@ -49,7 +49,7 @@ export const LedgerLayout = () => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex relative overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex relative">
       {/* Ambient Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-[#07A64F]/10 to-[#1295D0]/10 rounded-full blur-3xl"></div>
@@ -64,7 +64,7 @@ export const LedgerLayout = () => {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
       
-      <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
+      <div className="flex-1 flex flex-col relative z-10 min-w-0">
         {/* Premium Glass Header */}
         <div className="bg-white/80 backdrop-blur-xl border-b border-white/20 shadow-lg shadow-black/5 px-8 py-6 relative flex-shrink-0">
           {/* Subtle gradient overlay */}
@@ -171,7 +171,7 @@ export const LedgerLayout = () => {
         </div>
         
         {/* Premium Content Area - Independent Scroll */}
-        <div className="flex-1 p-8 bg-gradient-to-br from-white/50 via-slate-50/30 to-white/50 backdrop-blur-sm relative overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 p-8 bg-gradient-to-br from-white/50 via-slate-50/30 to-white/50 backdrop-blur-sm relative overflow-y-auto overflow-x-hidden min-h-0">
           {/* Content Background Pattern */}
           <div className="absolute inset-0 opacity-[0.02]" style={{
             backgroundImage: `radial-gradient(circle at 1px 1px, #07A64F 1px, transparent 0)`,
