@@ -4,55 +4,28 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle, User, Phone, Calendar, DollarSign, FileText } from "lucide-react";
-
-interface CheckoutRecord {
-  id: string;
-  studentId: string;
-  studentName: string;
-  room: string;
-  checkoutReason: string;
-  checkoutDate: string;
-  duesCleared: boolean;
-  finalBalance: number;
-  status: string;
-  notes: string;
-}
+import { dashboardApiService, CheckedOutWithDues } from "@/services/dashboardApiService";
 
 export const CheckoutWithoutPayment = () => {
-  const [checkoutRecords, setCheckoutRecords] = useState<CheckoutRecord[]>([]);
+  const [checkoutRecords, setCheckoutRecords] = useState<CheckedOutWithDues[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCheckoutRecords = async () => {
       try {
-        // Load checkout records from JSON data
-        const response = await fetch('/src/data/checkouts.json');
-        const data = await response.json();
+        setLoading(true);
+        setError(null);
         
-        // Filter records where dues are not cleared or have negative balance
-        const unpaidCheckouts = data.filter((record: CheckoutRecord) => 
-          !record.duesCleared || record.finalBalance < 0
-        );
+        // Load real checkout records from API
+        const data = await dashboardApiService.getCheckedOutWithDues();
         
-        setCheckoutRecords(unpaidCheckouts);
+        console.log('✅ Loaded checked-out students with dues:', data.length);
+        setCheckoutRecords(data);
       } catch (error) {
-        console.error('Error loading checkout records:', error);
-        // Fallback to mock data
-        const mockCheckouts = [
-          {
-            id: "checkout_002",
-            studentId: "student_005",
-            studentName: "Suresh Thapa",
-            room: "B-201",
-            checkoutReason: "Transfer to Another Hostel",
-            checkoutDate: "2024-01-12T14:00:00Z",
-            duesCleared: false,
-            finalBalance: -5000,
-            status: "pending_payment",
-            notes: "Student found accommodation closer to university. Pending dues need to be cleared."
-          }
-        ];
-        setCheckoutRecords(mockCheckouts);
+        console.error('❌ Error loading checkout records:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load checkout records');
+        setCheckoutRecords([]);
       } finally {
         setLoading(false);
       }
@@ -62,7 +35,7 @@ export const CheckoutWithoutPayment = () => {
   }, []);
 
   const totalOutstanding = checkoutRecords.reduce((sum, record) => 
-    sum + Math.abs(record.finalBalance), 0
+    sum + (record.outstandingDues || 0), 0
   );
 
   if (loading) {
@@ -78,6 +51,31 @@ export const CheckoutWithoutPayment = () => {
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
             <p className="text-gray-600 mt-2">Loading checkout records...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-600">
+            <AlertTriangle className="h-5 w-5" />
+            Error Loading Checkout Records
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+              className="border-red-300 text-red-600 hover:bg-red-50"
+            >
+              Retry
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -111,7 +109,7 @@ export const CheckoutWithoutPayment = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-orange-900">
-                    ₹{totalOutstanding.toFixed(2)}
+                    NPR {totalOutstanding.toLocaleString()}
                   </div>
                   <div className="text-sm text-orange-700">Pending Collection</div>
                 </div>
@@ -132,8 +130,8 @@ export const CheckoutWithoutPayment = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {checkoutRecords.map((record) => (
-                  <TableRow key={record.id} className="border-orange-100">
+                {checkoutRecords.map((record, index) => (
+                  <TableRow key={`${record.studentId}-${index}`} className="border-orange-100">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
@@ -146,7 +144,7 @@ export const CheckoutWithoutPayment = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium">{record.room}</span>
+                      <span className="font-medium">{record.roomNumber || 'N/A'}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -156,15 +154,13 @@ export const CheckoutWithoutPayment = () => {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{record.checkoutReason}</p>
-                        {record.notes && (
-                          <p className="text-xs text-gray-500 mt-1">{record.notes}</p>
-                        )}
+                        <p className="font-medium">Checked Out</p>
+                        <p className="text-xs text-gray-500 mt-1">Outstanding payment pending</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-red-600 font-bold">
-                        ₹{Math.abs(record.finalBalance).toFixed(2)}
+                        NPR {(record.outstandingDues || 0).toLocaleString()}
                       </div>
                     </TableCell>
                     <TableCell>
