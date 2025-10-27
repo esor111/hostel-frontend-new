@@ -450,33 +450,28 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
     const elementType = elementTypes.find(t => t.type === type);
     if (!elementType) return;
 
-    // ✅ BED COUNT VALIDATION - FIXED
+    // 🔧 FIXED: BED COUNT VALIDATION - Treat bunk beds as single bookable units
     if (type === 'single-bed' || type === 'bunk-bed') {
-      // Calculate current bed capacity (sleeping spots)
-      let currentBedCapacity = 0;
-      elements.forEach(el => {
-        if (el.type === 'single-bed') {
-          currentBedCapacity += 1;
-        } else if (el.type === 'bunk-bed') {
-          currentBedCapacity += el.properties?.bunkLevels || 2;
-        }
-      });
+      // Calculate current bed elements (not sleeping spots)
+      const currentBedElements = elements.filter(el =>
+        el.type === 'single-bed' || el.type === 'bunk-bed'
+      ).length;
 
       // Check if room has a bed count limit
       if (roomData?.bedCount && roomData.bedCount > 0) {
         const roomBedLimit = roomData.bedCount;
-        const newBedCapacity = type === 'single-bed' ? 1 : (type === 'bunk-bed' ? 2 : 1);
+        const newBedElements = 1; // Each bed (single or bunk) = 1 bookable unit
 
-        console.log('✅ Bed count validation active:', {
+        console.log('✅ Bed element validation active:', {
           roomBedLimit,
-          currentBedCapacity,
-          newBedCapacity,
-          wouldExceed: currentBedCapacity + newBedCapacity > roomBedLimit
+          currentBedElements,
+          newBedElements,
+          wouldExceed: currentBedElements + newBedElements > roomBedLimit
         });
 
-        if (currentBedCapacity + newBedCapacity > roomBedLimit) {
+        if (currentBedElements + newBedElements > roomBedLimit) {
           toast.error(`Cannot add ${type.replace('-', ' ')}!`, {
-            description: `Room sleeping capacity: ${roomBedLimit}. Current: ${currentBedCapacity}. Adding ${type.replace('-', ' ')} (+${newBedCapacity}) would exceed limit.`,
+            description: `Room bed limit: ${roomBedLimit}. Current: ${currentBedElements} beds. Adding ${type.replace('-', ' ')} would exceed limit.`,
             duration: 5000,
           });
           return; // Prevent adding the bed

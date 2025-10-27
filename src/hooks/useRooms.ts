@@ -65,7 +65,8 @@ export interface UpdateRoomData {
   layout?: any;
 }
 
-// Helper function to calculate bed count from layout
+// 🔧 FIXED: Helper function to calculate bed count from layout
+// RULE: Count bed ELEMENTS (not sleeping spots) - treat bunk beds as single bookable units
 const calculateBedCountFromLayout = (layout: any): number => {
   if (!layout || !layout.elements) {
     return 0;
@@ -75,12 +76,8 @@ const calculateBedCountFromLayout = (layout: any): number => {
     element.type === 'single-bed' || element.type === 'bunk-bed'
   );
 
-  return bedElements.reduce((count: number, element: any) => {
-    if (element.type === 'bunk-bed') {
-      return count + (element.properties?.bunkLevels || 2);
-    }
-    return count + 1;
-  }, 0);
+  // 🎯 KEY FIX: Each bed element = 1 bookable unit (regardless of bunk levels)
+  return bedElements.length;
 };
 
 export const useRooms = () => {
@@ -156,27 +153,26 @@ export const useRooms = () => {
           }
         }
 
-        // Calculate actual bed count from layout if available
+        // 🔧 FIXED: Single source of truth for bed counting
+        // RULE: Treat bunk beds as single bookable units (like single beds)
         let actualBedCount = parseInt(room.bedCount) || 0;
         let actualAvailableBeds = parseInt(room.availableBeds) || 0;
 
         if (parsedLayout && parsedLayout.elements) {
-          // Count beds from layout elements
+          // Count bed ELEMENTS (not sleeping spots)
           const bedElements = parsedLayout.elements.filter((element: any) =>
             element.type === 'single-bed' || element.type === 'bunk-bed'
           );
 
-          // Calculate total beds considering bunk beds have multiple levels
-          actualBedCount = bedElements.reduce((count: number, element: any) => {
-            if (element.type === 'bunk-bed') {
-              return count + (element.properties?.bunkLevels || 2);
-            }
-            return count + 1;
-          }, 0);
+          // 🎯 KEY FIX: Count each bed element as 1 unit (regardless of bunk levels)
+          // This treats bunk beds as single bookable units
+          actualBedCount = bedElements.length;
 
           // Recalculate available beds based on actual bed count and occupancy
           const occupancy = parseInt(room.occupancy) || 0;
           actualAvailableBeds = Math.max(0, actualBedCount - occupancy);
+          
+          console.log(`🛏️ Room ${room.roomNumber}: ${bedElements.length} bed elements, ${occupancy} occupied, ${actualAvailableBeds} available`);
         }
 
         // Parse amenities to handle both string and object formats
