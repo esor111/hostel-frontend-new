@@ -272,13 +272,27 @@ export class PerformanceManager {
 
   // Service Worker initialization for advanced caching
   async initServiceWorker() {
+    // Skip service worker in localhost development to avoid caching issues
+    if (import.meta.env.VITE_ENVIRONMENT === 'localhost') {
+      console.log('🚫 Skipping service worker in localhost development');
+      // Clear any existing caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        if (cacheNames.length > 0) {
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+          console.log('✅ Cleared existing caches:', cacheNames);
+        }
+      }
+      return;
+    }
+    
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
         console.log('Service Worker registered:', registration);
         
         // Clear cache in development to prevent stale API calls
-        if (import.meta.env.DEV || import.meta.env.VITE_ENVIRONMENT === 'localhost') {
+        if (import.meta.env.DEV) {
           console.log('🧹 Clearing service worker cache in development...');
           if (registration.active) {
             registration.active.postMessage({ type: 'CLEAR_CACHE' });

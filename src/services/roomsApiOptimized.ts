@@ -21,6 +21,7 @@ export const roomsApiOptimized = {
   async getRoomsLightweight(filters = {}, hostelId?: string) {
     try {
       console.log('🚀 Fetching lightweight rooms from optimized API...');
+      console.log('🔧 Environment check:', import.meta.env.VITE_ENVIRONMENT);
       const queryParams = new URLSearchParams();
 
       // Add hostelId to query parameters
