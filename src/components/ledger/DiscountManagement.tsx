@@ -44,6 +44,10 @@ export const DiscountManagement = () => {
   const [notes, setNotes] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [discountsPerPage] = useState(10); // Show 10 discounts per page
+
   const discountReasons = [
     "Good Behavior",
     "Early Payment", 
@@ -126,7 +130,7 @@ export const DiscountManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-[#231F20]">🏷️ Discount Management</h2>
         <div className="flex gap-2">
@@ -207,58 +211,113 @@ export const DiscountManagement = () => {
         </Card>
       </div>
 
-      {/* Discounts Table */}
+      {/* Discounts Table with Pagination */}
       <Card>
         <CardHeader>
           <CardTitle>Discount Records</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Discount ID</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Applied To</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {discountsLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
-                    <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
-                    Loading discounts...
-                  </TableCell>
-                </TableRow>
-              ) : discounts.length > 0 ? (
-                discounts.map((discount) => (
-                  <TableRow key={discount.id}>
-                    <TableCell className="font-medium">{discount.id}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{discount.studentName}</div>
-                        <div className="text-sm text-gray-500">ID: {discount.studentId}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-bold text-green-600">
-                      ₨{discount.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>{discount.reason}</TableCell>
-                    <TableCell>Ledger</TableCell>
-                    <TableCell>{new Date(discount.appliedDate).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4 text-gray-500">
-                    No discount history found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          {(() => {
+            const indexOfLastDiscount = currentPage * discountsPerPage;
+            const indexOfFirstDiscount = indexOfLastDiscount - discountsPerPage;
+            const currentDiscounts = discounts.slice(indexOfFirstDiscount, indexOfLastDiscount);
+            const totalPages = Math.ceil(discounts.length / discountsPerPage);
+
+            return (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Discount ID</TableHead>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead>Applied To</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {discountsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-4">
+                          <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
+                          Loading discounts...
+                        </TableCell>
+                      </TableRow>
+                    ) : currentDiscounts.length > 0 ? (
+                      currentDiscounts.map((discount) => (
+                        <TableRow key={discount.id}>
+                          <TableCell className="font-medium">{discount.id}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{discount.studentName}</div>
+                              <div className="text-sm text-gray-500">ID: {discount.studentId}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-bold text-green-600">
+                            ₨{discount.amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell>{discount.reason}</TableCell>
+                          <TableCell>Ledger</TableCell>
+                          <TableCell>{new Date(discount.date).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-4 text-gray-500">
+                          No discount history found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center space-x-2 mt-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+
+                    <div className="flex space-x-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={currentPage === page ? "bg-[#07A64F] hover:bg-[#07A64F]/90" : ""}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+
+                {/* Pagination Info */}
+                {discounts.length > 0 && (
+                  <div className="text-center text-sm text-gray-600 mt-4">
+                    Showing {indexOfFirstDiscount + 1} to {Math.min(indexOfLastDiscount, discounts.length)} of {discounts.length} discounts
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 

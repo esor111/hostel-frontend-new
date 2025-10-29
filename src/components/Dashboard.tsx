@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDashboard } from '../hooks/useDashboard';
 import { useStudents } from '../hooks/useStudents';
 import { useNavigation } from '../hooks/useNavigation';
+import Pagination from './ui/pagination';
 import {
   Users,
   Bed,
@@ -32,13 +33,16 @@ import {
 const Dashboard: React.FC = () => {
   const { navigateTo } = useNavigation();
 
-  // Use new dashboard hook with auto-refresh
+  // Use new dashboard hook with auto-refresh and pagination
   const {
     stats,
     recentActivities,
+    activitiesPagination,
+    activitiesLoading,
     loading: dashboardLoading,
     error: dashboardError,
     refreshDashboard,
+    loadRecentActivitiesPaginated,
     clearError,
     lastRefresh,
     hasData
@@ -47,6 +51,11 @@ const Dashboard: React.FC = () => {
     refreshInterval: 30000, // 30 seconds
     loadOnMount: true
   });
+
+  // Handle pagination change
+  const handlePageChange = (page: number) => {
+    loadRecentActivitiesPaginated(page, 6);
+  };
 
   // Use students hook for additional student data
   const {
@@ -270,12 +279,26 @@ const Dashboard: React.FC = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Recent Activities</CardTitle>
-            <CardDescription>Latest updates and notifications</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg font-semibold">Recent Activities</CardTitle>
+                <CardDescription>Latest updates and notifications</CardDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => loadRecentActivitiesPaginated(1, 6)}
+                disabled={activitiesLoading}
+                className="border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${activitiesLoading ? 'animate-spin' : ''}`} />
+                Load Paginated
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px]">
-              {isLoading ? (
+              {activitiesLoading || dashboardLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -348,6 +371,20 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
             </ScrollArea>
+            
+            {/* Pagination Controls */}
+            {activitiesPagination && activitiesPagination.totalPages > 1 && (
+              <div className="flex justify-center pt-4 border-t">
+                <Pagination
+                  currentPage={activitiesPagination.page}
+                  totalPages={activitiesPagination.totalPages}
+                  onPageChange={handlePageChange}
+                  hasNext={activitiesPagination.hasNext}
+                  hasPrev={activitiesPagination.hasPrev}
+                  className="scale-90"
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

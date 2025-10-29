@@ -86,7 +86,7 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
 
   return (
     <div className={cn(
-      "bg-white/80 backdrop-blur-xl shadow-2xl shadow-black/10 border-r border-white/20 relative overflow-hidden flex-shrink-0 transition-all duration-300 ease-in-out",
+      "bg-white/80 backdrop-blur-xl shadow-2xl shadow-black/10 border-r border-white/20 relative flex-shrink-0 transition-all duration-300 ease-in-out flex flex-col h-full",
       isCollapsed ? "w-16 min-w-16" : "w-72 min-w-72"
     )}>
       {/* Sidebar Background Elements */}
@@ -97,10 +97,10 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
       {/* Header Section */}
       <div className={cn(
         "relative z-10 border-b border-white/20 transition-all duration-300",
-        isCollapsed ? "p-3" : "p-6"
+        isCollapsed ? "p-2" : "p-4"
       )}>
         <div className={cn(
-          "flex items-center mb-4 transition-all duration-300",
+          "flex items-center mb-3 transition-all duration-300",
           isCollapsed ? "justify-center" : "gap-4"
         )}>
           <div className="relative">
@@ -125,7 +125,7 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
         {/* Collapse Toggle Button */}
         <div className={cn(
           "flex transition-all duration-300",
-          isCollapsed ? "justify-center mb-2" : "justify-between items-center mb-4"
+          isCollapsed ? "justify-center mb-1" : "justify-between items-center mb-2"
         )}>
           {!isCollapsed && (
             <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#07A64F]/10 to-[#1295D0]/10 rounded-lg border border-white/30">
@@ -162,8 +162,8 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
       
       {/* Navigation Menu */}
       <nav className={cn(
-        "relative z-10 space-y-2 flex-1 overflow-y-auto transition-all duration-300",
-        isCollapsed ? "p-2" : "p-4"
+        "relative z-10 space-y-1 flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300",
+        isCollapsed ? "p-1" : "p-3"
       )}>
         {menuItems.map((item, index) => {
           const isActive = activeTab === item.id;
@@ -175,8 +175,8 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
               className={cn(
                 "group w-full text-left rounded-2xl transition-all duration-500 transform relative overflow-hidden",
                 isCollapsed 
-                  ? "p-3 flex justify-center" 
-                  : "p-4",
+                  ? "p-2 flex justify-center" 
+                  : "p-3",
                 isActive
                   ? "bg-gradient-to-r from-[#07A64F]/15 via-[#1295D0]/10 to-[#07A64F]/15 text-slate-800 shadow-xl shadow-[#07A64F]/20 scale-[1.02] border border-[#07A64F]/20"
                   : "text-slate-600 hover:bg-white/60 hover:shadow-lg hover:shadow-black/5 hover:scale-[1.01] border border-transparent hover:border-white/30"
@@ -255,7 +255,7 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
       
       {/* Footer */}
       {!isCollapsed && (
-        <div className="relative z-10 p-4 border-t border-white/20 mt-auto">
+        <div className="relative z-10 p-3 border-t border-white/20 flex-shrink-0">
           <div className="text-center">
             <div className="text-xs text-slate-400 font-medium">
               Powered by Kaha Technology

@@ -25,6 +25,8 @@ interface UsePaymentsState {
     total: number;
     totalPages: number;
   } | null;
+  currentPage: number;
+  hasMorePages: boolean;
 }
 
 interface UsePaymentsOptions {
@@ -50,24 +52,33 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
     loading: false,
     error: null,
     lastRefresh: null,
-    pagination: null
+    pagination: null,
+    currentPage: 1,
+    hasMorePages: false
   });
 
   const [currentFilters, setCurrentFilters] = useState<PaymentFilters>(initialFilters);
 
-  // Load payments with current filters
-  const loadPayments = useCallback(async (filters: PaymentFilters = currentFilters) => {
+  // Load payments with current filters (resets pagination)
+  const loadPayments = useCallback(async (filters: PaymentFilters = currentFilters, resetPagination = true) => {
     console.log('💰 usePayments.loadPayments called with filters:', filters);
 
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const result = await paymentsApiService.getPayments(filters);
+      const pageToLoad = resetPagination ? 1 : filters.page || 1;
+      const result = await paymentsApiService.getPayments({
+        ...filters,
+        page: pageToLoad,
+        limit: filters.limit || 15
+      });
 
       setState(prev => ({
         ...prev,
         payments: result.items || [],
         pagination: result.pagination || null,
+        currentPage: pageToLoad,
+        hasMorePages: result.pagination ? pageToLoad < result.pagination.totalPages : false,
         loading: false,
         lastRefresh: Date.now()
       }));
@@ -82,6 +93,46 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
       }));
     }
   }, [currentFilters]);
+
+  // Load more payments (appends to existing list)
+  const loadMorePayments = useCallback(async () => {
+    console.log('💰 usePayments.loadMorePayments called, current page:', state.currentPage);
+
+    if (state.loading || !state.hasMorePages) {
+      console.log('⚠️ Cannot load more: loading =', state.loading, ', hasMorePages =', state.hasMorePages);
+      return;
+    }
+
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const nextPage = state.currentPage + 1;
+      const result = await paymentsApiService.getPayments({
+        ...currentFilters,
+        page: nextPage,
+        limit: 15
+      });
+
+      setState(prev => ({
+        ...prev,
+        payments: [...prev.payments, ...result.items], // Append new payments
+        pagination: result.pagination || null,
+        currentPage: nextPage,
+        hasMorePages: result.pagination ? nextPage < result.pagination.totalPages : false,
+        loading: false,
+        lastRefresh: Date.now()
+      }));
+
+      console.log('✅ More payments loaded successfully:', result.items.length, 'new payments, total:', state.payments.length + result.items.length);
+    } catch (error) {
+      console.error('❌ Error loading more payments:', error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to load more payments'
+      }));
+    }
+  }, [currentFilters, state.currentPage, state.hasMorePages, state.loading, state.payments.length]);
 
   // Load payment statistics
   const loadPaymentStats = useCallback(async () => {
@@ -384,9 +435,12 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
     lastRefresh: state.lastRefresh,
     pagination: state.pagination,
     currentFilters,
+    currentPage: state.currentPage,
+    hasMorePages: state.hasMorePages,
 
     // Actions
     loadPayments,
+    loadMorePayments,
     loadPaymentStats,
     loadPaymentMethods,
     loadMonthlyData,

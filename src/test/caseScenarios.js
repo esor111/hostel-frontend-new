@@ -110,7 +110,7 @@ export const runCaseScenarios = async () => {
       studentId: newStudent.id,
       amount: 15000,
       paymentMode: 'Bank Transfer',
-      notes: 'Advance payment for first month + security deposit',
+      notes: 'Advance payment for first month',
       receivedBy: 'Admin'
     });
     console.log(`   Recorded advance payment: ₨${advancePayment.amount.toLocaleString()}`);

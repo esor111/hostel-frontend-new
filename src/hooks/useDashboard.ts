@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { dashboardApiService, DashboardStats, RecentActivity, MonthlyRevenueData } from '../services/dashboardApiService';
+import { dashboardApiService, DashboardStats, RecentActivity, MonthlyRevenueData, PaginatedRecentActivities, PaginationInfo } from '../services/dashboardApiService';
 
 interface UseDashboardState {
   stats: DashboardStats | null;
   recentActivities: RecentActivity[];
-  monthlyRevenue: MonthlyRevenueData | null;
+  activitiesPagination: PaginationInfo | null;
+  monthlyRevenue: MonthlyRevenueData[] | null;
   loading: boolean;
+  activitiesLoading: boolean;
   error: string | null;
   lastRefresh: number | null;
 }
@@ -26,8 +28,10 @@ export const useDashboard = (options: UseDashboardOptions = {}) => {
   const [state, setState] = useState<UseDashboardState>({
     stats: null,
     recentActivities: [],
+    activitiesPagination: null,
     monthlyRevenue: null,
     loading: false,
+    activitiesLoading: false,
     error: null,
     lastRefresh: null
   });
@@ -87,7 +91,35 @@ export const useDashboard = (options: UseDashboardOptions = {}) => {
     }
   }, []);
 
-  // Load recent activities only
+  // Load recent activities with pagination
+  const loadRecentActivitiesPaginated = useCallback(async (page: number = 1, limit: number = 6) => {
+    console.log('📋 useDashboard.loadRecentActivitiesPaginated called with page:', page, 'limit:', limit);
+    
+    setState(prev => ({ ...prev, activitiesLoading: true, error: null }));
+    
+    try {
+      const result = await dashboardApiService.getRecentActivitiesPaginated(page, limit);
+      
+      setState(prev => ({
+        ...prev,
+        recentActivities: result.data,
+        activitiesPagination: result.pagination,
+        activitiesLoading: false,
+        lastRefresh: Date.now()
+      }));
+      
+      console.log('✅ Recent activities loaded successfully with pagination');
+    } catch (error) {
+      console.error('❌ Error loading recent activities:', error);
+      setState(prev => ({
+        ...prev,
+        activitiesLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to load recent activities'
+      }));
+    }
+  }, []);
+
+  // Load recent activities only (legacy method)
   const loadRecentActivities = useCallback(async (limit?: number) => {
     console.log('📋 useDashboard.loadRecentActivities called with limit:', limit);
     
@@ -111,11 +143,11 @@ export const useDashboard = (options: UseDashboardOptions = {}) => {
   }, []);
 
   // Load monthly revenue data
-  const loadMonthlyRevenue = useCallback(async (year: number, month: number) => {
-    console.log('💰 useDashboard.loadMonthlyRevenue called for:', { year, month });
+  const loadMonthlyRevenue = useCallback(async (months: number = 12) => {
+    console.log('💰 useDashboard.loadMonthlyRevenue called for months:', months);
     
     try {
-      const monthlyRevenue = await dashboardApiService.getMonthlyRevenue(year, month);
+      const monthlyRevenue = await dashboardApiService.getMonthlyRevenue(months);
       
       setState(prev => ({
         ...prev,
@@ -191,8 +223,10 @@ export const useDashboard = (options: UseDashboardOptions = {}) => {
     // State
     stats: state.stats,
     recentActivities: state.recentActivities,
+    activitiesPagination: state.activitiesPagination,
     monthlyRevenue: state.monthlyRevenue,
     loading: state.loading,
+    activitiesLoading: state.activitiesLoading,
     error: state.error,
     lastRefresh: state.lastRefresh,
     
@@ -200,6 +234,7 @@ export const useDashboard = (options: UseDashboardOptions = {}) => {
     loadDashboardOverview,
     loadDashboardStats,
     loadRecentActivities,
+    loadRecentActivitiesPaginated,
     loadMonthlyRevenue,
     refreshDashboard,
     clearError,

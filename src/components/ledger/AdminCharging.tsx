@@ -59,6 +59,10 @@ export const AdminCharging = () => {
   const [expandedStudents, setExpandedStudents] = useState<Set<string>>(new Set());
   const [loadingEntries, setLoadingEntries] = useState<Set<string>>(new Set());
 
+  // 🔧 FIX: Add state for charge counts to show correct numbers immediately
+  const [studentChargeCounts, setStudentChargeCounts] = useState<Record<string, number>>({});
+  const [loadingChargeCounts, setLoadingChargeCounts] = useState(false);
+
   useEffect(() => {
 
     loadOverdueStudents();
@@ -70,8 +74,18 @@ export const AdminCharging = () => {
     if (students.length > 0) {
       console.log('👥 Students data loaded, reloading overdue students...');
       loadOverdueStudents();
+
+      // 🔧 FIX: Load charge counts for all students when students data is available
+      // Only load if we don't already have counts for these students
+      const currentStudentIds = students.map(s => s.id).sort().join(',');
+      const existingStudentIds = Object.keys(studentChargeCounts).sort().join(',');
+
+      if (currentStudentIds !== existingStudentIds) {
+        console.log('🔄 Student list changed, reloading charge counts...');
+        loadStudentChargeCounts();
+      }
     }
-  }, [students]);
+  }, [students, studentChargeCounts]);
 
 
 
@@ -114,6 +128,40 @@ export const AdminCharging = () => {
       setTodaySummary(fallbackSummary);
     } finally {
       setSummaryLoading(false);
+    }
+  };
+
+  // 🔧 FIX: Load charge counts for all students efficiently
+  const loadStudentChargeCounts = async () => {
+    if (students.length === 0) {
+      return;
+    }
+
+    setLoadingChargeCounts(true);
+    try {
+      console.log('🔄 Loading charge counts for all students...');
+      const studentIds = students.map(student => student.id);
+      const chargeCounts = await ledgerApiService.getStudentChargeCounts(studentIds);
+
+      console.log('✅ Loaded charge counts:', chargeCounts);
+      setStudentChargeCounts(chargeCounts);
+    } catch (error) {
+      console.error('❌ Failed to load student charge counts:', error);
+      // Set all counts to 0 on error - graceful degradation
+      const fallbackCounts: Record<string, number> = {};
+      students.forEach(student => {
+        fallbackCounts[student.id] = 0;
+      });
+      setStudentChargeCounts(fallbackCounts);
+
+      // Show user-friendly error message
+      toast({
+        title: 'Charge Counts Unavailable',
+        description: 'Unable to load charge counts. Click on individual students to see their charges.',
+        variant: 'default'
+      });
+    } finally {
+      setLoadingChargeCounts(false);
     }
   };
 
@@ -191,6 +239,7 @@ export const AdminCharging = () => {
       await refreshCharges();
       await loadOverdueStudents();
       await loadTodaySummary();
+      await loadStudentChargeCounts(); // 🔧 FIX: Refresh charge counts after adding charge
 
     } catch (error) {
       console.error('❌ Error creating admin charge:', error);
@@ -301,6 +350,7 @@ export const AdminCharging = () => {
       await refreshCharges();
       await loadOverdueStudents();
       await loadTodaySummary();
+      await loadStudentChargeCounts(); // 🔧 FIX: Refresh charge counts after quick charge
 
     } catch (error) {
       toast({
@@ -336,10 +386,11 @@ export const AdminCharging = () => {
               refreshCharges();
               loadTodaySummary();
               loadOverdueStudents();
+              loadStudentChargeCounts(); // 🔧 FIX: Also refresh charge counts
             }}
-            disabled={chargesLoading || studentsLoading || summaryLoading}
+            disabled={chargesLoading || studentsLoading || summaryLoading || loadingChargeCounts}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${(chargesLoading || studentsLoading || summaryLoading) ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${(chargesLoading || studentsLoading || summaryLoading || loadingChargeCounts) ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
 
@@ -590,6 +641,10 @@ export const AdminCharging = () => {
                   const entries = studentLedgerEntries[student.id] || [];
                   const isLoadingEntries = loadingEntries.has(student.id);
 
+                  // 🔧 FIX: Use charge counts for display, fallback to entries length if expanded
+                  const chargeCount = isExpanded ? entries.length : (studentChargeCounts[student.id] ?? 0);
+                  const isLoadingCount = loadingChargeCounts && !isExpanded;
+
                   return (
                     <div key={student.id} className="border rounded-lg p-3 hover:bg-gray-50">
                       <div className="flex justify-between items-center">
@@ -609,7 +664,7 @@ export const AdminCharging = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => toggleStudentExpanded(student.id)}
-                          disabled={isLoadingEntries}
+                          disabled={isLoadingEntries || isLoadingCount}
                         >
                           {isLoadingEntries ? (
                             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -618,7 +673,14 @@ export const AdminCharging = () => {
                           ) : (
                             <ChevronDown className="h-4 w-4" />
                           )}
-                          Charges ({entries.length})
+                          {isLoadingCount ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 animate-spin mr-1" />
+                              Loading...
+                            </>
+                          ) : (
+                            `Charges (${chargeCount})`
+                          )}
                         </Button>
                       </div>
 
@@ -626,30 +688,45 @@ export const AdminCharging = () => {
                         <div className="mt-3 pt-3 border-t">
                           {entries.length > 0 ? (
                             <div className="space-y-2">
-                              {entries.slice(0, 10).map((entry) => (
-                                <div key={entry.id} className="bg-gray-50 rounded p-2 text-sm">
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <p className="font-medium">{entry.description}</p>
-                                      <p className="text-xs text-gray-500">
-                                        {entry.date ? new Date(entry.date).toLocaleDateString() : 'No date'}
-                                      </p>
-                                    </div>
-                                    <div className="text-right">
-                                      {entry.debit > 0 && (
-                                        <p className="text-red-600 font-medium">
-                                          -NPR {entry.debit.toLocaleString()}
+                              {/* 🔧 FIX: Sort entries by date (newest first) before displaying */}
+                              {[...entries]
+                                .sort((a, b) => {
+                                  // Sort by date in descending order (newest first)
+                                  const dateA = new Date(a.date).getTime();
+                                  const dateB = new Date(b.date).getTime();
+
+                                  if (dateB !== dateA) {
+                                    return dateB - dateA; // Newest first
+                                  }
+
+                                  // If dates are same, sort by ID for consistent ordering
+                                  return b.id.localeCompare(a.id);
+                                })
+                                .slice(0, 10)
+                                .map((entry) => (
+                                  <div key={entry.id} className="bg-gray-50 rounded p-2 text-sm">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <p className="font-medium">{entry.description}</p>
+                                        <p className="text-xs text-gray-500">
+                                          {entry.date ? new Date(entry.date).toLocaleDateString() : 'No date'}
                                         </p>
-                                      )}
-                                      {entry.credit > 0 && (
-                                        <p className="text-green-600 font-medium">
-                                          +NPR {entry.credit.toLocaleString()}
-                                        </p>
-                                      )}
+                                      </div>
+                                      <div className="text-right">
+                                        {entry.debit > 0 && (
+                                          <p className="text-red-600 font-medium">
+                                            -NPR {entry.debit.toLocaleString()}
+                                          </p>
+                                        )}
+                                        {entry.credit > 0 && (
+                                          <p className="text-green-600 font-medium">
+                                            +NPR {entry.credit.toLocaleString()}
+                                          </p>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
                               {entries.length > 10 && (
                                 <p className="text-xs text-gray-500 text-center">
                                   ... and {entries.length - 10} more entries

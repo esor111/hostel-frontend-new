@@ -75,7 +75,7 @@ export const elementTypes: ElementType[] = [
     emoji: '🚪',
     label: 'Door',
     color: '#8B5CF6',
-    defaultSize: { width: 0.9, height: 2.1 }, // 🔧 FIXED: Realistic door size - 3ft wide x 7ft tall
+    defaultSize: { width: 2.0, height: 4.8 }, // Default door size - 2.0m wide x 4.8m tall
     description: 'Room entrance with left/right hinge options',
     category: 'openings',
     tags: ['entrance', 'access', 'door'],
@@ -88,7 +88,7 @@ export const elementTypes: ElementType[] = [
     emoji: '🪟',
     label: 'Window',
     color: '#10B981',
-    defaultSize: { width: 1.2, height: 1.2 }, // 🔧 FIXED: Realistic window size - 4ft x 4ft square window
+    defaultSize: { width: 3.2, height: 1.4 }, // Default window size - 3.2m wide x 1.4m tall
     description: 'Natural light source with frame, glass panels, and reflection effects',
     category: 'openings',
     tags: ['light', 'view', 'window', 'ventilation', 'glass', 'frame'],

@@ -312,6 +312,57 @@ class LedgerApiService extends ApiService {
         return '📋';
     }
   }
+
+  /**
+   * Get charge counts for multiple students efficiently
+   * Returns a map of studentId -> charge count
+   */
+  async getStudentChargeCounts(studentIds: string[]): Promise<Record<string, number>> {
+    try {
+      if (!studentIds || studentIds.length === 0) {
+        return {};
+      }
+
+      // Try to get charge counts from a bulk endpoint first
+      try {
+        const response = await this.post(`${this.baseEndpoint}/student-charge-counts`, { studentIds });
+        if (response.data) {
+          return response.data;
+        }
+      } catch (error) {
+        console.log('Bulk charge counts endpoint not available, falling back to individual calls');
+      }
+
+      // Fallback: Get counts individually (less efficient but works)
+      const chargeCounts: Record<string, number> = {};
+      
+      // Use Promise.allSettled to handle individual failures gracefully
+      const results = await Promise.allSettled(
+        studentIds.map(async (studentId) => {
+          try {
+            const entries = await this.getStudentLedger(studentId);
+            return { studentId, count: entries.length };
+          } catch (error) {
+            console.warn(`Failed to get charge count for student ${studentId}:`, error);
+            return { studentId, count: 0 };
+          }
+        })
+      );
+
+      // Process results
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          chargeCounts[result.value.studentId] = result.value.count;
+        }
+      });
+
+      return chargeCounts;
+    } catch (error) {
+      console.error('Error fetching student charge counts:', error);
+      // Return empty object on error - component will show 0 counts
+      return {};
+    }
+  }
 }
 
 // Export singleton instance

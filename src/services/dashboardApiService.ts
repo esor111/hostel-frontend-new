@@ -33,6 +33,20 @@ export interface RecentActivity {
   color: string;
 }
 
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface PaginatedRecentActivities {
+  data: RecentActivity[];
+  pagination: PaginationInfo;
+}
+
 export interface CheckedOutWithDues {
   studentId: string;
   studentName: string;
@@ -77,13 +91,26 @@ export class DashboardApiService {
   }
 
   /**
-   * Get recent activities
+   * Get recent activities with pagination
+   */
+  async getRecentActivitiesPaginated(page: number = 1, limit: number = 10): Promise<PaginatedRecentActivities> {
+    console.log('📋 DashboardApiService.getRecentActivitiesPaginated called with page:', page, 'limit:', limit);
+    
+    const queryParams = { page: page.toString(), limit: limit.toString() };
+    const result = await this.apiService.get<PaginatedRecentActivities>('/dashboard/recent-activity', queryParams);
+    
+    console.log('📋 Paginated activities result:', result?.data?.length || 0, 'activities found, page:', result?.pagination?.page);
+    return result || { data: [], pagination: { page: 1, limit, total: 0, totalPages: 0, hasNext: false, hasPrev: false } };
+  }
+
+  /**
+   * Get recent activities (legacy method for backward compatibility)
    */
   async getRecentActivities(limit: number = 10): Promise<RecentActivity[]> {
-    console.log('📋 DashboardApiService.getRecentActivities called with limit:', limit);
+    console.log('📋 DashboardApiService.getRecentActivities (legacy) called with limit:', limit);
     
     const queryParams = limit ? { limit: limit.toString() } : {};
-    const result = await this.apiService.get<RecentActivity[]>('/dashboard/recent-activity', queryParams);
+    const result = await this.apiService.get<RecentActivity[]>('/dashboard/recent-activity/legacy', queryParams);
     
     console.log('📋 Recent activities result:', result?.length || 0, 'activities found');
     return result || [];

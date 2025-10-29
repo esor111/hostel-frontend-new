@@ -308,7 +308,6 @@ export class StudentsApiService {
     foodFee?: number;
     wifiFee?: number;
     maintenanceFee?: number;
-    securityDeposit?: number;
     additionalCharges?: Array<{
       name: string;
       amount: number;
