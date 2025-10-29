@@ -110,7 +110,6 @@ export const bookingAcceptanceService = {
           foodFee,
           wifiFee,
           maintenanceFee,
-          securityDeposit,
           additionalCharges,
           configuredBy
         } = feeConfiguration;
@@ -135,7 +134,6 @@ export const bookingAcceptanceService = {
           foodFee,
           wifiFee: wifiFee || 0,
           maintenanceFee: maintenanceFee || 0,
-          securityDeposit: securityDeposit || 0,
           additionalCharges: additionalCharges || [],
           totalMonthlyFee,
           isConfigured: true,
@@ -170,7 +168,6 @@ export const bookingAcceptanceService = {
             foodFee,
             wifiFee,
             maintenanceFee,
-            securityDeposit,
             totalMonthlyFee
           }
         });

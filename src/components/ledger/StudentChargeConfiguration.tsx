@@ -381,7 +381,7 @@ export const StudentChargeConfiguration = ({
                         <Input
                           value={customCharge.name}
                           onChange={(e) => setCustomCharge(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="e.g., Security Deposit"
+                          placeholder="e.g., Gym Membership"
                         />
                       </div>
                       <div>

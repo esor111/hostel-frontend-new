@@ -204,7 +204,7 @@ export const invoiceTestRunner = {
         const result = await invoiceGenerationService.generateConfigurationInvoice(
           testStudent.id,
           '2024-12-15',
-          [{ description: 'Security Deposit', amount: 5000, type: 'deposit' }]
+          [{ description: 'Monthly Charges', amount: 5000, type: 'charge' }]
         );
 
         const isValidId = invoiceGenerationService.validateInvoiceId(result.invoice.referenceId);

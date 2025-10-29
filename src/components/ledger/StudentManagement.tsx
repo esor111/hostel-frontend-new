@@ -50,8 +50,7 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
     laundryFee: student.laundryFee || 2000,
     foodFee: student.foodFee || 8000,
     wifiFee: 1000,
-    maintenanceFee: 500,
-    securityDeposit: 10000
+    maintenanceFee: 500
   });
 
   const [additionalCharges, setAdditionalCharges] = useState<ChargeItem[]>([
@@ -439,28 +438,7 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
                 }}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="securityDeposit">Security Deposit (₹)</Label>
-              <Input
-                id="securityDeposit"
-                type="number"
-                min="0"
-                step="1"
-                placeholder="Enter security deposit"
-                value={baseCharges.securityDeposit || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '') {
-                    handleBaseChargeChange('securityDeposit', 0);
-                  } else {
-                    const numValue = parseFloat(value);
-                    if (!isNaN(numValue) && numValue >= 0) {
-                      handleBaseChargeChange('securityDeposit', numValue);
-                    }
-                  }
-                }}
-              />
-            </div>
+
           </div>
         </CardContent>
       </Card>
@@ -605,13 +583,7 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
               <span className="text-green-800">₹{calculateTotalMonthlyFee().toLocaleString()}</span>
             </div>
 
-            {/* Security Deposit */}
-            {baseCharges.securityDeposit > 0 && (
-              <div className="flex justify-between text-blue-600 border-t border-green-300 pt-2">
-                <span>One-time Security Deposit:</span>
-                <span>₹{baseCharges.securityDeposit.toLocaleString()}</span>
-              </div>
-            )}
+
           </div>
         </CardContent>
       </Card>
