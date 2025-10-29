@@ -72,7 +72,7 @@ describe('DashboardApiService', () => {
 
       const result = await dashboardApiService.getRecentActivities();
 
-      expect(mockApiService.get).toHaveBeenCalledWith('/dashboard/recent-activity', { limit: 10 });
+      expect(mockApiService.get).toHaveBeenCalledWith('/dashboard/recent-activity/legacy', {});
       expect(result).toEqual(mockActivities);
     });
 
@@ -82,7 +82,7 @@ describe('DashboardApiService', () => {
 
       await dashboardApiService.getRecentActivities(5);
 
-      expect(mockApiService.get).toHaveBeenCalledWith('/dashboard/recent-activity', { limit: 5 });
+      expect(mockApiService.get).toHaveBeenCalledWith('/dashboard/recent-activity/legacy', { limit: '5' });
     });
 
     it('should handle empty activities response', async () => {
@@ -91,6 +91,84 @@ describe('DashboardApiService', () => {
       const result = await dashboardApiService.getRecentActivities();
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('getRecentActivitiesPaginated', () => {
+    it('should fetch recent activities with pagination', async () => {
+      const mockResponse = {
+        data: [
+          {
+            id: 'activity-1',
+            type: 'payment',
+            message: 'Payment received from John Doe',
+            time: '2 hours ago',
+            timestamp: '2024-01-15T10:00:00Z',
+            icon: 'DollarSign',
+            color: 'text-green-600'
+          }
+        ],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 25,
+          totalPages: 3,
+          hasNext: true,
+          hasPrev: false
+        }
+      };
+
+      mockApiService.get.mockResolvedValue(mockResponse);
+
+      const result = await dashboardApiService.getRecentActivitiesPaginated(1, 10);
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/dashboard/recent-activity', {
+        page: '1',
+        limit: '10'
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should handle pagination with custom page and limit', async () => {
+      const mockResponse = {
+        data: [],
+        pagination: {
+          page: 2,
+          limit: 5,
+          total: 25,
+          totalPages: 5,
+          hasNext: true,
+          hasPrev: true
+        }
+      };
+
+      mockApiService.get.mockResolvedValue(mockResponse);
+
+      const result = await dashboardApiService.getRecentActivitiesPaginated(2, 5);
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/dashboard/recent-activity', {
+        page: '2',
+        limit: '5'
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should return default pagination when response is invalid', async () => {
+      mockApiService.get.mockResolvedValue(null);
+
+      const result = await dashboardApiService.getRecentActivitiesPaginated(1, 10);
+
+      expect(result).toEqual({
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false
+        }
+      });
     });
   });
 

@@ -28,7 +28,9 @@ import { useBookings } from "@/hooks/useBookings";
 import { KahaLogo } from "@/components/ui/KahaLogo";
 import { ledgerService } from "@/services/ledgerService";
 import { studentService } from "@/services/studentService";
-import { dashboardApiService, DashboardStats, RecentActivity } from "@/services/dashboardApiService";
+import { dashboardApiService, DashboardStats, RecentActivity, PaginationInfo } from "@/services/dashboardApiService";
+import Pagination from "@/components/ui/pagination";
+import { useDashboard } from "@/hooks/useDashboard";
 
 export const Dashboard = () => {
   const { } = useLanguage();
@@ -36,31 +38,37 @@ export const Dashboard = () => {
   const { goToBookings, goToLedger, goToStudentLedger } = useNavigation();
   const { bookingStats } = useBookings();
 
-  // Dashboard API state
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  // Use the updated useDashboard hook with pagination
+  const {
+    stats: dashboardStats,
+    recentActivities,
+    activitiesPagination,
+    activitiesLoading,
+    loading,
+    error,
+    loadRecentActivitiesPaginated,
+    refreshDashboard
+  } = useDashboard();
+
+  // Additional state for other data not in the hook
   const [performanceMetrics, setPerformanceMetrics] = useState<any>(null);
   const [checkedOutWithDues, setCheckedOutWithDues] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  // Fetch dashboard data from API - NO CACHE
+  // Fetch dashboard data using the hook and additional API calls
   const fetchDashboardData = async () => {
     try {
-      setError(null);
       console.log('🔄 Fetching dashboard data - NO CACHE');
 
-      // Direct API calls with no-cache headers
-      const API_BASE = 'http://localhost:3001/hostel/api/v1';
+      // Use the hook to refresh dashboard data (stats + activities with pagination)
+      await refreshDashboard();
+      
+      // Load paginated activities (first page)
+      await loadRecentActivitiesPaginated(1, 6);
 
-      const [statsResponse, activitiesResponse, performanceResponse, checkedOutResponse] = await Promise.all([
-        fetch(`${API_BASE}/dashboard/stats`, {
-          headers: { 'Cache-Control': 'no-cache' }
-        }),
-        fetch(`${API_BASE}/dashboard/recent-activity?limit=8`, {
-          headers: { 'Cache-Control': 'no-cache' }
-        }),
+      // Fetch additional data not in the hook
+      const API_BASE = 'http://localhost:3001/hostel/api/v1';
+      const [performanceResponse, checkedOutResponse] = await Promise.all([
         fetch(`${API_BASE}/analytics/performance-metrics`, {
           headers: { 'Cache-Control': 'no-cache' }
         }),
@@ -69,23 +77,14 @@ export const Dashboard = () => {
         })
       ]);
 
-      const stats = await statsResponse.json();
-      const activities = await activitiesResponse.json();
       const performance = await performanceResponse.json();
       const checkedOut = await checkedOutResponse.json();
 
-      console.log('📊 Fresh API data received:', { stats, activities, performance, checkedOut });
-
-      setDashboardStats(stats);
-      setRecentActivities(activities.data || activities || []);
       setPerformanceMetrics(performance.data || performance);
       setCheckedOutWithDues(checkedOut.data || checkedOut || []);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -93,6 +92,14 @@ export const Dashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Load paginated activities on mount (after the hook loads)
+  useEffect(() => {
+    if (dashboardStats) {
+      // Once dashboard stats are loaded, load paginated activities
+      loadRecentActivitiesPaginated(1, 6);
+    }
+  }, [dashboardStats, loadRecentActivitiesPaginated]);
 
   // Use ONLY API data - no AppContext fallbacks
   const totalStudents = dashboardStats?.totalStudents || 0;
@@ -140,8 +147,13 @@ export const Dashboard = () => {
   // Get students with highest dues from API - use checked out students with dues
   const studentsWithDues = checkedOutWithDues.filter(student => student.outstandingDues > 0);
 
-  // Use API recent activities instead of bookings hook
-  const displayActivities = recentActivities.slice(0, 6);
+  // Handle pagination change using the hook
+  const handlePageChange = (page: number) => {
+    loadRecentActivitiesPaginated(page, 6);
+  };
+
+  // Use all recent activities (no slicing since pagination handles this)
+  const displayActivities = recentActivities;
 
   // Performance metrics from API
   const collectionRate = performanceMetrics?.collectionRate || 0;
@@ -396,61 +408,93 @@ export const Dashboard = () => {
                   <p className="text-sm text-gray-600">Latest updates and notifications</p>
                 </div>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={fetchDashboardData}
-                disabled={loading}
-                className="border-blue-200 text-blue-700 hover:bg-blue-50"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={fetchDashboardData}
+                  disabled={loading}
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => loadRecentActivitiesPaginated(1, 6)}
+                  disabled={activitiesLoading}
+                  className="border-green-200 text-green-700 hover:bg-green-50"
+                >
+                  Test Pagination
+                </Button>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {displayActivities.length > 0 ? (
-                displayActivities.map((activity, index) => {
-                  const getActivityIcon = (type: string) => {
-                    switch (type) {
-                      case 'booking': return Calendar;
-                      case 'payment': return DollarSign;
-                      case 'checkin': return Users;
-                      case 'checkout': return ArrowUpRight;
-                      default: return Activity;
-                    }
-                  };
+              {activitiesLoading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-600" />
+                  <p className="text-sm text-gray-600">Loading activities...</p>
+                </div>
+              ) : displayActivities.length > 0 ? (
+                <>
+                  {displayActivities.map((activity, index) => {
+                    const getActivityIcon = (type: string) => {
+                      switch (type) {
+                        case 'booking': return Calendar;
+                        case 'payment': return DollarSign;
+                        case 'checkin': return Users;
+                        case 'checkout': return ArrowUpRight;
+                        default: return Activity;
+                      }
+                    };
 
-                  const getActivityColor = (type: string) => {
-                    switch (type) {
-                      case 'booking': return 'from-purple-500 to-purple-600';
-                      case 'payment': return 'from-green-500 to-green-600';
-                      case 'checkin': return 'from-blue-500 to-blue-600';
-                      case 'checkout': return 'from-orange-500 to-orange-600';
-                      default: return 'from-gray-500 to-gray-600';
-                    }
-                  };
+                    const getActivityColor = (type: string) => {
+                      switch (type) {
+                        case 'booking': return 'from-purple-500 to-purple-600';
+                        case 'payment': return 'from-green-500 to-green-600';
+                        case 'checkin': return 'from-blue-500 to-blue-600';
+                        case 'checkout': return 'from-orange-500 to-orange-600';
+                        default: return 'from-gray-500 to-gray-600';
+                      }
+                    };
 
-                  const ActivityIcon = getActivityIcon(activity.type);
+                    const ActivityIcon = getActivityIcon(activity.type);
 
-                  return (
-                    <div key={activity.id} className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-blue-100">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 bg-gradient-to-br ${getActivityColor(activity.type)} rounded-full flex items-center justify-center text-white`}>
-                          <ActivityIcon className="h-5 w-5" />
+                    return (
+                      <div key={activity.id} className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-blue-100">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 bg-gradient-to-br ${getActivityColor(activity.type)} rounded-full flex items-center justify-center text-white`}>
+                            <ActivityIcon className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{activity.message}</p>
+                            <p className="text-sm text-gray-600">{activity.time}</p>
+                          </div>
+                          <Badge className={`${activity.type === 'payment' ? 'bg-green-100 text-green-700' : activity.type === 'booking' ? 'bg-purple-100 text-purple-700' : activity.type === 'checkout' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} font-medium px-2 py-1 rounded-full text-xs`}>
+                            {activity.type}
+                          </Badge>
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{activity.message}</p>
-                          <p className="text-sm text-gray-600">{activity.time}</p>
-                        </div>
-                        <Badge className={`${activity.type === 'payment' ? 'bg-green-100 text-green-700' : activity.type === 'booking' ? 'bg-purple-100 text-purple-700' : activity.type === 'checkout' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} font-medium px-2 py-1 rounded-full text-xs`}>
-                          {activity.type}
-                        </Badge>
                       </div>
+                    );
+                  })}
+                  
+                  {/* Pagination Controls */}
+                  {activitiesPagination && activitiesPagination.totalPages > 1 && (
+                    <div className="flex justify-center pt-4 border-t border-blue-100">
+                      <Pagination
+                        currentPage={activitiesPagination.page}
+                        totalPages={activitiesPagination.totalPages}
+                        onPageChange={handlePageChange}
+                        hasNext={activitiesPagination.hasNext}
+                        hasPrev={activitiesPagination.hasPrev}
+                        className="scale-90"
+                      />
                     </div>
-                  );
-                })
+                  )}
+                </>
               ) : (
                 <div className="text-center py-12 bg-white rounded-xl">
                   <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
