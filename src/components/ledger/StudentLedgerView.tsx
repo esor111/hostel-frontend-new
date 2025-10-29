@@ -47,6 +47,10 @@ export const StudentLedgerView = () => {
   const [filters, setFilters] = useState<LedgerFilterOptions>({});
   const [filteredEntries, setFilteredEntries] = useState<LedgerEntry[]>([]);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [entriesPerPage] = useState(15); // Show 15 entries per page
+
   // Transform API students to local format and filter configured students only
   const allStudents = (apiStudents || []).map(student => ({
     ...student,
@@ -167,6 +171,8 @@ export const StudentLedgerView = () => {
     }
 
     setFilteredEntries(filtered);
+    // Reset to first page when filters change
+    setCurrentPage(1);
   }, [ledgerEntries, filters]);
 
   // Get selected student data
@@ -509,69 +515,124 @@ export const StudentLedgerView = () => {
                   )}
                 </div>
               ) : (
-                <div className="max-h-96 overflow-y-auto">
-                  <Table>
-                    <TableHeader className="sticky top-0 bg-white z-10">
-                      <TableRow>
-                        <TableHead className="py-2">Date</TableHead>
-                        <TableHead className="py-2">Type</TableHead>
-                        <TableHead className="py-2">Description</TableHead>
-                        <TableHead className="py-2 text-right">Debit</TableHead>
-                        <TableHead className="py-2 text-right">Credit</TableHead>
-                        <TableHead className="py-2 text-right">Balance</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredEntries.map((entry) => (
-                        <TableRow key={entry.id} className="hover:bg-gray-50">
-                          <TableCell className="py-2 text-sm">
-                            {new Date(entry.date).toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric',
-                              year: '2-digit'
-                            })}
-                          </TableCell>
-                          <TableCell className="py-2">
-                            <div className="flex items-center space-x-1">
-                              <span className="text-sm">{getEntryTypeIcon(entry.type)}</span>
-                              {getTypeBadge(entry.type)}
+                <>
+                  {(() => {
+                    const indexOfLastEntry = currentPage * entriesPerPage;
+                    const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
+                    const currentEntries = filteredEntries.slice(indexOfFirstEntry, indexOfLastEntry);
+                    const totalPages = Math.ceil(filteredEntries.length / entriesPerPage);
+
+                    return (
+                      <>
+                        <div className="max-h-96 overflow-y-auto">
+                          <Table>
+                            <TableHeader className="sticky top-0 bg-white z-10">
+                              <TableRow>
+                                <TableHead className="py-2">Date</TableHead>
+                                <TableHead className="py-2">Type</TableHead>
+                                <TableHead className="py-2">Description</TableHead>
+                                <TableHead className="py-2 text-right">Debit</TableHead>
+                                <TableHead className="py-2 text-right">Credit</TableHead>
+                                <TableHead className="py-2 text-right">Balance</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {currentEntries.map((entry) => (
+                                <TableRow key={entry.id} className="hover:bg-gray-50">
+                                  <TableCell className="py-2 text-sm">
+                                    {new Date(entry.date).toLocaleDateString('en-US', { 
+                                      month: 'short', 
+                                      day: 'numeric',
+                                      year: '2-digit'
+                                    })}
+                                  </TableCell>
+                                  <TableCell className="py-2">
+                                    <div className="flex items-center space-x-1">
+                                      <span className="text-sm">{getEntryTypeIcon(entry.type)}</span>
+                                      {getTypeBadge(entry.type)}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="py-2 text-sm max-w-xs">
+                                    <div className="truncate" title={entry.description}>
+                                      {entry.description}
+                                    </div>
+                                    {entry.referenceId && (
+                                      <div className="text-xs text-gray-500 mt-1">
+                                        Ref: {entry.referenceId}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="py-2 text-right">
+                                    {(entry.debit || 0) > 0 && (
+                                      <span className="text-red-600 font-medium text-sm">
+                                        {getFormattedBalance(entry.debit || 0)}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="py-2 text-right">
+                                    {(entry.credit || 0) > 0 && (
+                                      <span className="text-green-600 font-medium text-sm">
+                                        {getFormattedBalance(entry.credit || 0)}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="py-2 text-right font-bold">
+                                    <span className={`text-sm ${getBalanceTypeColor(entry.balanceType)}`}>
+                                      {getFormattedBalance(Math.abs(entry.balance || 0))}
+                                      <span className="text-xs ml-1">{entry.balanceType !== 'Nil' && entry.balanceType}</span>
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                          <div className="flex justify-center items-center space-x-2 mt-6">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                              disabled={currentPage === 1}
+                            >
+                              Previous
+                            </Button>
+
+                            <div className="flex space-x-1">
+                              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                <Button
+                                  key={page}
+                                  variant={currentPage === page ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => setCurrentPage(page)}
+                                  className={currentPage === page ? "bg-blue-600 hover:bg-blue-700" : ""}
+                                >
+                                  {page}
+                                </Button>
+                              ))}
                             </div>
-                          </TableCell>
-                          <TableCell className="py-2 text-sm max-w-xs">
-                            <div className="truncate" title={entry.description}>
-                              {entry.description}
-                            </div>
-                            {entry.referenceId && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Ref: {entry.referenceId}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-2 text-right">
-                            {(entry.debit || 0) > 0 && (
-                              <span className="text-red-600 font-medium text-sm">
-                                {getFormattedBalance(entry.debit || 0)}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-2 text-right">
-                            {(entry.credit || 0) > 0 && (
-                              <span className="text-green-600 font-medium text-sm">
-                                {getFormattedBalance(entry.credit || 0)}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-2 text-right font-bold">
-                            <span className={`text-sm ${getBalanceTypeColor(entry.balanceType)}`}>
-                              {getFormattedBalance(Math.abs(entry.balance || 0))}
-                              <span className="text-xs ml-1">{entry.balanceType !== 'Nil' && entry.balanceType}</span>
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                              disabled={currentPage === totalPages}
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Pagination Info */}
+                        <div className="text-center text-sm text-gray-600 mt-4">
+                          Showing {indexOfFirstEntry + 1} to {Math.min(indexOfLastEntry, filteredEntries.length)} of {filteredEntries.length} entries
+                        </div>
+                      </>
+                    );
+                  })()}
+                </>
               )}
 
               {/* Compact Balance Summary */}
