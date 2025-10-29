@@ -75,7 +75,7 @@ export const AddRoomForm = () => {
         type: roomData?.type || "Dormitory",
         bedCount: roomData?.bedCount || roomData?.capacity || 1,
         gender: roomData?.gender || "Mixed",
-        baseRate: roomData?.baseRate || roomData?.rent || 12000,
+        baseRate: Number(roomData?.monthlyRate) || roomData?.baseRate || roomData?.rent || 12000,
         floorNumber: roomData?.floorNumber || 1,
         amenities: extractAmenityNames(roomData?.amenities || []),
         description: roomData?.description || "",
