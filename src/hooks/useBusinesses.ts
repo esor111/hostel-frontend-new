@@ -5,6 +5,7 @@ interface UseBusinessesOptions {
   categoryId: string;
   initialLimit?: number;
   loadMoreLimit?: number;
+  searchName?: string; // Add search functionality
 }
 
 interface UseBusinessesReturn {
@@ -15,21 +16,24 @@ interface UseBusinessesReturn {
   loadMore: () => Promise<void>;
   refresh: () => Promise<void>;
   loadingMore: boolean;
+  search: (searchTerm: string) => Promise<void>; // Add search function
 }
 
 export const useBusinesses = ({
   categoryId,
   initialLimit = 10,
   loadMoreLimit = 10,
+  searchName,
 }: UseBusinessesOptions): UseBusinessesReturn => {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [currentSearchTerm, setCurrentSearchTerm] = useState<string | undefined>(searchName);
 
   // Initial load
-  const loadInitialBusinesses = useCallback(async () => {
+  const loadInitialBusinesses = useCallback(async (searchTerm?: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -37,7 +41,8 @@ export const useBusinesses = ({
       const response = await businessApiService.fetchBusinessesWithPagination(
         categoryId,
         initialLimit,
-        0
+        0,
+        searchTerm
       );
       
       setBusinesses(response.businesses);
@@ -61,7 +66,8 @@ export const useBusinesses = ({
       const newBusinesses = await businessApiService.loadMoreBusinesses(
         categoryId,
         businesses,
-        loadMoreLimit
+        loadMoreLimit,
+        currentSearchTerm
       );
 
       if (newBusinesses.length === 0) {
@@ -76,19 +82,27 @@ export const useBusinesses = ({
     } finally {
       setLoadingMore(false);
     }
-  }, [categoryId, businesses, loadMoreLimit, loadingMore, hasMore]);
+  }, [categoryId, businesses, loadMoreLimit, loadingMore, hasMore, currentSearchTerm]);
+
+  // Search businesses
+  const search = useCallback(async (searchTerm: string) => {
+    setCurrentSearchTerm(searchTerm);
+    setBusinesses([]);
+    setHasMore(true);
+    await loadInitialBusinesses(searchTerm);
+  }, [loadInitialBusinesses]);
 
   // Refresh all data
   const refresh = useCallback(async () => {
     setBusinesses([]);
     setHasMore(true);
-    await loadInitialBusinesses();
-  }, [loadInitialBusinesses]);
+    await loadInitialBusinesses(currentSearchTerm);
+  }, [loadInitialBusinesses, currentSearchTerm]);
 
   // Load initial data on mount or when categoryId changes
   useEffect(() => {
-    loadInitialBusinesses();
-  }, [loadInitialBusinesses]);
+    loadInitialBusinesses(currentSearchTerm);
+  }, [loadInitialBusinesses, currentSearchTerm]);
 
   return {
     businesses,
@@ -98,5 +112,6 @@ export const useBusinesses = ({
     loadMore,
     refresh,
     loadingMore,
+    search,
   };
 };

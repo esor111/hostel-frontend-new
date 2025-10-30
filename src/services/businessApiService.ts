@@ -27,6 +27,7 @@ export interface BusinessBulkRequest {
   includeDescendants?: boolean;
   limit?: number;
   offset?: number;
+  name?: string; // Add name field for search
 }
 
 class BusinessApiService {
@@ -37,18 +38,25 @@ class BusinessApiService {
    */
   async fetchBusinessesBulk(params: BusinessBulkRequest): Promise<BusinessBulkResponse> {
     try {
+      const requestBody: any = {
+        categoryId: params.categoryId,
+        includeDescendants: params.includeDescendants ?? true,
+        limit: params.limit ?? 10,
+        offset: params.offset ?? 0,
+      };
+
+      // Add name field to request body if provided for search
+      if (params.name) {
+        requestBody.name = params.name;
+      }
+
       const response = await fetch(`${this.baseUrl}/businesses/bulk`, {
         method: 'POST',
         headers: {
           'accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          categoryId: params.categoryId,
-          includeDescendants: params.includeDescendants ?? true,
-          limit: params.limit ?? 10,
-          offset: params.offset ?? 0,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -69,13 +77,15 @@ class BusinessApiService {
   async fetchBusinessesWithPagination(
     categoryId: string,
     limit: number = 10,
-    offset: number = 0
+    offset: number = 0,
+    searchName?: string
   ): Promise<BusinessBulkResponse> {
     return this.fetchBusinessesBulk({
       categoryId,
       includeDescendants: true,
       limit,
       offset,
+      name: searchName,
     });
   }
 
@@ -85,11 +95,30 @@ class BusinessApiService {
   async loadMoreBusinesses(
     categoryId: string,
     currentBusinesses: Business[],
-    limit: number = 10
+    limit: number = 10,
+    searchName?: string
   ): Promise<Business[]> {
     const offset = currentBusinesses.length;
-    const response = await this.fetchBusinessesWithPagination(categoryId, limit, offset);
+    const response = await this.fetchBusinessesWithPagination(categoryId, limit, offset, searchName);
     return response.businesses;
+  }
+
+  /**
+   * Search businesses by name
+   */
+  async searchBusinesses(
+    categoryId: string,
+    searchName: string,
+    limit: number = 10,
+    offset: number = 0
+  ): Promise<BusinessBulkResponse> {
+    return this.fetchBusinessesBulk({
+      categoryId,
+      includeDescendants: true,
+      limit,
+      offset,
+      name: searchName,
+    });
   }
 }
 
