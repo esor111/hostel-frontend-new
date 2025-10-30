@@ -27,11 +27,7 @@ interface CheckoutConfirmationDialogProps {
   onConfirm: (checkoutData: CheckoutData) => Promise<void>;
   student: Student;
   totalDueAmount: number;
-  currentMonthBilling?: {
-    amount: number;
-    period: string;
-    daysCharged: number;
-  };
+  // 🏨 NEW: Nepalese billing system - no prorated billing needed
   loading?: boolean;
 }
 
@@ -50,7 +46,6 @@ export const CheckoutConfirmationDialog = ({
   onConfirm,
   student,
   totalDueAmount,
-  currentMonthBilling,
   loading = false
 }: CheckoutConfirmationDialogProps) => {
   const [checkoutReason, setCheckoutReason] = useState("");
@@ -147,7 +142,7 @@ export const CheckoutConfirmationDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <LogOut className="h-5 w-5 text-[#1295D0]" />
-            Confirm Student Checkout
+            Confirm Nepalese Billing Checkout
           </DialogTitle>
         </DialogHeader>
 
@@ -197,14 +192,16 @@ export const CheckoutConfirmationDialog = ({
                     </span>
                   </div>
                   
-                  {currentMonthBilling && currentMonthBilling.amount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Partial Month Billing:</span>
-                      <span className="font-medium text-orange-600">
-                        NPR {currentMonthBilling.amount.toLocaleString()}
-                      </span>
+                  {/* 🏨 NEW: Nepalese billing information */}
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium text-blue-800">Nepalese Billing System</span>
                     </div>
-                  )}
+                    <p className="text-sm text-blue-700">
+                      Final settlement will be calculated automatically based on actual usage and advance payments.
+                    </p>
+                  </div>
                   
                   <div className="flex justify-between">
                     <span className="text-gray-600">Deduction Amount:</span>
@@ -320,9 +317,8 @@ export const CheckoutConfirmationDialog = ({
                   <li>• Student status will be changed to "Inactive"</li>
                   <li>• Room {student.roomNumber} will be marked as available</li>
                   <li>• Monthly billing will be stopped</li>
-                  {currentMonthBilling && currentMonthBilling.amount > 0 && (
-                    <li>• Partial month billing (NPR {currentMonthBilling.amount.toLocaleString()}) will be added to ledger</li>
-                  )}
+                  <li>• Accurate settlement will be calculated using Nepalese billing system</li>
+                  <li>• Advance payments will be considered in final settlement</li>
                   {hasOutstandingDues && (
                     <li className="text-red-600 font-medium">• Outstanding dues of NPR {finalBalance.toLocaleString()} will remain in ledger</li>
                   )}

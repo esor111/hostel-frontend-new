@@ -89,24 +89,35 @@ export const BillingManagement = () => {
 
   const handleViewDetails = async (monthKey: string) => {
     try {
-      // Get real invoice data for the selected month
-      const currentDate = new Date();
-      const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      // 🏨 NEW: Get real invoice data for the selected month
+      const invoicesResponse = await automatedBillingApiService.getInvoicesByMonth(monthKey);
+      const invoices = invoicesResponse?.data || [];
+      
+      // Calculate month name from monthKey (e.g., "2025-11" -> "November 2025")
+      const [year, month] = monthKey.split('-');
+      const monthName = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { 
+        month: 'long', 
+        year: 'numeric' 
+      });
 
-      // Get current billing stats as a proxy for month details
-      const billingStats = await automatedBillingApiService.getBillingStats();
+      // Calculate summary from actual invoice data
+      const totalAmount = invoices.reduce((sum, invoice) => sum + (invoice.totalAmount || 0), 0);
+      const paidInvoices = invoices.filter(invoice => invoice.status === 'PAID');
+      const paidAmount = paidInvoices.reduce((sum, invoice) => sum + (invoice.totalAmount || 0), 0);
 
       const details = {
         monthKey,
         month: monthName,
-        invoices: [], // Would need a specific API endpoint to get invoices by month
+        invoices: invoices, // 🎯 Now has real invoice data!
         summary: {
-          totalInvoices: billingStats.currentMonthInvoices,
-          totalAmount: billingStats.currentMonthAmount,
-          paidAmount: 0, // Would need invoice details to calculate
-          pendingAmount: billingStats.currentMonthAmount
+          totalInvoices: invoices.length,
+          totalAmount: totalAmount,
+          paidAmount: paidAmount,
+          pendingAmount: totalAmount - paidAmount
         }
       };
+      
+      console.log('📋 Month details loaded:', details);
       setSelectedMonthDetails(details);
       setShowDetailsDialog(true);
     } catch (error) {
@@ -288,9 +299,18 @@ export const BillingManagement = () => {
         <CardContent>
           {monthlyData.length === 0 ? (
             <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No monthly invoices found</p>
-              <p className="text-sm text-gray-400">Invoice data will appear here once billing is generated</p>
+              <FileText className="h-12 w-12 text-blue-300 mx-auto mb-3" />
+              <p className="text-gray-700 font-medium">No monthly invoices found</p>
+              <p className="text-sm text-gray-500 mb-4">Invoice data will appear here once Nepalese billing is generated</p>
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 max-w-md mx-auto">
+                <h4 className="font-semibold text-blue-800 mb-2">🏨 To see invoice data:</h4>
+                <ol className="text-sm text-blue-700 text-left space-y-1">
+                  <li>1. Go to <strong>Monthly Billing</strong> page</li>
+                  <li>2. Select month and year</li>
+                  <li>3. Click <strong>"Generate Nepalese Monthly Invoices"</strong></li>
+                  <li>4. Return here to see the generated invoice data</li>
+                </ol>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">

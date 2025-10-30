@@ -99,8 +99,9 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
             const today = new Date().toISOString().split('T')[0];
             const monthlyFee = Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0);
 
-            const currentMonthProration = monthlyInvoiceService.calculateCheckoutProration(monthlyFee, today);
-            setCurrentMonthBilling(currentMonthProration);
+            // 🏨 NEW: Nepalese billing system - no prorated calculations needed
+            // Settlement will be calculated accurately by the backend
+            setCurrentMonthBilling(null);
 
             // Use real balance from API
             const currentBalance = studentBalance?.currentBalance || 0;
@@ -140,10 +141,10 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
             await fetchStudentLedger(student.id);
             await fetchStudentBalance(student.id);
 
-            // Recalculate total due with updated balance
+            // 🏨 NEW: Nepalese billing - use actual balance only
+            // Accurate settlement will be calculated by backend
             const updatedBalance = studentBalance?.currentBalance || 0;
-            const newTotalDue = updatedBalance + (currentMonthBilling?.amount || 0);
-            setTotalDueAmount(Math.max(0, newTotalDue));
+            setTotalDueAmount(Math.max(0, updatedBalance));
 
             // Clear payment form
             setPaymentAmount(Math.max(0, newTotalDue).toString());
@@ -170,20 +171,8 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                 return;
             }
 
-            // 1. Add partial month billing to ledger if needed
-            if (currentMonthBilling && currentMonthBilling.amount > 0) {
-                try {
-                    await createAdjustment({
-                        studentId: student.id,
-                        amount: currentMonthBilling.amount,
-                        description: `Partial month billing (${currentMonthBilling.daysCharged} days) - Checkout till ${checkoutDate}`,
-                        type: 'debit'
-                    });
-
-                } catch (error) {
-                    console.error('Error adding partial billing to ledger:', error);
-                }
-            }
+            // 🏨 NEW: Nepalese billing system handles accurate settlement automatically
+            // No need for manual partial month billing - backend calculates everything
 
             // 2. Process checkout through REAL API
             const checkoutRequest = {
@@ -191,12 +180,13 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                 clearRoom: checkoutData?.clearRoom ?? true,
                 refundAmount: checkoutData?.refundAmount ?? (totalDueAmount < 0 ? Math.abs(totalDueAmount) : 0),
                 deductionAmount: checkoutData?.deductionAmount ?? 0,
-                notes: checkoutData?.notes ?? `Checkout processed with ${hasDues ? 'outstanding dues' : 'cleared dues'}. Partial month billing: NPR ${currentMonthBilling?.amount || 0}`,
+                notes: checkoutData?.notes ?? `Nepalese billing checkout processed with ${hasDues ? 'outstanding dues' : 'cleared dues'}. Advance payment system applied.`,
                 processedBy: "Admin"
             };
 
 
-            const checkoutResult = await checkoutApiService.processCheckout(student.id, checkoutRequest);
+            // 🏨 NEW: Use Nepalese billing settlement system
+            const checkoutResult = await checkoutApiService.processCheckoutWithSettlement(student.id, checkoutRequest);
 
 
             // 3. Complete checkout
@@ -204,19 +194,21 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
             onClose();
             setShowConfirmationDialog(false);
 
-            // 4. Show success message
+            // 4. Show success message with Nepalese billing details
             if (hasDues) {
                 toast.warning(
-                    `⚠️ Student checked out with dues of NPR ${totalDueAmount.toLocaleString()}. 
+                    `⚠️ Nepalese billing checkout completed with dues of NPR ${totalDueAmount.toLocaleString()}. 
                     • Final settlement: NPR ${checkoutResult.netSettlement}
+                    • Advance payments considered in calculation
                     • Room cleared and made available
                     • Student status updated to inactive`,
                     { duration: 8000 }
                 );
             } else {
                 toast.success(
-                    `✅ Student checked out successfully! 
+                    `✅ Nepalese billing checkout successful! 
                     • Final settlement: NPR ${checkoutResult.netSettlement}
+                    • Advance payment system applied
                     • Room cleared and made available
                     • Monthly invoices stopped`,
                     { duration: 6000 }
@@ -374,6 +366,35 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                     </CardContent>
                 </Card>
 
+                {/* 🏨 NEW: Nepalese Billing Information */}
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
+                            <CheckCircle className="h-5 w-5" />
+                            Nepalese Billing System
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-blue-700">
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                    Advance Payment System
+                                </Badge>
+                            </div>
+                            <div className="text-sm text-blue-600 space-y-2">
+                                <p>✅ <strong>Accurate Settlement:</strong> Backend calculates exact usage vs payments</p>
+                                <p>✅ <strong>Advance Payment Handling:</strong> Considers all advance payments made</p>
+                                <p>✅ <strong>No Prorated Billing:</strong> Uses actual days stayed for fair calculation</p>
+                            </div>
+                            <div className="bg-blue-100 p-3 rounded-lg">
+                                <p className="text-sm text-blue-800">
+                                    <strong>Note:</strong> Final settlement will be calculated automatically based on actual usage and advance payments made by the student.
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Current Month's Partial Billing */}
                 {currentMonthBilling && (
                     <Card>
@@ -425,7 +446,7 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                                 </span>
                             </div>
                             <p className="text-sm text-red-600 mt-2">
-                                Ledger Balance + Current Month's Partial Billing
+                                Current Ledger Balance (Nepalese Billing System)
                             </p>
                         </div>
                     </CardContent>
@@ -523,7 +544,6 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                     foodFee: student.foodFee
                 }}
                 totalDueAmount={totalDueAmount}
-                currentMonthBilling={currentMonthBilling}
                 loading={loading}
             />
         </DialogContent>

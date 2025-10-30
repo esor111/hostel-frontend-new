@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle, CheckCircle, User, DollarSign, FileText, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { billingService } from "@/services/billingService";
+import { checkoutApiService } from "@/services/checkoutApiService";
 
 interface Student {
     id: string;
@@ -34,19 +35,28 @@ export const StudentCheckout = ({ student, onCheckoutComplete, onClose }: Studen
     const [refundCalculation, setRefundCalculation] = useState(null);
     const { toast } = useToast();
 
-    // Calculate prorated refund on component mount
+    // 🏨 NEW: Calculate accurate settlement using Nepalese billing system
     useEffect(() => {
-        const calculateRefund = () => {
+        const calculateAccurateSettlement = async () => {
             try {
                 const checkoutDate = new Date().toISOString().split('T')[0];
-                const refund = billingService.calculateCheckoutRefund(student, checkoutDate);
-                setRefundCalculation(refund);
+                // Use the new accurate settlement calculation
+                const settlement = await checkoutApiService.calculateAccurateSettlement(student.id, checkoutDate);
+                setRefundCalculation(settlement);
             } catch (error) {
-                console.error('Error calculating refund:', error);
+                console.error('Error calculating accurate settlement:', error);
+                // Fallback to basic calculation if API fails
+                setRefundCalculation({
+                    refundDue: 0,
+                    additionalDue: Math.max(0, student.currentBalance),
+                    actualUsage: 0,
+                    totalPaid: 0,
+                    totalDaysStayed: 0
+                });
             }
         };
 
-        calculateRefund();
+        calculateAccurateSettlement();
     }, [student]);
 
     const hasDues = student.currentBalance > 0;
@@ -95,26 +105,35 @@ export const StudentCheckout = ({ student, onCheckoutComplete, onClose }: Studen
         setIsProcessing(true);
 
         try {
+            const checkoutRequest = {
+                checkoutDate: new Date().toISOString().split('T')[0],
+                clearRoom: true,
+                refundAmount: refundCalculation?.refundDue || 0,
+                deductionAmount: refundCalculation?.additionalDue || 0,
+                notes: `${checkoutReason === "Other" ? customReason : checkoutReason}. ${notes.trim()}`,
+                processedBy: "Admin"
+            };
+
+            // 🏨 NEW: Use Nepalese billing system for checkout
+            const checkoutResult = await checkoutApiService.processCheckoutWithSettlement(student.id, checkoutRequest);
+
             const checkoutData = {
                 studentId: student.id,
-                checkoutDate: new Date().toISOString().split('T')[0],
+                checkoutDate: checkoutRequest.checkoutDate,
                 reason: checkoutReason === "Other" ? customReason : checkoutReason,
                 notes: notes.trim(),
                 duesCleared,
                 hadOutstandingDues: hasDues,
                 outstandingAmount: hasDues ? student.currentBalance : 0,
-                processedBy: "Admin", // In real app, get from auth context
-                hitLedger: duesCleared // Only hit ledger if dues are cleared
+                processedBy: "Admin",
+                settlementResult: checkoutResult
             };
-
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
 
             onCheckoutComplete(student.id, checkoutData);
 
             toast({
-                title: "Checkout Successful",
-                description: `${student.name} has been checked out successfully. Room ${student.roomNumber} is now available.`,
+                title: "Nepalese Billing Checkout Successful",
+                description: `${student.name} has been checked out with accurate settlement. Final settlement: NPR ${checkoutResult.netSettlement}. Room ${student.roomNumber} is now available.`,
             });
 
             onClose();
@@ -209,57 +228,71 @@ export const StudentCheckout = ({ student, onCheckoutComplete, onClose }: Studen
                         </CardContent>
                     </Card>
 
-                    {/* Prorated Refund Calculation */}
-                    {refundCalculation && duesCleared && (
-                        <Card className="border-[#1295D0]/30 bg-[#1295D0]/5">
+                    {/* 🏨 NEW: Nepalese Billing Settlement Calculation */}
+                    {refundCalculation && (
+                        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                             <CardHeader className="pb-3">
-                                <CardTitle className="flex items-center gap-2 text-lg text-[#231F20]">
-                                    <Calculator className="h-5 w-5 text-[#1295D0]" />
-                                    Prorated Refund Calculation
+                                <CardTitle className="flex items-center gap-2 text-lg text-blue-800">
+                                    <Calculator className="h-5 w-5 text-blue-600" />
+                                    Nepalese Billing Settlement
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>
-                                        <p className="text-gray-600">Total Days in Month</p>
-                                        <p className="font-semibold">{refundCalculation.totalDaysInMonth} days</p>
+                                        <p className="text-gray-600">Total Days Stayed</p>
+                                        <p className="font-semibold">{refundCalculation.totalDaysStayed || 0} days</p>
                                     </div>
                                     <div>
-                                        <p className="text-gray-600">Checkout Day</p>
-                                        <p className="font-semibold">Day {refundCalculation.checkoutDay}</p>
+                                        <p className="text-gray-600">Actual Usage Amount</p>
+                                        <p className="font-semibold">NPR {refundCalculation.actualUsage?.toLocaleString() || '0'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-gray-600">Unused Days</p>
-                                        <p className="font-semibold text-blue-600">{refundCalculation.remainingDays} days</p>
+                                        <p className="text-gray-600">Total Paid (Including Advance)</p>
+                                        <p className="font-semibold text-blue-600">NPR {refundCalculation.totalPaid?.toLocaleString() || '0'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-gray-600">Daily Rate</p>
-                                        <p className="font-semibold">NPR {refundCalculation.dailyRate}/day</p>
+                                        <p className="text-gray-600">Settlement Status</p>
+                                        <p className={`font-semibold ${
+                                            refundCalculation.refundDue > 0 ? 'text-green-600' : 
+                                            refundCalculation.additionalDue > 0 ? 'text-red-600' : 'text-gray-600'
+                                        }`}>
+                                            {refundCalculation.refundDue > 0 ? 'Refund Due' : 
+                                             refundCalculation.additionalDue > 0 ? 'Additional Due' : 'Settled'}
+                                        </p>
                                     </div>
                                 </div>
 
                                 <div className="border-t pt-3">
                                     <div className="flex justify-between items-center">
-                                        <span className="font-medium">Prorated Refund Amount:</span>
-                                        <span className="text-xl font-bold text-green-600">
-                                            NPR {refundCalculation.refundAmount.toLocaleString()}
+                                        <span className="font-medium">Final Settlement:</span>
+                                        <span className={`text-xl font-bold ${
+                                            refundCalculation.refundDue > 0 ? 'text-green-600' : 
+                                            refundCalculation.additionalDue > 0 ? 'text-red-600' : 'text-gray-600'
+                                        }`}>
+                                            {refundCalculation.refundDue > 0 && `NPR ${refundCalculation.refundDue.toLocaleString()} (Refund)`}
+                                            {refundCalculation.additionalDue > 0 && `NPR ${refundCalculation.additionalDue.toLocaleString()} (Due)`}
+                                            {!refundCalculation.refundDue && !refundCalculation.additionalDue && 'NPR 0 (Settled)'}
                                         </span>
                                     </div>
-                                    {refundCalculation.hasRefund ? (
+                                    {refundCalculation.refundDue > 0 ? (
                                         <p className="text-sm text-green-600 mt-1">
-                                            ✅ Refund will be processed for unused days
+                                            ✅ Refund will be processed based on advance payments vs actual usage
+                                        </p>
+                                    ) : refundCalculation.additionalDue > 0 ? (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            ⚠️ Additional payment required for actual usage
                                         </p>
                                     ) : (
                                         <p className="text-sm text-gray-600 mt-1">
-                                            ℹ️ No refund applicable (checkout at month end)
+                                            ✅ Account fully settled - no refund or additional payment needed
                                         </p>
                                     )}
                                 </div>
 
                                 <div className="bg-blue-100 p-3 rounded-lg">
                                     <p className="text-sm text-blue-800">
-                                        <strong>Monthly Billing System:</strong> All charges are calculated monthly.
-                                        When checking out mid-month, unused days are refunded proportionally.
+                                        <strong>Nepalese Billing System:</strong> Settlement is calculated based on actual days stayed vs total payments made (including advance payments). This ensures fair and accurate billing.
                                     </p>
                                 </div>
                             </CardContent>

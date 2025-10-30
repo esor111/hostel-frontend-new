@@ -73,7 +73,7 @@ export class CheckoutApiService {
     });
     
     // Filter only active students
-    const activeStudents = students.items?.filter(student => 
+    const activeStudents = (students as any)?.items?.filter((student: any) => 
       student.status === 'Active' && !student.isCheckedOut
     ) || [];
     
@@ -119,7 +119,7 @@ export class CheckoutApiService {
       const balance = await this.apiService.get(`/ledgers/student/${studentId}/balance`);
       
       // Get student details
-      const student = await this.apiService.get(`/students/${studentId}`);
+      const student = await this.apiService.get(`/students/${studentId}`) as any;
       
       // Calculate prorated amount for partial month
       const checkoutDateObj = new Date(checkoutDate);
@@ -131,7 +131,7 @@ export class CheckoutApiService {
       const monthlyFee = (student.baseMonthlyFee || 0) + (student.laundryFee || 0) + (student.foodFee || 0);
       const proratedAmount = Math.round((monthlyFee / daysInMonth) * daysStayed * 100) / 100;
       
-      const currentBalance = balance.balance || 0;
+      const currentBalance = (balance as any).balance || 0;
       const finalBalance = currentBalance + proratedAmount;
       
       return {
@@ -148,6 +148,57 @@ export class CheckoutApiService {
       console.error('Error calculating settlement:', error);
       throw error;
     }
+  }
+
+  // ========================================
+  // NEW: NEPALESE BILLING SETTLEMENT METHODS
+  // ========================================
+
+  /**
+   * Calculate accurate settlement using Nepalese billing system
+   */
+  async calculateAccurateSettlement(studentId: string, checkoutDate: string) {
+    console.log('🧮 Calculating accurate settlement (Nepalese billing):', studentId, checkoutDate);
+    
+    try {
+      const result = await this.apiService.post(`/students/${studentId}/calculate-settlement`, {
+        checkoutDate
+      });
+      
+      console.log('✅ Accurate settlement calculated:', result);
+      return result;
+    } catch (error) {
+      console.error('Error calculating accurate settlement:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process checkout with accurate settlement
+   */
+  async processCheckoutWithSettlement(studentId: string, checkoutData: CheckoutRequest): Promise<CheckoutResponse> {
+    console.log('🚪 Processing checkout with accurate settlement:', { studentId, checkoutData });
+    
+    // First calculate accurate settlement
+    const settlement = await this.calculateAccurateSettlement(studentId, checkoutData.checkoutDate) as any;
+    
+    // Update checkout data with settlement information
+    const enhancedCheckoutData = {
+      ...checkoutData,
+      refundAmount: settlement.refundDue || 0,
+      deductionAmount: settlement.additionalDue || 0,
+      notes: `${checkoutData.notes || ''} | Settlement: ${settlement.totalDaysStayed} days usage, NPR ${settlement.actualUsage} actual usage vs NPR ${settlement.totalPaid} paid`
+    };
+    
+    // Process checkout with enhanced data
+    const result = await this.processCheckout(studentId, enhancedCheckoutData);
+    
+    console.log('✅ Checkout with settlement processed successfully:', result);
+    return {
+      ...result,
+      netSettlement: settlement.refundDue || settlement.additionalDue || 0,
+      settlementDetails: settlement
+    } as CheckoutResponse;
   }
 }
 

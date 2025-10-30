@@ -39,12 +39,33 @@ const MonthlyBillingComponent = () => {
 
   const years = ['2024', '2025', '2026'];
 
+  // 🏨 NEW: Smart Default Month Logic for Nepalese Billing
+  const getSmartDefaultMonth = () => {
+    const today = new Date();
+    const currentMonth = today.getMonth(); // 0-11
+    const currentYear = today.getFullYear();
+    
+    // Default to NEXT month for billing (upcoming month that needs billing)
+    const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+    const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+    
+    return {
+      monthIndex: nextMonth,
+      monthName: months[nextMonth],
+      year: nextYear,
+      explanation: `Auto-selected ${months[nextMonth]} ${nextYear} as the next month that needs billing`
+    };
+  };
+
+  // Get current smart default for display
+  const currentSmartDefault = getSmartDefaultMonth();
+
   useEffect(() => {
-    // Set current month and year as default
-    const now = new Date();
-    setSelectedMonth(months[now.getMonth()]);
-    setSelectedYear(now.getFullYear().toString());
-    setCheckoutDate(now.toISOString().split('T')[0]);
+    // 🏨 NEW: Set smart default month (next month that needs billing)
+    const smartDefault = getSmartDefaultMonth();
+    setSelectedMonth(smartDefault.monthName);
+    setSelectedYear(smartDefault.year.toString());
+    setCheckoutDate(new Date().toISOString().split('T')[0]);
     
     // Load billing data
     loadBillingData();
@@ -78,7 +99,9 @@ const MonthlyBillingComponent = () => {
 
     try {
       const monthIndex = months.indexOf(selectedMonth);
-      const result = await automatedBillingApiService.generateMonthlyInvoices({
+      
+      // 🏨 NEW: Use Nepalese billing system (skips advance payment months)
+      const result = await automatedBillingApiService.generateNepalesesMonthlyInvoices({
         month: monthIndex,
         year: parseInt(selectedYear),
         dueDate: new Date(parseInt(selectedYear), monthIndex, 10).toISOString().split('T')[0] // 10th of the month
@@ -86,9 +109,10 @@ const MonthlyBillingComponent = () => {
 
       setBillingResults(result);
 
+      // 🏨 NEW: Enhanced success message for Nepalese billing
       toast({
-        title: 'Monthly Billing Complete',
-        description: `Generated ${result.generated} invoices successfully. Total: NPR ${result.totalAmount.toLocaleString()}`,
+        title: 'Nepalese Monthly Billing Complete',
+        description: `Generated ${result.generated} invoices successfully. Skipped ${result.skipped || 0} advance payment months. Total: NPR ${result.totalAmount.toLocaleString()}`,
       });
 
       if (result.failed > 0) {
@@ -99,13 +123,22 @@ const MonthlyBillingComponent = () => {
         });
       }
 
+      // Show advance payment information if students were skipped
+      if (result.skipped > 0) {
+        toast({
+          title: 'Advance Payments Detected',
+          description: `${result.skipped} students skipped - their advance payments cover this month`,
+          variant: 'default'
+        });
+      }
+
       // Refresh billing data
       await loadBillingData();
       await refreshAllData();
 
     } catch (error) {
       toast({
-        title: 'Billing Generation Failed',
+        title: 'Nepalese Billing Generation Failed',
         description: error.message,
         variant: 'destructive'
       });
@@ -191,10 +224,43 @@ const MonthlyBillingComponent = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">📅 Monthly Billing System</h2>
-          <p className="text-gray-600 mt-1">Automated monthly billing with prorated calculations</p>
+          <h2 className="text-3xl font-bold text-gray-900">📅 Nepalese Monthly Billing System</h2>
+          <p className="text-gray-600 mt-1">Automated monthly billing with advance payment system</p>
         </div>
       </div>
+
+      {/* 🏨 NEW: Smart Default Month Display */}
+      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-600 text-white p-3 rounded-full">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-blue-900">
+                  Billing for {selectedMonth} {selectedYear}
+                </h3>
+                <p className="text-blue-700 text-sm">
+                  {currentSmartDefault.explanation}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="bg-blue-100 px-4 py-2 rounded-lg">
+                <p className="text-sm text-blue-600 font-medium">Auto-Selected</p>
+                <p className="text-xs text-blue-500">Smart Default Logic</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 bg-blue-100 p-3 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>📋 Billing Logic:</strong> Students with advance payment for {selectedMonth} {selectedYear} will be automatically skipped. 
+              All other active students will receive full month invoices.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Billing Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -422,49 +488,64 @@ const MonthlyBillingComponent = () => {
         </Card>
       </div>
 
-      {/* Prorated Billing Examples */}
+      {/* 🏨 NEW: Nepalese Advance Payment System Examples */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Prorated Billing Examples
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Nepalese Advance Payment System
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="bg-blue-50 p-4 rounded-lg mb-4">
-            <h4 className="font-semibold text-blue-800 mb-3">📊 How Prorated Billing Works:</h4>
-            <p className="text-sm text-blue-700 mb-3">
-              Students who join mid-month are charged only for the days they stay, calculated daily from their enrollment date.
+          <div className="bg-green-50 p-4 rounded-lg mb-4">
+            <h4 className="font-semibold text-green-800 mb-3">🏨 How Nepalese Billing Works:</h4>
+            <p className="text-sm text-green-700 mb-3">
+              Students pay full month advance on joining. Monthly billing skips advance payment months and bills subsequent months at full amount.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { day: 1, fee: 20000 },
-              { day: 15, fee: 20000 },
-              { day: 25, fee: 20000 }
-            ].map(({ day, fee }) => {
-              const calculation = calculateProratedExample(fee, day);
+              { day: 1, fee: 15000, scenario: 'Month Start' },
+              { day: 15, fee: 15000, scenario: 'Mid Month' },
+              { day: 25, fee: 15000, scenario: 'Month End' }
+            ].map(({ day, fee, scenario }) => {
+              const enrollmentMonth = new Date(2025, 0, day).toLocaleDateString('en-US', { month: 'long' });
               return (
-                <div key={day} className="bg-white p-4 rounded-lg border border-gray-200">
+                <div key={day} className="bg-white p-4 rounded-lg border border-green-200">
                   <div className="font-medium text-gray-800 mb-2">
-                    Enrolled on {day}{getOrdinalSuffix(day)} of Month
+                    Enrolled on {day}{getOrdinalSuffix(day)} January ({scenario})
                   </div>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <div>Monthly Fee: ₹{fee.toLocaleString()}</div>
-                    <div>Days: {calculation.remainingDays}/{calculation.totalDaysInMonth}</div>
-                    <div className="font-bold text-blue-600 text-lg">
-                      Charged: ₹{calculation.proratedAmount.toLocaleString()}
+                  <div className="space-y-2 text-sm">
+                    <div className="bg-green-50 p-2 rounded">
+                      <div className="font-medium text-green-800">Advance Payment:</div>
+                      <div className="text-green-700">NPR {fee.toLocaleString()} for full {enrollmentMonth}</div>
                     </div>
-                    {calculation.isProrated && (
-                      <Badge variant="outline" className="text-xs">
-                        Prorated
-                      </Badge>
-                    )}
+                    <div className="bg-blue-50 p-2 rounded">
+                      <div className="font-medium text-blue-800">February Billing:</div>
+                      <div className="text-blue-700">NPR {fee.toLocaleString()} (full month)</div>
+                    </div>
+                    <div className="bg-purple-50 p-2 rounded">
+                      <div className="font-medium text-purple-800">March Billing:</div>
+                      <div className="text-purple-700">NPR {fee.toLocaleString()} (full month)</div>
+                    </div>
+                    <Badge className="bg-green-600 text-white text-xs">
+                      Advance Payment System
+                    </Badge>
                   </div>
                 </div>
               );
             })}
+          </div>
+
+          <div className="mt-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <h4 className="font-semibold text-yellow-800 mb-2">💡 Key Benefits:</h4>
+            <ul className="text-sm text-yellow-700 space-y-1">
+              <li>• Clear payment expectations - students know exactly when to pay</li>
+              <li>• No confusing prorated amounts during stay</li>
+              <li>• Fair checkout settlements based on actual usage</li>
+              <li>• Matches traditional Nepalese hostel practices</li>
+            </ul>
           </div>
         </CardContent>
       </Card>

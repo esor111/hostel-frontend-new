@@ -38,6 +38,9 @@ export interface CreatePaymentDto {
   chequeNumber?: string;
   chequeDate?: string;
   invoiceIds?: string[];
+  // NEW: Nepalese billing support
+  paymentType?: 'ADVANCE' | 'MONTHLY' | 'REFUND' | 'SETTLEMENT' | 'REGULAR';
+  monthCovered?: string; // For advance payments, format: "2025-01"
 }
 
 export interface UpdatePaymentDto {
@@ -48,6 +51,9 @@ export interface UpdatePaymentDto {
   notes?: string;
   status?: Payment['status'];
   transactionId?: string;
+  // NEW: Nepalese billing support
+  paymentType?: 'ADVANCE' | 'MONTHLY' | 'REFUND' | 'SETTLEMENT' | 'REGULAR';
+  monthCovered?: string;
   bankName?: string;
   chequeNumber?: string;
   chequeDate?: string;
@@ -224,6 +230,9 @@ export class PaymentsApiService {
       paymentDate: paymentData.paymentDate || new Date().toISOString().split('T')[0],
       status: paymentData.status || 'Completed',
       processedBy: paymentData.processedBy || 'admin', // Matches backend DTO field name
+      // NEW: Nepalese billing support
+      paymentType: paymentData.paymentType || 'REGULAR',
+      ...(paymentData.monthCovered && { monthCovered: paymentData.monthCovered }),
       ...(paymentData.reference && { reference: paymentData.reference }),
       ...(paymentData.notes && { notes: paymentData.notes }),
       ...(paymentData.transactionId && { transactionId: paymentData.transactionId }),

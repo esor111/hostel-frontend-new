@@ -339,6 +339,56 @@ export class StudentsApiService {
     // this method serves as a placeholder for future caching implementation
     console.log('🧹 StudentsApiService cache cleared');
   }
+
+  // ========================================
+  // NEW: NEPALESE BILLING SYSTEM METHODS
+  // ========================================
+
+  /**
+   * Configure student with advance payment (Nepalese billing)
+   */
+  async configureStudentWithAdvancePayment(id: string, configData: any): Promise<any> {
+    console.log('🏨 Configuring student with advance payment:', id, configData);
+    
+    const result = await this.apiService.post(API_ENDPOINTS.STUDENTS.CONFIGURE(id), {
+      ...configData,
+      processAdvancePayment: true
+    });
+    
+    console.log('✅ Student configured with advance payment:', result);
+    
+    // Handle backend response format
+    if (result && typeof result === 'object' && 'data' in result) {
+      return (result as any).data;
+    }
+    return result;
+  }
+
+  /**
+   * Get student payment status (Nepalese billing)
+   */
+  async getStudentPaymentStatus(id: string): Promise<any> {
+    console.log('💰 Getting student payment status (Nepalese):', id);
+    
+    const result = await this.apiService.get(`/students/${id}/payment-status`);
+    
+    console.log('💰 Student payment status result:', result);
+    return result;
+  }
+
+  /**
+   * Calculate checkout settlement (Nepalese billing)
+   */
+  async calculateCheckoutSettlement(id: string, checkoutDate: string): Promise<any> {
+    console.log('🧮 Calculating checkout settlement:', id, checkoutDate);
+    
+    const result = await this.apiService.post(`/students/${id}/calculate-settlement`, {
+      checkoutDate
+    });
+    
+    console.log('🧮 Checkout settlement result:', result);
+    return result;
+  }
 }
 
 // Export singleton instance
