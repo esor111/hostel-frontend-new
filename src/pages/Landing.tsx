@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -190,6 +190,7 @@ const Landing = () => {
     loadMore: loadMoreHostels,
     refresh: refreshHostels,
     loadingMore: loadingMoreHostels,
+    search: searchHostels,
   } = useBusinesses({
     categoryId: "8d4c71ac-b5f2-4019-8414-fdc01ecaf8c4", // Hostel category ID
     initialLimit: 10,
@@ -201,10 +202,38 @@ const Landing = () => {
     navigate('/login');
   };
 
-  const handleSearch = () => {
-    // For demo, show sample results
-    console.log("Searching for:", searchQuery);
+  const handleSearch = async () => {
+    if (searchQuery.trim()) {
+      console.log("Searching for:", searchQuery);
+      await searchHostels(searchQuery.trim());
+    } else {
+      // If search query is empty, refresh to show all hostels
+      await refreshHostels();
+    }
   };
+
+  // Debounced search - search as user types with delay
+  const debouncedSearch = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (searchTerm: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(async () => {
+          if (searchTerm.trim()) {
+            await searchHostels(searchTerm.trim());
+          } else {
+            await refreshHostels();
+          }
+        }, 500); // 500ms delay
+      };
+    })(),
+    [searchHostels, refreshHostels]
+  );
+
+  // Trigger search when searchQuery changes
+  useEffect(() => {
+    debouncedSearch(searchQuery);
+  }, [searchQuery, debouncedSearch]);
 
   const scrollToTop = () => {
     window.scrollTo({
@@ -650,24 +679,50 @@ const Landing = () => {
                 }`}>
                 <div className="flex gap-6">
                   <div className="flex-1 relative group">
-                    <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400 h-6 w-6 group-focus-within:text-[#1295D0] transition-colors duration-300" />
+                    {hostelsLoading && searchQuery ? (
+                      <div className="absolute left-5 top-1/2 transform -translate-y-1/2 animate-spin rounded-full h-6 w-6 border-b-2 border-[#1295D0]"></div>
+                    ) : (
+                      <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400 h-6 w-6 group-focus-within:text-[#1295D0] transition-colors duration-300" />
+                    )}
                     <Input
-                      placeholder="Search hostels using Kaha platform..."
+                      placeholder={hostelsLoading && searchQuery ? "Searching..." : "Search hostels using Kaha platform..."}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-14 py-6 text-xl border-2 border-gray-200/50 focus:border-[#1295D0] focus:ring-4 focus:ring-[#1295D0]/10 transition-all duration-300 hover:border-gray-300 rounded-2xl bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl font-medium"
                       onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                      disabled={hostelsLoading && searchQuery.length > 0}
                     />
                     {searchQuery && (
                       <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl mt-3 shadow-2xl z-10">
                         <div className="p-6">
-                          <p className="text-sm text-gray-600 mb-4 font-medium">Suggested hostels:</p>
-                          {hostels.filter(h => h.name.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5).map((hostel) => (
-                            <div key={hostel.id} className="flex items-center gap-3 p-3 hover:bg-gray-50/80 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02]">
-                              <Building2 className="h-5 w-5 text-[#1295D0]" />
-                              <span className="text-base font-medium">{hostel.name} - {hostel.address}</span>
+                          <p className="text-sm text-gray-600 mb-4 font-medium">
+                            {hostelsLoading ? "Searching..." : "Search results:"}
+                          </p>
+                          {hostelsLoading ? (
+                            <div className="flex items-center gap-3 p-3">
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#1295D0]"></div>
+                              <span className="text-base text-gray-500">Searching hostels...</span>
                             </div>
-                          ))}
+                          ) : hostels.length > 0 ? (
+                            hostels.slice(0, 5).map((hostel) => (
+                              <div key={hostel.id} className="flex items-center gap-3 p-3 hover:bg-gray-50/80 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02]">
+                                <Building2 className="h-5 w-5 text-[#1295D0]" />
+                                <span className="text-base font-medium">{hostel.name} - {hostel.address}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="flex items-center gap-3 p-3">
+                              <Search className="h-5 w-5 text-gray-400" />
+                              <span className="text-base text-gray-500">No hostels found for "{searchQuery}"</span>
+                            </div>
+                          )}
+                          {hostels.length > 5 && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <p className="text-xs text-gray-500 text-center">
+                                Showing 5 of {hostels.length} results. Click Search to see all.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
