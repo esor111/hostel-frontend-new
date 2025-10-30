@@ -186,11 +186,27 @@ export const RoomLayoutViewer = ({ layout, roomName, roomId, onRefresh }: RoomLa
   if (!layout.elements || !Array.isArray(layout.elements)) {
     layout.elements = []; // Set empty array so the viewer can still show the room
     console.log('📋 No layout elements found - showing empty room');
+  } else {
+    // 🔧 AUTO-FIX: Update door and window sizes to correct dimensions in viewer
+    layout.elements = layout.elements.map((element: any) => {
+      // Fix door sizes (old: 2.0×4.8m → new: 0.9×2.1m)
+      if (element.type === 'door' && (element.width > 1.5 || element.height > 3.0)) {
+        console.log(`🚪 Viewer Auto-fix door size: ${element.width}×${element.height}m → 0.9×2.1m`);
+        return { ...element, width: 0.9, height: 2.1 };
+      }
+      
+      // Fix window sizes (old: 3.2×1.4m → new: 1.2×1.0m)  
+      if (element.type === 'window' && (element.width > 2.0 || element.height > 1.2)) {
+        console.log(`🪟 Viewer Auto-fix window size: ${element.width}×${element.height}m → 1.2×1.0m`);
+        return { ...element, width: 1.2, height: 1.0 };
+      }
+      
+      return element;
+    });
   }
   
   if (!layout.theme) {
     layout.theme = {
-      name: "Default",
       wallColor: "#e5e7eb",
       floorColor: "#f8f9fa"
     };

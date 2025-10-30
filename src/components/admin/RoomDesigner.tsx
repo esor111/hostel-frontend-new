@@ -96,7 +96,31 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
   // Initialize elements from roomData, handling both elements and bedPositions
   const initializeElements = () => {
     if (roomData?.elements) {
-      return roomData.elements;
+      // 🔧 AUTO-FIX: Update door and window sizes to new correct dimensions
+      return roomData.elements.map((element: any) => {
+        // Fix door sizes (old: 2.0×4.8m → new: 0.9×2.1m)
+        if (element.type === 'door' && (element.width > 1.5 || element.height > 3.0)) {
+          console.log(`🚪 Auto-fixing door size: ${element.width}×${element.height}m → 0.9×2.1m`);
+          return {
+            ...element,
+            width: 0.9,
+            height: 2.1
+          };
+        }
+        
+        // Fix window sizes (old: 3.2×1.4m → new: 1.2×1.0m)  
+        if (element.type === 'window' && (element.width > 2.0 || element.height > 1.2)) {
+          console.log(`🪟 Auto-fixing window size: ${element.width}×${element.height}m → 1.2×1.0m`);
+          return {
+            ...element,
+            width: 1.2,
+            height: 1.0
+          };
+        }
+        
+        // Return other elements unchanged
+        return element;
+      });
     } else if (roomData?.bedPositions) {
       // Convert bedPositions to elements format for the designer
       return roomData.bedPositions.map((bedPos: any) => ({
