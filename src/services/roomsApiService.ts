@@ -114,6 +114,25 @@ export const roomsApiService = {
         }
       }
 
+      // 🔧 AUTO-FIX: Update door and window sizes to correct dimensions when loading from API
+      if (roomData.layout && roomData.layout.elements) {
+        roomData.layout.elements = roomData.layout.elements.map((element: any) => {
+          // Fix door sizes (old: 2.0×4.8m → new: 0.9×2.1m)
+          if (element.type === 'door' && (element.width > 1.5 || element.height > 3.0)) {
+            console.log(`🚪 API Auto-fix door size: ${element.width}×${element.height}m → 0.9×2.1m`);
+            return { ...element, width: 0.9, height: 2.1 };
+          }
+          
+          // Fix window sizes (old: 3.2×1.4m → new: 1.2×1.0m)  
+          if (element.type === 'window' && (element.width > 2.0 || element.height > 1.2)) {
+            console.log(`🪟 API Auto-fix window size: ${element.width}×${element.height}m → 1.2×1.0m`);
+            return { ...element, width: 1.2, height: 1.0 };
+          }
+          
+          return element;
+        });
+      }
+
       return roomData;
     } catch (error) {
       console.error('❌ Error fetching room by ID:', error);

@@ -399,7 +399,7 @@ export const RoomConfiguration = () => {
                         </Badge>
                         <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
                           <Layout className="h-3 w-3 mr-1" />
-                          Floor {room.floorNumber || 1}
+                          Floor {room.floor || room.floorNumber || 1}
                         </Badge>
                       </div>
 
