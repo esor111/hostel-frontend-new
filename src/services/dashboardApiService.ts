@@ -130,6 +130,19 @@ export class DashboardApiService {
   }
 
   /**
+   * Get ALL students with outstanding dues (active + inactive)
+   */
+  async getAllOutstandingDues(): Promise<CheckedOutWithDues[]> {
+    console.log('👥 DashboardApiService.getAllOutstandingDues called');
+    
+    const response = await this.apiService.get<any>('/dashboard/all-outstanding-dues');
+    const result = response.data || response;
+    
+    console.log('👥 All outstanding dues result:', result?.length || 0, 'students found');
+    return result || [];
+  }
+
+  /**
    * Get monthly revenue data
    */
   async getMonthlyRevenue(months: number = 12): Promise<MonthlyRevenueData[]> {
@@ -200,16 +213,16 @@ export class DashboardApiService {
   }
 
   /**
-   * Calculate total outstanding dues
+   * Calculate total outstanding dues (ALL students - active + inactive)
    */
   async getTotalOutstandingDues(): Promise<{ amount: number; invoiceCount: number }> {
     try {
-      const checkedOutWithDues = await this.getCheckedOutWithDues();
-      const totalAmount = checkedOutWithDues.reduce((total, student) => total + student.outstandingDues, 0);
+      const allOutstandingDues = await this.getAllOutstandingDues();
+      const totalAmount = allOutstandingDues.reduce((total, student) => total + student.outstandingDues, 0);
       
       return {
         amount: totalAmount,
-        invoiceCount: checkedOutWithDues.length
+        invoiceCount: allOutstandingDues.length
       };
     } catch (error) {
       console.error('❌ Error calculating outstanding dues:', error);

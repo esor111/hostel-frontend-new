@@ -35,11 +35,13 @@ export const Dashboard = memo(() => {
         const [
           stats,
           checkedOutData,
+          allOutstandingData,
           totalCollectedAmount,
           outstandingDues
         ] = await Promise.all([
           dashboardApiService.getDashboardStats(),
           dashboardApiService.getCheckedOutWithDues(),
+          dashboardApiService.getAllOutstandingDues(),
           dashboardApiService.getTotalCollected(),
           dashboardApiService.getTotalOutstandingDues()
         ]);
@@ -47,7 +49,7 @@ export const Dashboard = memo(() => {
 
         
         setDashboardStats(stats);
-        setCheckedOutWithDues(checkedOutData);
+        setCheckedOutWithDues(allOutstandingData); // Use ALL outstanding dues (active + inactive)
         setTotalCollected(totalCollectedAmount);
         setTotalOutstandingDues(outstandingDues);
         
@@ -258,7 +260,7 @@ export const Dashboard = memo(() => {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-800">Students with Outstanding Dues</h3>
-                  <p className="text-slate-600 text-xs">Checked out but payment pending</p>
+                  <p className="text-slate-600 text-xs">Active and checked-out students with pending payments</p>
                 </div>
                 <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 px-2 py-1 text-xs">
                   {checkedOutWithDues?.length || 0} Student{(checkedOutWithDues?.length || 0) !== 1 ? 's' : ''}
@@ -291,12 +293,18 @@ export const Dashboard = memo(() => {
                           <Calendar className="h-3 w-3" />
                           {student.roomNumber}
                         </span>
-                        <span>
-                          Checkout: {student.checkoutDate && student.checkoutDate !== 'Invalid Date' ? 
-                            new Date(student.checkoutDate).toLocaleDateString() : 
-                            'Recently checked out'
-                          }
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          student.studentStatus === 'Active' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {student.studentStatus === 'Active' ? 'Active Student' : 'Checked Out'}
                         </span>
+                        {student.checkoutDate && student.checkoutDate !== 'Invalid Date' && (
+                          <span>
+                            Checkout: {new Date(student.checkoutDate).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
