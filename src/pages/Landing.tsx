@@ -318,7 +318,7 @@ const Landing = () => {
                   Request Demo
                 </Button>
                 <Button
-                  onClick={() => setShowLogin(!showLogin)}
+                  onClick={handleLogin}
                   className="bg-gradient-to-r from-[#07A64F] to-[#1295D0] hover:from-[#07A64F]/90 hover:to-[#1295D0]/90 text-white px-8 py-3 font-semibold shadow-xl hover:shadow-2xl hover:shadow-[#07A64F]/30 transition-all duration-300 hover:scale-105 transform rounded-xl"
                 >
                   Hostel Owner Login

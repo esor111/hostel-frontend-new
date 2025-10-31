@@ -20,7 +20,7 @@ export interface GenerateMonthlyInvoicesResponse {
   generated: number;
   failed: number;
   totalAmount: number;
-  invoices: any[];
+  invoices: any[];  
   errors?: any[];
 }
 
