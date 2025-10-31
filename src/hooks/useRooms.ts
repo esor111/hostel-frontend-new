@@ -63,6 +63,8 @@ export interface UpdateRoomData {
   description?: string;
   gender?: string;
   layout?: any;
+  floor?: number;
+  images?: string[];
 }
 
 // 🔧 FIXED: Helper function to calculate bed count from layout

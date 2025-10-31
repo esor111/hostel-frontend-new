@@ -226,10 +226,79 @@ export const roomsApiService = {
     }
   },
 
-  // Update room
+  // Update room - NEW ORGANIZED ENDPOINT
   async updateRoom(id: string, updates: any) {
     try {
-      console.log(`🏠 Updating room ${id} via API...`);
+      console.log(`🔄 Updating room ${id} via NEW organized API endpoint...`);
+      console.log('📤 Update data:', updates);
+
+      // Transform layout data to match backend expectations
+      if (updates.layout) {
+        console.log('🎨 Layout update detected - Transforming data for backend');
+        console.log('📤 Original layout data:', updates.layout);
+
+        // Extract bed positions from elements
+        const bedPositions = updates.layout.elements?.filter(e =>
+          e.type === 'single-bed' || e.type === 'bunk-bed'
+        ).map(bed => ({
+          id: bed.id,
+          type: bed.type,
+          x: bed.x,
+          y: bed.y,
+          width: bed.width,
+          height: bed.height,
+          rotation: bed.rotation,
+          properties: bed.properties
+        })) || [];
+
+        // Extract furniture layout from elements
+        const furnitureLayout = updates.layout.elements?.filter(e =>
+          e.type !== 'single-bed' && e.type !== 'bunk-bed'
+        ).map(furniture => ({
+          id: furniture.id,
+          type: furniture.type,
+          x: furniture.x,
+          y: furniture.y,
+          width: furniture.width,
+          height: furniture.height,
+          rotation: furniture.rotation
+        })) || [];
+
+        // Keep the original structure but add the extracted data
+        updates.layout = {
+          ...updates.layout, // Keep original layout data
+          bedPositions: bedPositions,
+          furnitureLayout: furnitureLayout,
+          layoutType: updates.layout.theme?.name || 'standard'
+        };
+
+        console.log('🔄 Transformed layout for backend:', updates.layout);
+      }
+
+      // Use the NEW organized update endpoint
+      const response = await apiService.put(`/rooms/${id}/update`, updates);
+
+      console.log('✅ Room updated successfully via organized endpoint');
+      console.log('📥 Backend response:', response);
+
+      // Handle the new response structure
+      if (response.data) {
+        console.log('📊 Update results:', response.data.updateResults);
+        console.log('🏷️ Updated fields:', response.data.updatedFields);
+        return response.data.room; // Return the updated room object
+      }
+
+      return response; // Fallback for old response format
+    } catch (error) {
+      console.error('❌ Error updating room via organized endpoint:', error);
+      throw error;
+    }
+  },
+
+  // Legacy update room method (for backward compatibility)
+  async updateRoomLegacy(id: string, updates: any) {
+    try {
+      console.log(`🏠 Updating room ${id} via LEGACY API endpoint...`);
       console.log('📤 Update data:', updates);
 
       // Transform layout data to match backend expectations
@@ -277,12 +346,83 @@ export const roomsApiService = {
 
       const response = await apiService.put(`/rooms/${id}`, updates);
 
-      console.log('✅ Room updated successfully');
+      console.log('✅ Room updated successfully via legacy endpoint');
       console.log('📥 Backend response:', response);
 
       return response; // apiService already extracts the data
     } catch (error) {
-      console.error('❌ Error updating room:', error);
+      console.error('❌ Error updating room via legacy endpoint:', error);
+      throw error;
+    }
+  },
+
+  // NEW: Organized room update with detailed response
+  async updateRoomOrganized(id: string, updates: {
+    // Basic info updates
+    name?: string;
+    roomNumber?: string;
+    floor?: number;
+    gender?: string;
+    description?: string;
+    images?: string[];
+    capacity?: number;
+    
+    // Amenities updates
+    amenities?: string[];
+    
+    // Layout updates
+    layout?: any;
+    
+    // Pricing updates
+    rent?: number;
+    type?: string;
+    
+    // Status updates
+    status?: string;
+  }) {
+    try {
+      console.log(`🔄 Updating room ${id} with ORGANIZED endpoint...`);
+      console.log('📤 Organized update data:', updates);
+
+      // Transform layout data if provided
+      if (updates.layout) {
+        console.log('🎨 Layout update detected - Transforming data for organized backend');
+        
+        // Keep the layout as-is for the new organized endpoint
+        // The new controller handles the transformation internally
+        console.log('📤 Layout data for organized endpoint:', updates.layout);
+      }
+
+      // Use the NEW organized update endpoint
+      const response = await apiService.put(`/rooms/${id}/update`, updates);
+
+      console.log('✅ Room updated successfully via ORGANIZED endpoint');
+      console.log('📥 Organized response:', response);
+
+      // Handle the new organized response structure
+      if (response.data) {
+        const { room, updateResults, updatedFields } = response.data;
+        
+        console.log('📊 Detailed update results:');
+        console.log('  🏠 Room data updated:', !!room);
+        console.log('  📝 Basic info updated:', updateResults.basicInfo?.updated || false);
+        console.log('  🛠️ Amenities updated:', updateResults.amenities?.updated || false);
+        console.log('  📐 Layout updated:', updateResults.layout?.updated || false);
+        console.log('  💰 Pricing updated:', updateResults.pricing?.updated || false);
+        console.log('  📊 Status updated:', updateResults.status?.updated || false);
+        console.log('  🏷️ Updated field categories:', updatedFields);
+
+        return {
+          room,
+          updateResults,
+          updatedFields,
+          success: true
+        };
+      }
+
+      return response;
+    } catch (error) {
+      console.error('❌ Error updating room via ORGANIZED endpoint:', error);
       throw error;
     }
   },
