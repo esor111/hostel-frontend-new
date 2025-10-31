@@ -659,7 +659,7 @@ const Landing = () => {
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-[#07A64F]/3 to-[#1295D0]/3 rounded-full animate-pulse delay-500 blur-3xl"></div>
           </div>
 
-          <div className="max-w-8xl mx-auto relative z-10">
+          <div className="max-w-8xl mx-auto relative z-50">
             <div className="text-center mb-12" data-animate id="hero">
               <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight tracking-tight transition-all duration-1000 ${isVisible['hero'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                 }`}>
@@ -678,7 +678,7 @@ const Landing = () => {
               <div className={`max-w-4xl mx-auto mb-10 transition-all duration-1000 delay-500 ${isVisible.hero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                 }`}>
                 <div className="flex gap-6">
-                  <div className="flex-1 relative group">
+                  <div className="flex-1 relative group z-50">
                     {hostelsLoading && searchQuery ? (
                       <div className="absolute left-5 top-1/2 transform -translate-y-1/2 animate-spin rounded-full h-6 w-6 border-b-2 border-[#1295D0]"></div>
                     ) : (
@@ -693,7 +693,7 @@ const Landing = () => {
                       disabled={hostelsLoading && searchQuery.length > 0}
                     />
                     {searchQuery && (
-                      <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl mt-3 shadow-2xl z-10">
+                      <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl mt-3 shadow-2xl z-50">
                         <div className="p-6">
                           <p className="text-sm text-gray-600 mb-4 font-medium">
                             {hostelsLoading ? "Searching..." : "Search results:"}
