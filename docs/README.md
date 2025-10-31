@@ -88,3 +88,9 @@ When adding new documentation:
 
 ## Contact
 For questions about this documentation or the project, refer to the main project README or contact the development team.
+
+
+
+now i want to build the frontend in the the new page tab in teh admin section how can we do that 
+
+to make this more intutive user friendly i want you to review the frontend and how can we make this really good one? i want to 
