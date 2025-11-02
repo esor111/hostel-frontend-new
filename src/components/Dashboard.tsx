@@ -81,7 +81,7 @@ const Dashboard: React.FC = () => {
   const monthlyRevenue = stats?.monthlyRevenue?.amount || stats?.totalRevenue || stats?.monthlyCollection || 0;
   const revenueDisplay = stats?.monthlyRevenue?.value || `NPR ${monthlyRevenue.toLocaleString()}`;
 
-  const pendingPayments = stats?.pendingPayments || studentStats?.totalDues || 0;
+  const outstandingDues = stats?.outstandingDues || studentStats?.totalDues || 0;
 
   // Loading state
   const isLoading = dashboardLoading || studentsLoading;
@@ -210,10 +210,10 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Pending Payments Card */}
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        {/* Outstanding Dues Card */}
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigateTo('/ledger')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
+            <CardTitle className="text-sm font-medium">Outstanding Dues</CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -225,15 +225,15 @@ const Dashboard: React.FC = () => {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  {typeof pendingPayments === 'number' && pendingPayments > 0
-                    ? `NPR ${pendingPayments.toLocaleString()}`
+                  {typeof outstandingDues === 'number' && outstandingDues > 0
+                    ? `NPR ${outstandingDues.toLocaleString()}`
                     : 'NPR 0'
                   }
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {typeof pendingPayments === 'number' && pendingPayments > 0
-                    ? `From ${students.filter(s => s.outstandingDues > 0).length} students`
-                    : 'No pending payments'
+                  {typeof outstandingDues === 'number' && outstandingDues > 0
+                    ? `Unpaid invoices`
+                    : 'All cleared'
                   }
                 </p>
               </>

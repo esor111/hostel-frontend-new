@@ -102,11 +102,12 @@ export const Dashboard = () => {
       onClick: goToBookings
     },
     {
-      title: "Pending Payments",
-      value: dashboardStats?.pendingPayments?.toString() ?? "0",
-      change: "No pending payments",
+      title: "Outstanding Dues",
+      value: `NPR ${(dashboardStats?.outstandingDues || 0).toLocaleString()}`,
+      change: (dashboardStats?.outstandingDues || 0) > 0 ? "Unpaid invoices" : "All cleared",
       icon: TrendingUp,
-      color: "text-purple-600"
+      color: "text-purple-600",
+      onClick: () => goToLedger('invoices')
     }
   ];
 
