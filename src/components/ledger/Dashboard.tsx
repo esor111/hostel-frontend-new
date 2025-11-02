@@ -322,8 +322,8 @@ export const Dashboard = memo(() => {
                         size="sm"
                         className="bg-gradient-to-r from-[#07A64F] to-[#059669] hover:from-[#07A64F]/90 hover:to-[#059669]/90 text-white border-0 text-xs px-3 py-1 h-8"
                         onClick={() => {
-                          // Navigate to payment recording page with student pre-selected
-                          navigate(`/ledger?student=${encodeURIComponent(student.studentId)}&section=payments&amount=${student.outstandingDues}&type=outstanding`);
+                          // Navigate to payments page
+                          navigate('/ledger/payments');
                         }}
                       >
                         <CreditCard className="h-3 w-3 mr-1" />
@@ -334,8 +334,8 @@ export const Dashboard = memo(() => {
                         variant="outline"
                         className="border-[#1295D0]/30 text-[#1295D0] hover:bg-[#1295D0]/10 text-xs px-3 py-1 h-8"
                         onClick={() => {
-                          // Navigate to ledger page with student filter
-                          navigate(`/ledger?student=${encodeURIComponent(student.studentId)}&section=ledger`);
+                          // Navigate to students page
+                          navigate('/ledger/students');
                         }}
                       >
                         📋 Ledger
