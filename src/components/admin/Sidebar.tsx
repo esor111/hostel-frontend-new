@@ -7,7 +7,9 @@ import {
   BarChart3,
   Settings,
   BookOpen,
-  Bell
+  Bell,
+  Calculator,
+  CreditCard
 } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { KahaLogo } from "@/components/ui/KahaLogo";
@@ -28,6 +30,11 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarPr
     { id: "analytics", label: translations.analytics, icon: BarChart3 },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "profile", label: translations.hostelProfile, icon: Building2 },
+  ];
+
+  const billingMenuItems = [
+    { id: "monthly-billing", label: "Monthly Billing", icon: Calculator, path: "/admin/monthly-billing" },
+    { id: "configuration-billing", label: "Configuration Billing", icon: CreditCard, path: "/admin/configuration-billing" },
   ];
 
   const adminMenuItems = [];
@@ -142,6 +149,58 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarPr
             })}
           </div>
         )}
+
+        {/* Enhanced Billing Systems Section */}
+        <div className="border-t border-gray-200 pt-6 mt-6">
+          {!collapsed && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4">Billing Systems</p>
+            </div>
+          )}
+          {billingMenuItems.map((item, index) => {
+            const Icon = item.icon;
+            const billingGradients = [
+              'from-[#1295D0] to-[#1295D0]/80',
+              'from-[#07A64F] to-[#07A64F]/80'
+            ];
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => window.location.href = item.path}
+                className={`group w-full flex items-center rounded-xl text-left transition-all duration-300 mb-2 ${
+                  collapsed 
+                    ? 'justify-center p-3' 
+                    : 'gap-4 px-4 py-3'
+                } ${activeTab === item.id
+                    ? "bg-gradient-to-r from-blue-50 to-green-50 text-blue-700 border border-blue-200 shadow-md transform scale-105"
+                    : "text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-md hover:scale-102"
+                  }`}
+                title={collapsed ? item.label : undefined}
+              >
+                <div className={`p-2 rounded-lg transition-all duration-300 ${activeTab === item.id
+                    ? `bg-gradient-to-br ${billingGradients[index]} text-white shadow-lg`
+                    : `bg-gray-100 group-hover:bg-gradient-to-br group-hover:${billingGradients[index]} group-hover:text-white`
+                  }`}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                {!collapsed && (
+                  <>
+                    <div className="flex-1">
+                      <span className="font-semibold">{item.label}</span>
+                      {item.id === "configuration-billing" && (
+                        <p className="text-xs text-gray-500">New System</p>
+                      )}
+                    </div>
+                    {activeTab === item.id && (
+                      <div className="ml-auto w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    )}
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Enhanced Kaha Ledger Section - Simplified */}
         <div className="border-t border-gray-200 pt-6 mt-6">
