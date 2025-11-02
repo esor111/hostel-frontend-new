@@ -107,7 +107,7 @@ export const MainLayout = ({ children, activeTab }: MainLayoutProps) => {
                 navigate('/admin/charging');
                 break;
               case 'billing':
-                navigate('/admin/monthly-billing');
+                navigate('/admin/configuration-billing');
                 break;
               case 'settings':
                 navigate('/settings');

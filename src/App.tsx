@@ -27,7 +27,6 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 
 const DashboardTest = lazy(() => import("./pages/DashboardTest"));
 const BillingDashboard = lazy(() => import("./pages/BillingDashboard"));
-const MonthlyBilling = lazy(() => import("./pages/MonthlyBilling"));
 const ConfigurationBilling = lazy(() => import("./pages/ConfigurationBilling"));
 const Settings = lazy(() => import("./pages/Settings"));
 
@@ -261,16 +260,6 @@ const App = () => {
                         <AuthGuard>
                           <Suspense fallback={<LoadingFallback componentName="Billing Dashboard" />}>
                             <BillingDashboard />
-                          </Suspense>
-                        </AuthGuard>
-                      }
-                    />
-                    <Route
-                      path="/admin/monthly-billing"
-                      element={
-                        <AuthGuard>
-                          <Suspense fallback={<LoadingFallback componentName="Monthly Billing" />}>
-                            <MonthlyBilling />
                           </Suspense>
                         </AuthGuard>
                       }

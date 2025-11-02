@@ -533,11 +533,11 @@ export const Dashboard = () => {
                 onClick: () => goToLedger('students')
               },
               {
-                icon: DollarSign,
-                label: "Monthly Billing",
-                description: "Generate monthly bills",
+                icon: Calculator,
+                label: "Configuration Billing",
+                description: "Modern billing system",
                 color: "from-green-500 to-green-600",
-                onClick: () => window.location.href = '/admin/monthly-billing'
+                onClick: () => window.location.href = '/admin/configuration-billing'
               },
               {
                 icon: Calculator,

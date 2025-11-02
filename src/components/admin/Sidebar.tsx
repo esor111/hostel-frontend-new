@@ -33,7 +33,6 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarPr
   ];
 
   const billingMenuItems = [
-    { id: "monthly-billing", label: "Monthly Billing", icon: Calculator, path: "/admin/monthly-billing" },
     { id: "configuration-billing", label: "Configuration Billing", icon: CreditCard, path: "/admin/configuration-billing" },
   ];
 

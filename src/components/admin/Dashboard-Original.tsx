@@ -465,10 +465,10 @@ export const Dashboard = () => {
               },
               {
                 icon: DollarSign,
-                label: "Monthly Billing",
-                description: "Generate monthly bills",
+                label: "Configuration Billing",
+                description: "Modern billing system",
                 color: "from-green-500 to-green-600",
-                onClick: () => window.location.href = '/admin/monthly-billing'
+                onClick: () => window.location.href = '/admin/configuration-billing'
               },
               {
                 icon: Zap,
