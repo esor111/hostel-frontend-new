@@ -38,8 +38,52 @@ export interface ConfigurationBillingStats {
   studentsWithRefunds: number;
 }
 
+export interface TimelineEvent {
+  id: string;
+  date: string;
+  type: 'CONFIGURATION' | 'INVOICE_GENERATED' | 'PAYMENT_RECEIVED' | 'CHECKOUT' | 'UPCOMING_BILLING';
+  status: 'PAST' | 'TODAY' | 'UPCOMING';
+  title: string;
+  description: string;
+  amount?: number;
+  studentName?: string;
+  metadata?: any;
+}
+
+export interface BillingTimeline {
+  past: TimelineEvent[];
+  today: TimelineEvent[];
+  upcoming: TimelineEvent[];
+  summary: {
+    totalEvents: number;
+    pastEventsCount: number;
+    upcomingEventsCount: number;
+    nextBillingDate: string | null;
+  };
+}
+
 export class ConfigurationBillingApiService {
   private apiService = apiService;
+
+  /**
+   * Get billing timeline
+   */
+  async getBillingTimeline(): Promise<BillingTimeline> {
+    console.log('📅 Getting billing timeline');
+    
+    try {
+      const result = await this.apiService.get<any>('/students/billing-timeline');
+      
+      // Handle backend response format
+      if (result.data) {
+        return result.data;
+      }
+      return result;
+    } catch (error) {
+      console.error('Error getting billing timeline:', error);
+      throw error;
+    }
+  }
 
   /**
    * Get checkout preview for a student

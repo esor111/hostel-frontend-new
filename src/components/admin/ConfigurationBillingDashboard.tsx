@@ -23,6 +23,7 @@ export const ConfigurationBillingDashboard = () => {
   const { toast } = useToast();
   const [stats, setStats] = useState<ConfigurationBillingStats | null>(null);
   const [studentsReadyForCheckout, setStudentsReadyForCheckout] = useState<any[]>([]);
+  const [timeline, setTimeline] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,18 +39,21 @@ export const ConfigurationBillingDashboard = () => {
 
       console.log('📊 Loading configuration billing dashboard data...');
 
-      // Load stats and students in parallel
-      const [billingStats, checkoutStudents] = await Promise.all([
+      // Load stats, students, and timeline in parallel
+      const [billingStats, checkoutStudents, billingTimeline] = await Promise.all([
         configurationBillingApiService.getConfigurationBillingStats(),
-        configurationBillingApiService.getStudentsReadyForCheckout()
+        configurationBillingApiService.getStudentsReadyForCheckout(),
+        configurationBillingApiService.getBillingTimeline()
       ]);
 
       setStats(billingStats);
       setStudentsReadyForCheckout(checkoutStudents);
+      setTimeline(billingTimeline);
 
       console.log('✅ Dashboard data loaded:', {
         stats: billingStats,
-        studentsCount: checkoutStudents.length
+        studentsCount: checkoutStudents.length,
+        timeline: billingTimeline
       });
 
     } catch (error) {
@@ -247,50 +251,101 @@ export const ConfigurationBillingDashboard = () => {
         </div>
       )}
 
-      {/* Configuration Billing Features */}
+      {/* Billing Timeline */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Key Features */}
+        {/* Timeline View */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-[#07A64F]" />
-              Configuration-Based Features
+              <Calendar className="h-5 w-5 text-[#1295D0]" />
+              Billing Timeline
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <div>
-                  <div className="font-medium text-blue-800">Configuration-Based Periods</div>
-                  <div className="text-sm text-blue-600">Billing cycles based on student configuration date (Jan 2 → Feb 2)</div>
-                </div>
-              </div>
+            {timeline ? (
+              <div className="space-y-4">
+                {/* Upcoming Events */}
+                {timeline.upcoming && timeline.upcoming.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Upcoming</div>
+                    <div className="space-y-2">
+                      {timeline.upcoming.map((event: any) => (
+                        <div key={event.id} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="mt-1">
+                            <div className="w-3 h-3 rounded-full border-2 border-blue-500 bg-white"></div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-blue-900">{event.title}</div>
+                            <div className="text-sm text-blue-700">{event.description}</div>
+                            <div className="text-xs text-blue-600 mt-1">
+                              {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                <CreditCard className="h-5 w-5 text-green-600" />
-                <div>
-                  <div className="font-medium text-green-800">Advance as Credit Balance</div>
-                  <div className="text-sm text-green-600">Advance payments stored as credit, used only at checkout</div>
-                </div>
-              </div>
+                {/* Today Events */}
+                {timeline.today && timeline.today.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Today</div>
+                    <div className="space-y-2">
+                      {timeline.today.map((event: any) => (
+                        <div key={event.id} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <div className="mt-1">
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-green-900">{event.title}</div>
+                            <div className="text-sm text-green-700">{event.description}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                <Calculator className="h-5 w-5 text-purple-600" />
-                <div>
-                  <div className="font-medium text-purple-800">Checkout Settlement</div>
-                  <div className="text-sm text-purple-600">Automatic settlement calculation: Total dues - Advance credit</div>
-                </div>
-              </div>
+                {/* Past Events */}
+                {timeline.past && timeline.past.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Recent Activity</div>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {timeline.past.map((event: any) => (
+                        <div key={event.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                          <div className="mt-1">
+                            <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 text-sm">{event.title}</div>
+                            <div className="text-xs text-gray-600">{event.description}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                <DollarSign className="h-5 w-5 text-orange-600" />
-                <div>
-                  <div className="font-medium text-orange-800">Immediate Billing</div>
-                  <div className="text-sm text-orange-600">Invoice generated instantly upon student configuration</div>
-                </div>
+                {/* Empty State */}
+                {(!timeline.past || timeline.past.length === 0) && 
+                 (!timeline.today || timeline.today.length === 0) && 
+                 (!timeline.upcoming || timeline.upcoming.length === 0) && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                    <p>No billing events yet</p>
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400 animate-pulse" />
+                <p>Loading timeline...</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
