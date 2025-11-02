@@ -277,6 +277,19 @@ export const ConfigurationBillingDashboard = () => {
                           <div className="flex-1">
                             <div className="font-medium text-blue-900">{event.title}</div>
                             <div className="text-sm text-blue-700">{event.description}</div>
+                            
+                            {/* Show student names if available */}
+                            {event.metadata?.students && event.metadata.students.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {event.metadata.students.map((student: any) => (
+                                  <div key={student.id} className="flex items-center gap-2 text-sm">
+                                    <span className="text-blue-600">→</span>
+                                    <span className="font-medium text-blue-800">{student.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
                             <div className="text-xs text-blue-600 mt-1">
                               {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </div>
