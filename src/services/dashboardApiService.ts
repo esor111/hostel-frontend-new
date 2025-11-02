@@ -86,7 +86,10 @@ export class DashboardApiService {
     
     const result = await this.apiService.get<DashboardStats>('/dashboard/stats');
     
-    console.log('📊 Dashboard stats result:', result);
+    console.log('📊 Dashboard stats result from API:', result);
+    console.log('💰 outstandingDues in result:', result?.outstandingDues);
+    console.log('📦 Full result object:', JSON.stringify(result, null, 2));
+    
     return result;
   }
 
