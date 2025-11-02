@@ -14,7 +14,7 @@ export interface DashboardStats {
     value: string;
     amount: number;
   };
-  pendingPayments: number;
+  outstandingDues: number;
   occupancyPercentage: number;
   attendanceCounters?: {
     checkIn: number;

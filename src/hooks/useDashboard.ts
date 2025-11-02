@@ -73,6 +73,9 @@ export const useDashboard = (options: UseDashboardOptions = {}) => {
     try {
       const stats = await dashboardApiService.getDashboardStats();
       
+      console.log('📊 Dashboard stats received:', stats);
+      console.log('💰 Outstanding Dues from API:', stats?.outstandingDues);
+      
       setState(prev => ({
         ...prev,
         stats,
