@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Settings, 
@@ -13,9 +12,7 @@ import {
   CheckCircle,
   AlertCircle,
   CreditCard,
-  Calculator,
-  Eye,
-  LogOut
+  Calculator
 } from 'lucide-react';
 import { configurationBillingApiService, ConfigurationBillingStats } from '@/services/configurationBillingApiService';
 import Pagination from '@/components/ui/pagination';
@@ -23,7 +20,6 @@ import Pagination from '@/components/ui/pagination';
 export const ConfigurationBillingDashboard = () => {
   const { toast } = useToast();
   const [stats, setStats] = useState<ConfigurationBillingStats | null>(null);
-  const [studentsReadyForCheckout, setStudentsReadyForCheckout] = useState<any[]>([]);
   const [timeline, setTimeline] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,15 +53,13 @@ export const ConfigurationBillingDashboard = () => {
 
       console.log('📊 Loading configuration billing dashboard data...');
 
-      // Load stats, students, and timeline in parallel
-      const [billingStats, checkoutStudents, billingTimeline] = await Promise.all([
+      // Load stats and timeline in parallel
+      const [billingStats, billingTimeline] = await Promise.all([
         configurationBillingApiService.getConfigurationBillingStats(),
-        configurationBillingApiService.getStudentsReadyForCheckout(),
         configurationBillingApiService.getBillingTimeline(timelinePage, timelineLimit)
       ]);
 
       setStats(billingStats);
-      setStudentsReadyForCheckout(checkoutStudents);
       setTimeline(billingTimeline);
       
       // Set pagination info if available
@@ -75,7 +69,6 @@ export const ConfigurationBillingDashboard = () => {
 
       console.log('✅ Dashboard data loaded:', {
         stats: billingStats,
-        studentsCount: checkoutStudents.length,
         timeline: billingTimeline
       });
 
@@ -93,54 +86,6 @@ export const ConfigurationBillingDashboard = () => {
     }
   };
 
-  const handleViewCheckoutPreview = async (studentId: string, studentName: string) => {
-    try {
-      console.log('👁️ Viewing checkout preview for:', studentName);
-      
-      const preview = await configurationBillingApiService.getCheckoutPreview(studentId);
-      
-      toast({
-        title: 'Checkout Preview',
-        description: `${studentName}: ${preview.summary}`,
-      });
-
-      console.log('📋 Checkout preview:', preview);
-      
-    } catch (error) {
-      console.error('Error getting checkout preview:', error);
-      toast({
-        title: 'Preview Error',
-        description: `Failed to get checkout preview for ${studentName}`,
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const handleProcessCheckout = async (studentId: string, studentName: string) => {
-    try {
-      console.log('🚪 Processing checkout for:', studentName);
-      
-      const result = await configurationBillingApiService.processCheckout(studentId);
-      
-      toast({
-        title: 'Checkout Processed',
-        description: `${studentName} has been successfully checked out.`,
-      });
-
-      console.log('✅ Checkout result:', result);
-      
-      // Refresh dashboard data
-      await loadDashboardData();
-      
-    } catch (error) {
-      console.error('Error processing checkout:', error);
-      toast({
-        title: 'Checkout Error',
-        description: `Failed to process checkout for ${studentName}`,
-        variant: 'destructive'
-      });
-    }
-  };
 
   if (loading) {
     return (
@@ -436,100 +381,6 @@ export const ConfigurationBillingDashboard = () => {
         </Card>
       </div>
 
-      {/* Students Ready for Checkout */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LogOut className="h-5 w-5 text-[#1295D0]" />
-            Students Ready for Configuration-Based Checkout
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {studentsReadyForCheckout.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-700 font-medium">No students ready for checkout</p>
-              <p className="text-sm text-gray-500 mb-4">
-                Students with configuration-based billing will appear here when ready for checkout
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Room</TableHead>
-                    <TableHead className="text-right">Advance Balance</TableHead>
-                    <TableHead className="text-right">Current Balance</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {studentsReadyForCheckout.map((student) => (
-                    <TableRow key={student.id} className="hover:bg-gray-50">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-gradient-to-br from-[#07A64F] to-[#1295D0] rounded-full flex items-center justify-center text-white text-xs font-bold">
-                            {student.name.charAt(0)}
-                          </div>
-                          <div>
-                            <span className="font-medium">{student.name}</span>
-                            <div className="text-xs text-gray-500">{student.phone}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{student.roomNumber}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-[#07A64F]">
-                        NPR {(student.advanceBalance || 0).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-[#1295D0]">
-                        NPR {(student.currentBalance || 0).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          className={
-                            student.isConfigured 
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : "bg-gray-50 text-gray-700 border-gray-200"
-                          }
-                        >
-                          {student.isConfigured ? 'Configured' : 'Not Configured'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewCheckoutPreview(student.id, student.name)}
-                            className="text-[#1295D0] border-[#1295D0]/30 hover:bg-[#1295D0]/10"
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            Preview
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleProcessCheckout(student.id, student.name)}
-                            className="bg-[#07A64F] hover:bg-[#07A64F]/90 text-white"
-                          >
-                            <LogOut className="h-3 w-3 mr-1" />
-                            Checkout
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };
