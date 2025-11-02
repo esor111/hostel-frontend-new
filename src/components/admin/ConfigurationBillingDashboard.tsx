@@ -18,6 +18,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { configurationBillingApiService, ConfigurationBillingStats } from '@/services/configurationBillingApiService';
+import Pagination from '@/components/ui/pagination';
 
 export const ConfigurationBillingDashboard = () => {
   const { toast } = useToast();
@@ -26,11 +27,28 @@ export const ConfigurationBillingDashboard = () => {
   const [timeline, setTimeline] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination state for timeline
+  const [timelinePage, setTimelinePage] = useState(1);
+  const [timelineLimit] = useState(10);
+  const [timelinePagination, setTimelinePagination] = useState<any>(null);
 
   // Load dashboard data
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  // Reload timeline when page changes
+  useEffect(() => {
+    if (timelinePage > 1) {
+      loadDashboardData();
+    }
+  }, [timelinePage]);
+
+  // Handle timeline page change
+  const handleTimelinePageChange = (page: number) => {
+    setTimelinePage(page);
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -43,12 +61,17 @@ export const ConfigurationBillingDashboard = () => {
       const [billingStats, checkoutStudents, billingTimeline] = await Promise.all([
         configurationBillingApiService.getConfigurationBillingStats(),
         configurationBillingApiService.getStudentsReadyForCheckout(),
-        configurationBillingApiService.getBillingTimeline()
+        configurationBillingApiService.getBillingTimeline(timelinePage, timelineLimit)
       ]);
 
       setStats(billingStats);
       setStudentsReadyForCheckout(checkoutStudents);
       setTimeline(billingTimeline);
+      
+      // Set pagination info if available
+      if (billingTimeline?.pagination) {
+        setTimelinePagination(billingTimeline.pagination);
+      }
 
       console.log('✅ Dashboard data loaded:', {
         stats: billingStats,
@@ -350,6 +373,19 @@ export const ConfigurationBillingDashboard = () => {
                   <div className="text-center py-8 text-gray-500">
                     <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                     <p>No billing events yet</p>
+                  </div>
+                )}
+
+                {/* Pagination Controls */}
+                {timelinePagination && timelinePagination.totalPages > 1 && (
+                  <div className="flex justify-center pt-4 mt-4 border-t border-gray-200">
+                    <Pagination
+                      currentPage={timelinePagination.page}
+                      totalPages={timelinePagination.totalPages}
+                      onPageChange={handleTimelinePageChange}
+                      hasNext={timelinePagination.hasNext}
+                      hasPrev={timelinePagination.hasPrev}
+                    />
                   </div>
                 )}
               </div>

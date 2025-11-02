@@ -60,19 +60,27 @@ export interface BillingTimeline {
     upcomingEventsCount: number;
     nextBillingDate: string | null;
   };
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
 export class ConfigurationBillingApiService {
   private apiService = apiService;
 
   /**
-   * Get billing timeline
+   * Get billing timeline with pagination
    */
-  async getBillingTimeline(): Promise<BillingTimeline> {
-    console.log('📅 Getting billing timeline');
+  async getBillingTimeline(page: number = 1, limit: number = 10): Promise<BillingTimeline> {
+    console.log(`📅 Getting billing timeline (page ${page}, limit ${limit})`);
     
     try {
-      const result = await this.apiService.get<any>('/students/billing-timeline');
+      const result = await this.apiService.get<any>(`/students/billing-timeline?page=${page}&limit=${limit}`);
       
       // Handle backend response format
       if (result.data) {
