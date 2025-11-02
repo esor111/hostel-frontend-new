@@ -104,8 +104,7 @@ export const Dashboard = () => {
   // Use ONLY API data - no AppContext fallbacks
   const totalStudents = dashboardStats?.totalStudents || 0;
   const activeStudents = dashboardStats?.totalStudents || 0;
-  const pendingBookings = dashboardStats?.pendingPayments || 0;
-  const totalDues = 0; // Will be calculated from API
+  const outstandingDues = dashboardStats?.outstandingDues || 0;
   const monthlyRevenue = dashboardStats?.monthlyRevenue?.amount || 0;
   const occupancyRate = dashboardStats?.occupancyPercentage?.toString() || "0";
   const availableRooms = dashboardStats?.availableRooms || 0;
@@ -136,11 +135,12 @@ export const Dashboard = () => {
       onClick: goToBookings
     },
     {
-      title: "Pending Payments",
-      value: dashboardStats?.pendingPayments?.toString() ?? "0",
-      change: "No pending payments",
+      title: "Outstanding Dues",
+      value: `NPR ${outstandingDues.toLocaleString()}`,
+      change: outstandingDues > 0 ? "Unpaid invoices" : "All cleared",
       icon: TrendingUp,
-      color: "text-purple-600"
+      color: "text-purple-600",
+      onClick: () => goToLedger('invoices')
     }
   ];
 
