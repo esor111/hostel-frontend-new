@@ -17,6 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useStudents } from '../../hooks/useStudents';
 import { Student } from '../../types/api';
 import { EnhancedStudent } from '../../services/enhancedStudentService';
+import { useNavigate } from 'react-router-dom';
 
 interface Room {
   id: string;
@@ -723,6 +724,9 @@ export const StudentManagement = () => {
     setShowChargeConfigDialog(true);
   };
 
+  // Navigation hook
+  const navigate = useNavigate();
+
   // Complete charge configuration
   const completeChargeConfiguration = async (studentId: string, chargeData: any) => {
     try {
@@ -733,11 +737,8 @@ export const StudentManagement = () => {
       setShowChargeConfigDialog(false);
       setSelectedStudent(null);
 
-      // Switch to student list tab to show the configured student
-      setActiveTab("students");
-
-      // Reset to first page to ensure the newly configured student is visible
-      setCurrentPage(1);
+      // Redirect to students page
+      navigate('/ledger/students');
 
     } catch (error) {
       console.error('Error in charge configuration:', error);

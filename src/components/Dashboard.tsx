@@ -406,7 +406,7 @@ const Dashboard: React.FC = () => {
             <Button
               variant="outline"
               className="w-full justify-start"
-              onClick={() => navigateTo('/ledger?section=payments')}
+              onClick={() => navigateTo('/ledger/payments')}
             >
               <CreditCard className="h-4 w-4 mr-2" />
               Record Payment
@@ -414,7 +414,7 @@ const Dashboard: React.FC = () => {
             <Button
               variant="outline"
               className="w-full justify-start"
-              onClick={() => navigateTo('/ledger?section=students')}
+              onClick={() => navigateTo('/ledger/students')}
             >
               <Search className="h-4 w-4 mr-2" />
               Search Students
