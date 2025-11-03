@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -212,28 +212,7 @@ const Landing = () => {
     }
   };
 
-  // Debounced search - search as user types with delay
-  const debouncedSearch = useCallback(
-    (() => {
-      let timeoutId: NodeJS.Timeout;
-      return (searchTerm: string) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(async () => {
-          if (searchTerm.trim()) {
-            await searchHostels(searchTerm.trim());
-          } else {
-            await refreshHostels();
-          }
-        }, 500); // 500ms delay
-      };
-    })(),
-    [searchHostels, refreshHostels]
-  );
-
-  // Trigger search when searchQuery changes
-  useEffect(() => {
-    debouncedSearch(searchQuery);
-  }, [searchQuery, debouncedSearch]);
+  // Removed auto-search on typing - search only happens when button is clicked
 
   const scrollToTop = () => {
     window.scrollTo({
@@ -678,54 +657,20 @@ const Landing = () => {
               <div className={`max-w-4xl mx-auto mb-10 transition-all duration-1000 delay-500 ${isVisible.hero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                 }`}>
                 <div className="flex gap-6">
-                  <div className="flex-1 relative group z-[100]">
+                  <div className="flex-1 relative group">
                     {hostelsLoading && searchQuery ? (
                       <div className="absolute left-5 top-1/2 transform -translate-y-1/2 animate-spin rounded-full h-6 w-6 border-b-2 border-[#1295D0]"></div>
                     ) : (
                       <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400 h-6 w-6 group-focus-within:text-[#1295D0] transition-colors duration-300" />
                     )}
                     <Input
-                      placeholder={hostelsLoading && searchQuery ? "Searching..." : "Search hostels using Kaha platform..."}
+                      placeholder={hostelsLoading ? "Searching..." : "Enter hostel name and click Search..."}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-14 py-6 text-xl border-2 border-gray-200/50 focus:border-[#1295D0] focus:ring-4 focus:ring-[#1295D0]/10 transition-all duration-300 hover:border-gray-300 rounded-2xl bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl font-medium"
                       onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                      disabled={hostelsLoading && searchQuery.length > 0}
+                      disabled={hostelsLoading}
                     />
-                    {searchQuery && (
-                      <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl mt-3 shadow-2xl z-[100]">
-                        <div className="p-6">
-                          <p className="text-sm text-gray-600 mb-4 font-medium">
-                            {hostelsLoading ? "Searching..." : "Search results:"}
-                          </p>
-                          {hostelsLoading ? (
-                            <div className="flex items-center gap-3 p-3">
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#1295D0]"></div>
-                              <span className="text-base text-gray-500">Searching hostels...</span>
-                            </div>
-                          ) : hostels.length > 0 ? (
-                            hostels.slice(0, 5).map((hostel) => (
-                              <div key={hostel.id} className="flex items-center gap-3 p-3 hover:bg-gray-50/80 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02]">
-                                <Building2 className="h-5 w-5 text-[#1295D0]" />
-                                <span className="text-base font-medium">{hostel.name} - {hostel.address}</span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="flex items-center gap-3 p-3">
-                              <Search className="h-5 w-5 text-gray-400" />
-                              <span className="text-base text-gray-500">No hostels found for "{searchQuery}"</span>
-                            </div>
-                          )}
-                          {hostels.length > 5 && (
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                              <p className="text-xs text-gray-500 text-center">
-                                Showing 5 of {hostels.length} results. Click Search to see all.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                   <Button
                     onClick={handleSearch}
@@ -742,7 +687,7 @@ const Landing = () => {
               </div>
 
               {/* Interactive Hostels Using Kaha Platform - Enhanced */}
-              <div className={`mb-10 transition-all duration-1000 delay-700 ${searchQuery ? 'pt-64' : 'pt-0'} ${isVisible.hero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+              <div className={`mb-10 transition-all duration-1000 delay-700 ${isVisible.hero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                 }`}>
                 <h3 className="text-2xl md:text-3xl font-bold text-center mb-4 text-gray-900 tracking-tight">Hostels Using Kaha Platform</h3>
                 <p className="text-base md:text-lg text-gray-600 text-center mb-8 max-w-2xl mx-auto font-light">
