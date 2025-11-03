@@ -67,13 +67,14 @@ export function SafeAppProvider({ children }: { children: ReactNode }) {
         });
       } else {
         // Fallback for development/testing when no business is selected
+        // Using a valid UUID format for database compatibility
         const profile = await hostelService.getHostelProfile();
         setHostelProfile({
-          id: 'dev-hostel-id',
+          id: '00000000-0000-0000-0000-000000000001',
           name: profile.hostelName,
           address: profile.address
         });
-        console.warn('⚠️ No business selected, using fallback hostel profile');
+        console.warn('⚠️ No business selected, using fallback hostel profile with UUID: 00000000-0000-0000-0000-000000000001');
       }
       
       // Mock data for now - replace with actual service calls later
