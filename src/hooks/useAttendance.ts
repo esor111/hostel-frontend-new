@@ -16,11 +16,37 @@ import type {
  */
 
 /**
- * Get current hostel ID from app context
+ * Get current hostel ID from localStorage (like roomsApiService) with fallback to app context
+ * This is a React hook, so it can use other hooks
  */
 const useHostelId = (): string | null => {
+  // Get context (must be called unconditionally due to hooks rules)
   const { state } = useAppContext();
-  return state.hostelProfile?.id || null;
+  
+  try {
+    // Primary: Get from localStorage (same approach as roomsApiService)
+    const selectedBusinessData = localStorage.getItem('kaha_selected_business');
+    if (selectedBusinessData) {
+      const selectedBusiness = JSON.parse(selectedBusinessData);
+      if (selectedBusiness?.id) {
+        console.log('🏨 Attendance: Using hostelId from localStorage:', selectedBusiness.id);
+        return selectedBusiness.id;
+      }
+    }
+    
+    // Fallback: Get from app context
+    const contextHostelId = state.hostelProfile?.id || null;
+    if (contextHostelId) {
+      console.log('🏨 Attendance: Using hostelId from context:', contextHostelId);
+      return contextHostelId;
+    }
+    
+    console.warn('⚠️ Attendance: No hostelId found in localStorage or context');
+    return null;
+  } catch (error) {
+    console.error('❌ Attendance: Failed to get hostelId:', error);
+    return null;
+  }
 };
 
 /**
