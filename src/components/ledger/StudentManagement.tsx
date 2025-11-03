@@ -18,6 +18,7 @@ import { useStudents } from '../../hooks/useStudents';
 import { Student } from '../../types/api';
 import { EnhancedStudent } from '../../services/enhancedStudentService';
 import { useNavigate } from 'react-router-dom';
+import { BedSwitchDialog } from '../dialogs/BedSwitchDialog';
 
 interface Room {
   id: string;
@@ -677,6 +678,10 @@ export const StudentManagement = () => {
   const [pendingCurrentPage, setPendingCurrentPage] = useState(1);
   const [pendingStudentsPerPage] = useState(4); // 4 pending students per page
 
+  // Bed Switch Dialog state
+  const [showBedSwitchDialog, setShowBedSwitchDialog] = useState(false);
+  const [selectedStudentForSwitch, setSelectedStudentForSwitch] = useState<EnhancedStudent | null>(null);
+
   // Separate students into pending configuration and configured
   // Primary filter: isConfigured = false (more reliable than status)
   const pendingStudents = students?.filter(student =>
@@ -744,6 +749,19 @@ export const StudentManagement = () => {
       console.error('Error in charge configuration:', error);
       toast.error('Failed to complete charge configuration. Please try again.');
     }
+  };
+
+  // Handle bed switch
+  const handleSwitchBed = (student: EnhancedStudent) => {
+    setSelectedStudentForSwitch(student);
+    setShowBedSwitchDialog(true);
+  };
+
+  // Handle bed switch success
+  const handleBedSwitchSuccess = () => {
+    refreshData(); // Reload student list
+    setShowBedSwitchDialog(false);
+    setSelectedStudentForSwitch(null);
   };
 
   // Handle student update
@@ -1130,8 +1148,18 @@ export const StudentManagement = () => {
                                   setShowDetailsDialog(true);
                                 }}
                                 className="h-7 px-2 text-xs"
+                                title="View Details"
                               >
                                 <User className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleSwitchBed(student)}
+                                className="h-7 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                                title="Switch Bed"
+                              >
+                                <Bed className="h-3 w-3" />
                               </Button>
                               <Button
                                 size="sm"
@@ -1157,6 +1185,7 @@ export const StudentManagement = () => {
                                   setShowEditDialog(true);
                                 }}
                                 className="h-7 px-2 text-xs text-[#07A64F] border-[#07A64F]/30 hover:bg-[#07A64F]/10"
+                                title="Edit Student"
                               >
                                 <Edit className="h-3 w-3" />
                               </Button>
@@ -1724,6 +1753,25 @@ export const StudentManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bed Switch Dialog */}
+      {showBedSwitchDialog && selectedStudentForSwitch && (
+        <BedSwitchDialog
+          student={{
+            id: selectedStudentForSwitch.id,
+            name: selectedStudentForSwitch.name,
+            roomNumber: selectedStudentForSwitch.roomNumber || 'Unknown',
+            bedNumber: selectedStudentForSwitch.bedNumber || 'Unknown',
+            currentRate: selectedStudentForSwitch.baseMonthlyFee || 0
+          }}
+          isOpen={showBedSwitchDialog}
+          onClose={() => {
+            setShowBedSwitchDialog(false);
+            setSelectedStudentForSwitch(null);
+          }}
+          onSuccess={handleBedSwitchSuccess}
+        />
+      )}
     </div>
   );
 };
