@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
+import { hostelService } from '@/services/hostelService';
 
 // Minimal interfaces for safe context
 interface SafeStudent {
@@ -11,8 +13,15 @@ interface SafeStudent {
   currentBalance: number;
 }
 
+interface SafeHostelProfile {
+  id: string;
+  name: string;
+  address?: string;
+}
+
 interface SafeAppState {
   students: SafeStudent[];
+  hostelProfile: SafeHostelProfile | null;
   loading: boolean;
   error: string | null;
 }
@@ -28,13 +37,17 @@ interface SafeAppContextType {
 const SafeAppContext = createContext<SafeAppContextType | undefined>(undefined);
 
 export function SafeAppProvider({ children }: { children: ReactNode }) {
+  const { selectedBusiness } = useAuth();
+  
   // Use individual useState hooks instead of useReducer to avoid the hook issue
   const [students, setStudents] = useState<SafeStudent[]>([]);
+  const [hostelProfile, setHostelProfile] = useState<SafeHostelProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const state: SafeAppState = {
     students,
+    hostelProfile,
     loading,
     error
   };
@@ -44,6 +57,25 @@ export function SafeAppProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
+      // Load hostel profile
+      if (selectedBusiness) {
+        const profile = await hostelService.getHostelProfile();
+        setHostelProfile({
+          id: selectedBusiness.id,
+          name: profile.hostelName || selectedBusiness.name,
+          address: profile.address || selectedBusiness.address
+        });
+      } else {
+        // Fallback for development/testing when no business is selected
+        const profile = await hostelService.getHostelProfile();
+        setHostelProfile({
+          id: 'dev-hostel-id',
+          name: profile.hostelName,
+          address: profile.address
+        });
+        console.warn('⚠️ No business selected, using fallback hostel profile');
+      }
+      
       // Mock data for now - replace with actual service calls later
       const mockStudents: SafeStudent[] = [
         {
@@ -81,7 +113,8 @@ export function SafeAppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBusiness]);
 
   const contextValue: SafeAppContextType = {
     state,
