@@ -678,7 +678,7 @@ const Landing = () => {
               <div className={`max-w-4xl mx-auto mb-10 transition-all duration-1000 delay-500 ${isVisible.hero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                 }`}>
                 <div className="flex gap-6">
-                  <div className="flex-1 relative group z-50">
+                  <div className="flex-1 relative group z-[100]">
                     {hostelsLoading && searchQuery ? (
                       <div className="absolute left-5 top-1/2 transform -translate-y-1/2 animate-spin rounded-full h-6 w-6 border-b-2 border-[#1295D0]"></div>
                     ) : (
@@ -693,7 +693,7 @@ const Landing = () => {
                       disabled={hostelsLoading && searchQuery.length > 0}
                     />
                     {searchQuery && (
-                      <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl mt-3 shadow-2xl z-50">
+                      <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl mt-3 shadow-2xl z-[100]">
                         <div className="p-6">
                           <p className="text-sm text-gray-600 mb-4 font-medium">
                             {hostelsLoading ? "Searching..." : "Search results:"}
@@ -742,7 +742,7 @@ const Landing = () => {
               </div>
 
               {/* Interactive Hostels Using Kaha Platform - Enhanced */}
-              <div className={`mb-10 transition-all duration-1000 delay-700 ${isVisible.hero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+              <div className={`mb-10 transition-all duration-1000 delay-700 ${searchQuery ? 'pt-64' : 'pt-0'} ${isVisible.hero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                 }`}>
                 <h3 className="text-2xl md:text-3xl font-bold text-center mb-4 text-gray-900 tracking-tight">Hostels Using Kaha Platform</h3>
                 <p className="text-base md:text-lg text-gray-600 text-center mb-8 max-w-2xl mx-auto font-light">
