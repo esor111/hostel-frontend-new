@@ -109,52 +109,6 @@ export class ConfigurationBillingApiService {
       return result;
     } catch (error) {
       console.error('Error getting checkout preview:', error);
-      
-      // If this is a demo student, return demo checkout data
-      if (studentId.startsWith('demo-student')) {
-        console.log('📋 Returning demo checkout preview for demo student');
-        
-        const demoData: CheckoutPreview = {
-          studentId: studentId,
-          studentName: studentId === 'demo-student-1' ? 'Rajesh Kumar' : 
-                      studentId === 'demo-student-2' ? 'Priya Sharma' : 'Amit Thapa',
-          configurationDate: '2024-01-02',
-          outstandingInvoices: [
-            {
-              id: 'inv-001',
-              periodLabel: 'Jan 2 - Feb 2, 2025',
-              amount: 24000,
-              dueDate: '2025-02-10'
-            },
-            {
-              id: 'inv-002', 
-              periodLabel: 'Feb 2 - Mar 2, 2025',
-              amount: 24000,
-              dueDate: '2025-03-10'
-            }
-          ],
-          totalDues: 48000,
-          advancePayments: [
-            {
-              id: 'pay-001',
-              amount: 50000,
-              date: '2024-12-15',
-              type: 'ADVANCE'
-            }
-          ],
-          totalAdvance: 50000,
-          finalAmount: studentId === 'demo-student-2' ? -2000 : 
-                      studentId === 'demo-student-3' ? 0 : 2000,
-          status: studentId === 'demo-student-2' ? 'REFUND_DUE' : 
-                 studentId === 'demo-student-3' ? 'SETTLED' : 'AMOUNT_DUE',
-          summary: studentId === 'demo-student-2' ? 'NPR 2,000 refund due to student' :
-                  studentId === 'demo-student-3' ? 'Account fully settled' : 
-                  'NPR 2,000 due from student'
-        };
-        
-        return demoData;
-      }
-      
       throw error;
     }
   }
@@ -238,37 +192,25 @@ export class ConfigurationBillingApiService {
         }
       }
 
-      // If we have real data, return it
-      if (totalConfiguredStudents > 0 || totalAdvanceBalance > 0 || totalOutstandingDues > 0) {
-        return {
-          totalConfiguredStudents,
-          totalAdvanceBalance,
-          totalOutstandingDues,
-          studentsWithDues,
-          studentsWithRefunds
-        };
-      }
-
-      // If no real data, return demo data for testing
-      console.log('📋 No real data found, returning demo data for testing');
+      // Return real data (including zeros if no students)
       return {
-        totalConfiguredStudents: 12,
-        totalAdvanceBalance: 180000, // NPR 180,000
-        totalOutstandingDues: 45000,  // NPR 45,000
-        studentsWithDues: 3,
-        studentsWithRefunds: 1
+        totalConfiguredStudents,
+        totalAdvanceBalance,
+        totalOutstandingDues,
+        studentsWithDues,
+        studentsWithRefunds
       };
 
     } catch (error) {
       console.error('Error getting configuration billing stats:', error);
       
-      // Return demo data on error (authentication issues, etc.)
-      console.log('📋 API error, returning demo data for testing');
+      // Return zeros on error instead of demo data
+      console.log('⚠️ API error, returning empty stats');
       return {
-        totalConfiguredStudents: 8,
-        totalAdvanceBalance: 120000, // NPR 120,000
-        totalOutstandingDues: 24000,  // NPR 24,000
-        studentsWithDues: 2,
+        totalConfiguredStudents: 0,
+        totalAdvanceBalance: 0,
+        totalOutstandingDues: 0,
+        studentsWithDues: 0,
         studentsWithRefunds: 0
       };
     }
@@ -296,67 +238,18 @@ export class ConfigurationBillingApiService {
           !student.isCheckedOut
         );
         
-        if (configuredStudents.length > 0) {
-          return configuredStudents;
-        }
+        return configuredStudents;
       }
       
-      // If no real data, return demo students for testing
-      console.log('📋 No configured students found, returning demo data for testing');
-      return [
-        {
-          id: 'demo-student-1',
-          name: 'Rajesh Kumar',
-          phone: '+977-9841234567',
-          roomNumber: 'R101',
-          advanceBalance: 50000,
-          currentBalance: 15000,
-          status: 'Active',
-          isConfigured: true,
-          isCheckedOut: false
-        },
-        {
-          id: 'demo-student-2', 
-          name: 'Priya Sharma',
-          phone: '+977-9841234568',
-          roomNumber: 'R205',
-          advanceBalance: 75000,
-          currentBalance: -5000, // Refund due
-          status: 'Active',
-          isConfigured: true,
-          isCheckedOut: false
-        },
-        {
-          id: 'demo-student-3',
-          name: 'Amit Thapa',
-          phone: '+977-9841234569', 
-          roomNumber: 'R103',
-          advanceBalance: 30000,
-          currentBalance: 0, // Settled
-          status: 'Active',
-          isConfigured: true,
-          isCheckedOut: false
-        }
-      ];
+      // Return empty array if no students data
+      return [];
       
     } catch (error) {
       console.error('Error getting students ready for checkout:', error);
       
-      // Return demo data on error
-      console.log('📋 API error, returning demo data for testing');
-      return [
-        {
-          id: 'demo-student-auth-1',
-          name: 'Demo Student (Auth Error)',
-          phone: '+977-9800000000',
-          roomNumber: 'R999',
-          advanceBalance: 25000,
-          currentBalance: 8000,
-          status: 'Active',
-          isConfigured: true,
-          isCheckedOut: false
-        }
-      ];
+      // Return empty array on error instead of demo data
+      console.log('⚠️ API error, returning empty student list');
+      return [];
     }
   }
 }
