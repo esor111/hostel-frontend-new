@@ -358,7 +358,6 @@ export const RoomCanvas = ({
             'Occupied': '#EF4444',  // Red
             'Reserved': '#F59E0B',  // Yellow/Orange
             'Maintenance': '#6B7280', // Gray
-            'Out_Of_Order': '#6B7280', // Gray
             // Legacy status mapping
             'available': '#10B981',
             'selected': '#3B82F6',
@@ -434,7 +433,6 @@ export const RoomCanvas = ({
               'Occupied': '#EF4444',  // Red
               'Reserved': '#F59E0B',  // Yellow/Orange
               'Maintenance': '#6B7280', // Gray
-              'Out_Of_Order': '#6B7280', // Gray
               // Legacy status mapping
               'available': '#10B981',
               'selected': '#3B82F6',
