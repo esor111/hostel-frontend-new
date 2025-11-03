@@ -425,7 +425,7 @@ export const RoomConfiguration = () => {
                         <div>
                           <div className="text-xs text-gray-600 mb-1">Monthly Rate</div>
                           <div className="text-2xl font-bold text-green-600">
-                            NPR {(room.rent || room.monthlyRate || room.baseRate || 0).toLocaleString()}
+                            NPR {(room.monthlyRate || room.rent || room.baseRate || 0).toLocaleString()}
                           </div>
                         </div>
                         <div className="text-right">
