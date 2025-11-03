@@ -34,9 +34,7 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarPr
     { id: "profile", label: translations.hostelProfile, icon: Building2 },
   ];
 
-  const billingMenuItems = [
-    { id: "configuration-billing", label: "Configuration Billing", icon: CreditCard, path: "/admin/configuration-billing" },
-  ];
+  const billingMenuItems = [];
 
   const adminMenuItems = [];
 
@@ -152,13 +150,14 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarPr
         )}
 
         {/* Enhanced Billing Systems Section */}
-        <div className="border-t border-gray-200 pt-6 mt-6">
-          {!collapsed && (
-            <div className="mb-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4">Billing Systems</p>
-            </div>
-          )}
-          {billingMenuItems.map((item, index) => {
+        {billingMenuItems.length > 0 && (
+          <div className="border-t border-gray-200 pt-6 mt-6">
+            {!collapsed && (
+              <div className="mb-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4">Billing Systems</p>
+              </div>
+            )}
+            {billingMenuItems.map((item, index) => {
             const Icon = item.icon;
             const billingGradients = [
               'from-[#1295D0] to-[#1295D0]/80',
@@ -201,7 +200,8 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarPr
               </button>
             );
           })}
-        </div>
+          </div>
+        )}
 
         {/* Enhanced Kaha Ledger Section - Simplified */}
         <div className="border-t border-gray-200 pt-6 mt-6">

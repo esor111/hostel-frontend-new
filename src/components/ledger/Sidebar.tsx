@@ -18,7 +18,15 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
   // Use external collapsed state if provided, otherwise use internal state
   const isCollapsed = collapsed !== undefined ? collapsed : internalCollapsed;
   const toggleCollapse = onToggleCollapse || (() => setInternalCollapsed(!internalCollapsed));
-  const menuItems = [
+  
+  const menuItems: Array<{
+    id: string;
+    label: string;
+    description: string;
+    icon: string;
+    gradient: string;
+    path?: string;
+  }> = [
     {
       id: "dashboard",
       label: "📊 Dashboard",
@@ -48,11 +56,12 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
       gradient: "from-[#07A64F] to-[#1295D0]"
     },
     {
-      id: "billing",
-      label: "⚡ Automated Billing",
-      description: "Monthly & Prorated Billing",
-      icon: "⚡",
-      gradient: "from-[#1295D0] to-[#8b5cf6]"
+      id: "configuration-billing",
+      label: "💳 Configuration Billing",
+      description: "New Billing System",
+      icon: "💳",
+      gradient: "from-[#1295D0] to-[#8b5cf6]",
+      path: "/admin/configuration-billing"
     },
     {
       id: "discounts",
@@ -171,7 +180,13 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
           return (
             <button
               key={item.id}
-              onClick={() => onTabChange(item.id)}
+              onClick={() => {
+                if (item.path) {
+                  window.location.href = item.path;
+                } else {
+                  onTabChange(item.id);
+                }
+              }}
               className={cn(
                 "group w-full text-left rounded-2xl transition-all duration-500 transform relative overflow-hidden",
                 isCollapsed 
