@@ -9,6 +9,7 @@ export const Analytics = () => {
   const {
     monthlyData,
     guestTypeData,
+    currentOccupancy,
     loading,
     error,
     refreshData
@@ -117,7 +118,7 @@ export const Analytics = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Current Occupancy Rate</p>
                 <p className="text-xs text-gray-500 mb-2">Percentage of beds currently occupied</p>
-                <p className="text-2xl font-bold text-gray-900">{currentMonth.occupancy || 0}%</p>
+                <p className="text-2xl font-bold text-gray-900">{currentOccupancy || 0}%</p>
               </div>
               <Users className="h-8 w-8 text-orange-600" />
             </div>

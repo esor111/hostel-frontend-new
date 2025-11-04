@@ -174,6 +174,27 @@ export class AnalyticsApiService {
   async getAllAnalytics(): Promise<DashboardAnalytics> {
     return this.getDashboardData();
   }
+
+  /**
+   * Get real-time dashboard stats including current occupancy
+   */
+  async getDashboardStats(): Promise<any> {
+    console.log('🔍 AnalyticsApiService.getDashboardStats called');
+    console.log('🔍 API endpoint:', API_ENDPOINTS.DASHBOARD.STATS);
+
+    const result = await this.apiService.get<any>(
+      API_ENDPOINTS.DASHBOARD.STATS
+    );
+    
+    console.log('🔍 Dashboard stats result:', result);
+    
+    // Handle backend API response structure
+    if (result.data) {
+      return result.data;
+    }
+    
+    return result;
+  }
 }
 
 // Export singleton instance

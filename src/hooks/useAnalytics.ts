@@ -24,6 +24,7 @@ export const useAnalytics = () => {
     occupancyGrowth: 0,
   });
   const [dashboardData, setDashboardData] = useState<DashboardAnalytics | null>(null);
+  const [currentOccupancy, setCurrentOccupancy] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +41,8 @@ export const useAnalytics = () => {
         monthlyResult,
         guestTypesResult,
         performanceResult,
-        collectionResult
+        collectionResult,
+        dashboardStatsResult
       ] = await Promise.all([
         analyticsApiService.getDashboardData().catch(err => {
           console.warn('Dashboard data failed:', err);
@@ -61,6 +63,10 @@ export const useAnalytics = () => {
         analyticsApiService.getCollectionStats().catch(err => {
           console.warn('Collection stats failed:', err);
           return { collectionRate: 0, totalCollected: 0, totalOutstanding: 0 };
+        }),
+        analyticsApiService.getDashboardStats().catch(err => {
+          console.warn('Dashboard stats failed:', err);
+          return null;
         })
       ]);
 
@@ -96,6 +102,12 @@ export const useAnalytics = () => {
       // No trends - set to zero
       setTrends({ revenueGrowth: 0, bookingGrowth: 0, occupancyGrowth: 0 });
 
+      // Set real-time occupancy from dashboard stats
+      if (dashboardStatsResult && dashboardStatsResult.occupancyPercentage !== undefined) {
+        setCurrentOccupancy(dashboardStatsResult.occupancyPercentage);
+        console.log('🔍 Real-time occupancy set:', dashboardStatsResult.occupancyPercentage);
+      }
+
     } catch (err) {
       console.error('Error loading analytics data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load analytics data');
@@ -121,6 +133,7 @@ export const useAnalytics = () => {
     collectionStats,
     trends,
     dashboardData,
+    currentOccupancy,
     
     // State
     loading,
