@@ -30,6 +30,7 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarPr
     { id: "rooms", label: translations.rooms, icon: Bed },
     { id: "analytics", label: translations.analytics, icon: BarChart3 },
     { id: "attendance", label: "Attendance", icon: UserCheck },
+    { id: "student-checkin", label: "Student Check-In", icon: UserCheck },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "profile", label: translations.hostelProfile, icon: Building2 },
   ];
