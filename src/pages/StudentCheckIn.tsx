@@ -48,15 +48,29 @@ export default function StudentCheckIn() {
 
   // Get token from localStorage
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('kaha_business_token') || localStorage.getItem('token');
     if (token) {
       const decoded = decodeToken(token);
       setTokenInfo(decoded);
       
-      // Get hostelId from context or localStorage
-      const storedHostelId = localStorage.getItem('hostelId');
-      if (storedHostelId) {
-        setHostelId(storedHostelId);
+      // Get hostelId from selected business (auth service stores it here)
+      const selectedBusinessData = localStorage.getItem('kaha_selected_business');
+      if (selectedBusinessData) {
+        try {
+          const selectedBusiness = JSON.parse(selectedBusinessData);
+          if (selectedBusiness?.id) {
+            setHostelId(selectedBusiness.id);
+            console.log('✅ Hostel ID loaded:', selectedBusiness.id);
+          }
+        } catch (e) {
+          console.error('Failed to parse selected business:', e);
+        }
+      }
+      
+      // Fallback: check if businessId is in the token
+      if (!hostelId && decoded?.businessId) {
+        setHostelId(decoded.businessId);
+        console.log('✅ Hostel ID from token:', decoded.businessId);
       }
     }
   }, []);
@@ -96,7 +110,7 @@ export default function StudentCheckIn() {
 
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('kaha_business_token') || localStorage.getItem('token');
       const response = await fetch('http://localhost:3001/hostel/api/v1/attendance/student/check-in', {
         method: 'POST',
         headers: {
@@ -149,7 +163,7 @@ export default function StudentCheckIn() {
 
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('kaha_business_token') || localStorage.getItem('token');
       const response = await fetch('http://localhost:3001/hostel/api/v1/attendance/student/check-out', {
         method: 'POST',
         headers: {
