@@ -20,8 +20,18 @@ apiClient.interceptors.request.use(
     // Get business token from localStorage (used for hostel API calls)
     const token = localStorage.getItem('kaha_business_token');
     
+    // Debug: Always log token status
+    console.log('🔑 [API Client] Token check:', {
+      hasToken: !!token,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'NO TOKEN',
+      url: config.url
+    });
+    
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('✅ [API Client] Authorization header set');
+    } else {
+      console.warn('⚠️ [API Client] No token found - request will be unauthenticated');
     }
 
     // Debug mode logging
