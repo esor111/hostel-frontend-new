@@ -39,6 +39,7 @@ export const PaymentRecording = () => {
   const [selectedStudent, setSelectedStudent] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMode, setPaymentMode] = useState<CreatePaymentDto['paymentMethod']>("Cash");
+  const [paymentType, setPaymentType] = useState<'REGULAR' | 'MONTHLY' | 'ADVANCE'>('MONTHLY');
   const [referenceId, setReferenceId] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -81,18 +82,23 @@ export const PaymentRecording = () => {
     advanceBalance: student.advanceBalance || 0
   }));
 
-  // Payment method options
+  // Payment method options (removed UPI and Card)
   const paymentModeOptions = [
     { value: "Cash" as const, label: "💵 Cash" },
     { value: "Bank Transfer" as const, label: "🏦 Bank Transfer" },
     { value: "Online" as const, label: "📱 Online Payment" },
-    { value: "UPI" as const, label: "📱 UPI" },
     { value: "Mobile Wallet" as const, label: "📱 Mobile Wallet" },
-    { value: "Cheque" as const, label: "📝 Cheque" },
-    { value: "Card" as const, label: "💳 Card" }
+    { value: "Cheque" as const, label: "📝 Cheque" }
   ];
 
-  const needsReference = ["Bank Transfer", "Online", "UPI", "Mobile Wallet", "Cheque"].includes(paymentMode);
+  // Payment type options
+  const paymentTypeOptions = [
+    { value: "REGULAR" as const, label: "💰 Regular Payment" },
+    { value: "MONTHLY" as const, label: "🏠 Monthly Rent" },
+    { value: "ADVANCE" as const, label: "⚡ Advance Payment" }
+  ];
+
+  const needsReference = ["Bank Transfer", "Online", "Mobile Wallet", "Cheque"].includes(paymentMode);
 
   const handlePaymentSubmit = async () => {
     // Enhanced validation
@@ -141,6 +147,7 @@ export const PaymentRecording = () => {
         studentId: selectedStudent.trim(),
         amount: amount,
         paymentMethod: paymentMode,
+        paymentType: paymentType,
         reference: referenceId?.trim() || undefined,
         notes: notes?.trim() || undefined,
         status: "Completed",
@@ -166,6 +173,7 @@ export const PaymentRecording = () => {
       setSelectedStudent("");
       setPaymentAmount("");
       setPaymentMode("Cash");
+      setPaymentType("MONTHLY");
       setReferenceId("");
       setNotes("");
 
@@ -549,20 +557,38 @@ export const PaymentRecording = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="mode" className="text-base font-semibold">Payment Method *</Label>
-                <Select value={paymentMode} onValueChange={(value) => setPaymentMode(value as CreatePaymentDto['paymentMethod'])}>
-                  <SelectTrigger className="h-12 text-base border-2">
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paymentModeOptions.map((mode) => (
-                      <SelectItem key={mode.value} value={mode.value} className="text-base">
-                        {mode.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="type" className="text-base font-semibold">Payment Type *</Label>
+                  <Select value={paymentType} onValueChange={(value) => setPaymentType(value as 'REGULAR' | 'MONTHLY' | 'ADVANCE')}>
+                    <SelectTrigger className="h-12 text-base border-2">
+                      <SelectValue placeholder="Select payment type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentTypeOptions.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="text-base">
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mode" className="text-base font-semibold">Payment Method *</Label>
+                  <Select value={paymentMode} onValueChange={(value) => setPaymentMode(value as CreatePaymentDto['paymentMethod'])}>
+                    <SelectTrigger className="h-12 text-base border-2">
+                      <SelectValue placeholder="Select payment method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentModeOptions.map((mode) => (
+                        <SelectItem key={mode.value} value={mode.value} className="text-base">
+                          {mode.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {needsReference && (
@@ -571,7 +597,6 @@ export const PaymentRecording = () => {
                     Reference ID *
                     <span className="text-sm text-gray-500 ml-2 font-normal">
                       {paymentMode === "Online" && "(Transaction ID)"}
-                      {paymentMode === "UPI" && "(UPI ID)"}
                       {paymentMode === "Bank Transfer" && "(Bank Reference)"}
                       {paymentMode === "Mobile Wallet" && "(Wallet ID)"}
                       {paymentMode === "Cheque" && "(Cheque Number)"}
