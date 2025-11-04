@@ -106,6 +106,9 @@ export const MainLayout = ({ children, activeTab }: MainLayoutProps) => {
               case 'student-checkin':
                 navigate('/student-checkin');
                 break;
+              case 'meal-plans':
+                navigate('/meal-plans');
+                break;
               case 'notifications':
                 navigate('/notifications');
                 break;

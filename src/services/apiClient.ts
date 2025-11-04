@@ -3,5 +3,8 @@
  * This file exists to support services that import from './apiClient'
  */
 
-export { apiClient, API_BASE_URL } from '../lib/api-client';
-export default apiClient;
+import { apiClient as client, API_BASE_URL as baseUrl } from '../lib/api-client';
+
+export { client as apiClient, baseUrl as API_BASE_URL };
+export default client;
+

@@ -17,8 +17,8 @@ export const apiClient: AxiosInstance = axios.create({
 // Request interceptor - add auth token if available
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Get token from localStorage (adjust based on your auth implementation)
-    const token = localStorage.getItem('authToken');
+    // Get business token from localStorage (used for hostel API calls)
+    const token = localStorage.getItem('kaha_business_token');
     
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
