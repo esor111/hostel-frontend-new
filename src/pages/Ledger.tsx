@@ -18,7 +18,6 @@ const DiscountManagement = lazy(() => import("@/components/ledger/DiscountManage
 const BillingManagement = lazy(() => import("@/components/ledger/BillingManagement").then(module => ({ default: module.BillingManagement })));
 const AdminCharging = lazy(() => import("@/components/ledger/AdminCharging").then(module => ({ default: module.AdminCharging })));
 const StudentCheckoutManagement = lazy(() => import("@/components/ledger/StudentCheckoutManagement").then(module => ({ default: module.StudentCheckoutManagement })));
-const ApiTestComponent = lazy(() => import("@/components/debug/ApiTestComponent").then(module => ({ default: module.ApiTestComponent })));
 
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -115,12 +114,6 @@ const Ledger = () => {
         return (
           <Suspense fallback={<SectionLoader sectionName="Student Checkout" />}>
             <StudentCheckoutManagement />
-          </Suspense>
-        );
-      case "api-test":
-        return (
-          <Suspense fallback={<SectionLoader sectionName="API Test" />}>
-            <ApiTestComponent />
           </Suspense>
         );
       case "debug-admin":

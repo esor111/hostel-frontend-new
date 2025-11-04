@@ -10,7 +10,6 @@ import {
   BillingManagementRoute,
   AdminChargingRoute,
   StudentCheckoutRoute,
-  ApiTestRoute,
   SectionLoader
 } from "./routes";
 
@@ -111,18 +110,6 @@ export const LedgerRoutes = () => {
           <ErrorBoundary>
             <Suspense fallback={<SectionLoader sectionName="Student Checkout" />}>
               <StudentCheckoutRoute />
-            </Suspense>
-          </ErrorBoundary>
-        }
-      />
-
-      {/* API Test Route */}
-      <Route
-        path="api-test"
-        element={
-          <ErrorBoundary>
-            <Suspense fallback={<SectionLoader sectionName="API Test" />}>
-              <ApiTestRoute />
             </Suspense>
           </ErrorBoundary>
         }

@@ -42,8 +42,7 @@ export const LedgerLayout = () => {
       'billing': 'Automated Billing',
       'discounts': 'Discount Management',
       'admin-charging': 'Admin Charging',
-      'checkout': 'Student Checkout',
-      'api-test': 'API Test'
+      'checkout': 'Student Checkout'
     };
     return displayNames[tab] || tab.replace('-', ' ');
   };

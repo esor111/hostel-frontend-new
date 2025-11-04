@@ -65,12 +65,6 @@ export const LazyStudentCheckoutManagement = lazy(() =>
   }))
 );
 
-export const LazyApiTestComponent = lazy(() =>
-  import("@/components/debug/ApiTestComponent").then(module => ({
-    default: module.ApiTestComponent
-  }))
-);
-
 // Export lazy components directly - no wrapper functions to avoid re-creation
 export {
   LazyDashboard as DashboardRoute,
@@ -80,6 +74,5 @@ export {
   LazyDiscountManagement as DiscountManagementRoute,
   LazyBillingManagement as BillingManagementRoute,
   LazyAdminCharging as AdminChargingRoute,
-  LazyStudentCheckoutManagement as StudentCheckoutRoute,
-  LazyApiTestComponent as ApiTestRoute
+  LazyStudentCheckoutManagement as StudentCheckoutRoute
 };

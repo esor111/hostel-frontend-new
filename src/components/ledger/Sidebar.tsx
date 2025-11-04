@@ -83,13 +83,6 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false, onToggleCol
       description: "Complete Checkout Process",
       icon: "🚪",
       gradient: "from-[#8b5cf6] to-[#7c3aed]"
-    },
-    {
-      id: "api-test",
-      label: "🔍 API Test",
-      description: "Test Real Server Connection",
-      icon: "🔍",
-      gradient: "from-[#f59e0b] to-[#d97706]"
     }
   ];
 
