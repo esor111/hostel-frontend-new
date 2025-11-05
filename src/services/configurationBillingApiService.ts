@@ -177,10 +177,12 @@ export class ConfigurationBillingApiService {
           if (student.isConfigured) {
             totalConfiguredStudents++;
             
-            const advanceBalance = student.advanceBalance || 0;
+            // Use configurationAdvance to show initial advance from config
+            // This is the advance paid during student configuration
+            const configAdvance = student.configurationAdvance || 0;
             const currentBalance = student.currentBalance || 0;
             
-            totalAdvanceBalance += advanceBalance;
+            totalAdvanceBalance += configAdvance;
             
             if (currentBalance > 0) {
               totalOutstandingDues += currentBalance;

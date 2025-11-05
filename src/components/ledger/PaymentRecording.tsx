@@ -522,7 +522,7 @@ export const PaymentRecording = () => {
                           </div>
                         </SelectItem>
                       )) : (
-                        <SelectItem value="" disabled>
+                        <SelectItem value="no-students" disabled>
                           No students available
                         </SelectItem>
                       )}

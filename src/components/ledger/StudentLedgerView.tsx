@@ -432,7 +432,7 @@ export const StudentLedgerView = () => {
                   {getFormattedBalance(totalDebits)}
                 </div>
                 <div className="text-xs text-gray-500">
-                  📈 {Object.keys(filters).length > 0 ? 'Filtered' : 'Total'} Charges
+                  📈 {Object.keys(filters).length > 0 ? 'Filtered' : 'Total'} Invoiced
                 </div>
               </CardContent>
             </Card>
