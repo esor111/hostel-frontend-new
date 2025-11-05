@@ -10,9 +10,11 @@ import {
   Calendar,
   CheckCircle2,
   XCircle,
-  Loader2
+  Loader2,
+  LogIn
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { StudentLoginPopup } from '@/components/StudentLoginPopup';
 
 interface TokenPayload {
   id: string;
@@ -28,6 +30,11 @@ export default function StudentCheckIn() {
   const [duration, setDuration] = useState<string>('');
   const [tokenInfo, setTokenInfo] = useState<TokenPayload | null>(null);
   const [hostelId, setHostelId] = useState<string>('');
+  
+  // Login popup state
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [studentToken, setStudentToken] = useState<string | null>(null);
 
   // Decode JWT token
   const decodeToken = (token: string): TokenPayload | null => {
@@ -46,32 +53,53 @@ export default function StudentCheckIn() {
     }
   };
 
-  // Get token from localStorage
+  // Get token from localStorage and check authentication
   useEffect(() => {
-    const token = localStorage.getItem('kaha_business_token') || localStorage.getItem('token');
-    if (token) {
-      const decoded = decodeToken(token);
-      setTokenInfo(decoded);
+    // Priority 1: Check for student token
+    let token = localStorage.getItem('kaha_student_token');
+    let storedHostelId = localStorage.getItem('kaha_student_hostel_id');
+    
+    // Priority 2: Fallback to business token (for backwards compatibility)
+    if (!token) {
+      token = localStorage.getItem('kaha_business_token') || localStorage.getItem('token');
       
-      // Get hostelId from selected business (auth service stores it here)
+      // Get hostelId from selected business
       const selectedBusinessData = localStorage.getItem('kaha_selected_business');
       if (selectedBusinessData) {
         try {
           const selectedBusiness = JSON.parse(selectedBusinessData);
           if (selectedBusiness?.id) {
-            setHostelId(selectedBusiness.id);
-            console.log('✅ Hostel ID loaded:', selectedBusiness.id);
+            storedHostelId = selectedBusiness.id;
           }
         } catch (e) {
           console.error('Failed to parse selected business:', e);
         }
       }
-      
-      // Fallback: check if businessId is in the token
-      if (!hostelId && decoded?.businessId) {
-        setHostelId(decoded.businessId);
-        console.log('✅ Hostel ID from token:', decoded.businessId);
+    }
+    
+    if (token) {
+      const decoded = decodeToken(token);
+      if (decoded) {
+        setTokenInfo(decoded);
+        setStudentToken(token);
+        setIsLoggedIn(true);
+        
+        // Set hostelId
+        if (storedHostelId) {
+          setHostelId(storedHostelId);
+          console.log('✅ Hostel ID loaded:', storedHostelId);
+        } else if (decoded.businessId) {
+          setHostelId(decoded.businessId);
+          console.log('✅ Hostel ID from token:', decoded.businessId);
+        } else {
+          // No hostelId found - will need to configure
+          console.warn('⚠️ No hostelId found. Student may need to configure.');
+        }
       }
+    } else {
+      // No token found - show login popup
+      console.log('ℹ️ No token found. Showing login popup.');
+      setShowLoginPopup(true);
     }
   }, []);
 
@@ -108,13 +136,22 @@ export default function StudentCheckIn() {
       return;
     }
 
+    if (!studentToken) {
+      toast({
+        title: 'Error',
+        description: 'Not logged in. Please login first.',
+        variant: 'destructive',
+      });
+      setShowLoginPopup(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('kaha_business_token') || localStorage.getItem('token');
       const response = await fetch('http://localhost:3001/hostel/api/v1/attendance/student/check-in', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${studentToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -161,13 +198,22 @@ export default function StudentCheckIn() {
       return;
     }
 
+    if (!studentToken) {
+      toast({
+        title: 'Error',
+        description: 'Not logged in. Please login first.',
+        variant: 'destructive',
+      });
+      setShowLoginPopup(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('kaha_business_token') || localStorage.getItem('token');
       const response = await fetch('http://localhost:3001/hostel/api/v1/attendance/student/check-out', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${studentToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -203,20 +249,85 @@ export default function StudentCheckIn() {
     }
   };
 
+  // Handle successful login
+  const handleLoginSuccess = (token: string) => {
+    const decoded = decodeToken(token);
+    if (decoded) {
+      setTokenInfo(decoded);
+      setStudentToken(token);
+      setIsLoggedIn(true);
+      
+      // Try to get hostelId if not already set
+      if (!hostelId) {
+        const storedHostelId = localStorage.getItem('kaha_student_hostel_id');
+        if (storedHostelId) {
+          setHostelId(storedHostelId);
+        } else if (decoded.businessId) {
+          setHostelId(decoded.businessId);
+        }
+      }
+      
+      toast({
+        title: 'Login Successful!',
+        description: 'Welcome! You can now check in and check out.',
+      });
+    }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('kaha_student_token');
+    localStorage.removeItem('kaha_student_hostel_id');
+    setStudentToken(null);
+    setTokenInfo(null);
+    setIsLoggedIn(false);
+    setIsCheckedIn(false);
+    setCheckInTime(null);
+    setShowLoginPopup(true);
+    
+    toast({
+      title: 'Logged Out',
+      description: 'You have been logged out successfully.',
+    });
+  };
+
   return (
     <MainLayout activeTab="student-checkin">
       <div className="space-y-6 p-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg text-white">
-              <UserCheck className="h-6 w-6" />
-            </div>
-            Student Check-In/Out
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Quick check-in and check-out for students
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg text-white">
+                <UserCheck className="h-6 w-6" />
+              </div>
+              Student Check-In/Out
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Quick check-in and check-out for students
+            </p>
+          </div>
+          
+          {/* Login/Logout Button */}
+          {isLoggedIn ? (
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => setShowLoginPopup(true)}
+              className="flex items-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Login
+            </Button>
+          )}
         </div>
 
         {/* User Info Card */}
@@ -370,6 +481,14 @@ export default function StudentCheckIn() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Student Login Popup */}
+        <StudentLoginPopup
+          isOpen={showLoginPopup}
+          onClose={() => setShowLoginPopup(false)}
+          onSuccess={handleLoginSuccess}
+          hostelId={hostelId}
+        />
       </div>
     </MainLayout>
   );
