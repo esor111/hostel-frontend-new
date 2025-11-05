@@ -41,7 +41,8 @@ export const mealPlanApiService = {
   async getAllMealPlans(): Promise<MealPlan[]> {
     try {
       const response = await apiClient.get('/meal-plans');
-      return response.data.result || [];
+      // Backend returns { status, result: { items: [], total: number } }
+      return response.data.result?.items || [];
     } catch (error) {
       console.error('Error fetching meal plans:', error);
       throw error;
@@ -54,7 +55,8 @@ export const mealPlanApiService = {
   async getWeeklyMealPlan(): Promise<MealPlan[]> {
     try {
       const response = await apiClient.get('/meal-plans/weekly');
-      return response.data.result || [];
+      // Backend returns { status, result: { weeklyPlan: [], totalDaysPlanned: number } }
+      return response.data.result?.weeklyPlan || [];
     } catch (error) {
       console.error('Error fetching weekly meal plan:', error);
       throw error;
