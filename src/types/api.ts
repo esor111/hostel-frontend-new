@@ -42,9 +42,13 @@ export interface Student {
   baseMonthlyFee?: number;
   laundryFee?: number;
   foodFee?: number;
+  wifiFee?: number;              // WiFi/Utilities fee
+  maintenanceFee?: number;       // Maintenance fee
   emergencyContact?: string;
   currentBalance?: number;
   advanceBalance?: number;
+  configurationAdvance?: number; // Initial configuration advance
+  totalAdvance?: number;         // Total advance (config + regular)
   bookingRequestId?: string;
   updatedAt?: string;
   createdAt?: string;

@@ -1118,12 +1118,14 @@ export const StudentManagement = () => {
                           <TableCell className="py-3">
                             <div className="text-sm">
                               <div className="font-medium text-[#1295D0]">
-                                ₹{(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0)).toLocaleString()}
+                                ₹{(Number(student.baseMonthlyFee || 0) + Number(student.laundryFee || 0) + Number(student.foodFee || 0) + Number(student.wifiFee || 0) + Number(student.maintenanceFee || 0)).toLocaleString()}
                               </div>
                               <div className="text-xs text-gray-500">
                                 Base: ₹{Number(student.baseMonthlyFee || 0).toLocaleString()}
                                 {Number(student.laundryFee || 0) > 0 && ` + ₹${Number(student.laundryFee || 0).toLocaleString()}`}
                                 {Number(student.foodFee || 0) > 0 && ` + ₹${Number(student.foodFee || 0).toLocaleString()}`}
+                                {Number(student.wifiFee || 0) > 0 && ` + ₹${Number(student.wifiFee || 0).toLocaleString()}`}
+                                {Number(student.maintenanceFee || 0) > 0 && ` + ₹${Number(student.maintenanceFee || 0).toLocaleString()}`}
                               </div>
                             </div>
                           </TableCell>
@@ -1421,9 +1423,21 @@ export const StudentManagement = () => {
                           <span>₹{(selectedStudent.foodFee || 0).toLocaleString()}</span>
                         </div>
                       )}
+                      {(selectedStudent.wifiFee || 0) > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">WiFi Fee:</span>
+                          <span>₹{(selectedStudent.wifiFee || 0).toLocaleString()}</span>
+                        </div>
+                      )}
+                      {(selectedStudent.maintenanceFee || 0) > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Maintenance Fee:</span>
+                          <span>₹{(selectedStudent.maintenanceFee || 0).toLocaleString()}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between border-t pt-2">
                         <span className="font-medium">Total Monthly:</span>
-                        <span className="font-bold text-[#1295D0]">₹{(Number(selectedStudent.baseMonthlyFee || 0) + Number(selectedStudent.laundryFee || 0) + Number(selectedStudent.foodFee || 0)).toLocaleString()}</span>
+                        <span className="font-bold text-[#1295D0]">₹{(Number(selectedStudent.baseMonthlyFee || 0) + Number(selectedStudent.laundryFee || 0) + Number(selectedStudent.foodFee || 0) + Number(selectedStudent.wifiFee || 0) + Number(selectedStudent.maintenanceFee || 0)).toLocaleString()}</span>
                       </div>
                     </div>
 
