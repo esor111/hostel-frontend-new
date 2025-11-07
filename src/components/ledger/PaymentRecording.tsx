@@ -92,10 +92,10 @@ export const PaymentRecording = () => {
   ];
 
   // Payment type options
+  // ✅ REMOVED: ADVANCE - system-generated only during student configuration
   const paymentTypeOptions = [
     { value: "REGULAR" as const, label: "💰 Regular Payment" },
-    { value: "MONTHLY" as const, label: "🏠 Monthly Rent" },
-    { value: "ADVANCE" as const, label: "⚡ Advance Payment" }
+    { value: "MONTHLY" as const, label: "🏠 Monthly Rent" }
   ];
 
   const needsReference = ["Bank Transfer", "Online", "Mobile Wallet", "Cheque"].includes(paymentMode);

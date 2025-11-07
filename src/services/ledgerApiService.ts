@@ -33,6 +33,25 @@ export interface StudentBalance {
   totalEntries: number;
 }
 
+export interface StudentFinancialSummary {
+  studentId: string;
+  currentBalance: number;
+  totalInvoiced: number;
+  totalPayments: number;
+  balanceType: string;
+  initialAdvance: {
+    amount: number;
+    paymentDate: string | null;
+    paymentId: string | null;
+    status: string;
+    note: string;
+  };
+  amountDue: number;
+  advanceAvailable: number;
+  totalEntries: number;
+  lastUpdated: string;
+}
+
 export interface CreateAdjustmentDto {
   studentId: string;
   amount: number;
@@ -46,7 +65,7 @@ export interface ReverseEntryDto {
 }
 
 class LedgerApiService extends ApiService {
-  private readonly baseEndpoint = '/ledgers';
+  private readonly baseEndpoint = '/ledger-v2';
 
   /**
    * Get all ledger entries with optional filters and pagination
@@ -98,7 +117,7 @@ class LedgerApiService extends ApiService {
         throw new Error('Student ID is required');
       }
 
-      const response = await this.get(`${this.baseEndpoint}/student/${studentId}`);
+      const response = await this.get(`${this.baseEndpoint}/students/${studentId}`);
       
       // Handle different response formats
       if (response.data) {
@@ -125,7 +144,7 @@ class LedgerApiService extends ApiService {
         throw new Error('Student ID is required');
       }
 
-      const response = await this.get(`${this.baseEndpoint}/student/${studentId}/balance`);
+      const response = await this.get(`${this.baseEndpoint}/students/${studentId}/balance`);
       
       // Handle different response formats
       if (response.data) {
@@ -138,6 +157,31 @@ class LedgerApiService extends ApiService {
     } catch (error) {
       console.error(`Error fetching student balance for ${studentId}:`, error);
       throw new Error(`Failed to fetch student balance: ${error.message}`);
+    }
+  }
+
+  /**
+   * ✅ NEW: Get comprehensive financial summary including initial advance
+   */
+  async getStudentFinancialSummary(studentId: string): Promise<StudentFinancialSummary> {
+    try {
+      if (!studentId) {
+        throw new Error('Student ID is required');
+      }
+
+      const response = await this.get(`${this.baseEndpoint}/students/${studentId}/financial-summary`);
+      
+      // Handle different response formats
+      if (response.data) {
+        return response.data;
+      } else if (response.result) {
+        return response.result;
+      } else {
+        return response;
+      }
+    } catch (error) {
+      console.error(`Error fetching student financial summary for ${studentId}:`, error);
+      throw new Error(`Failed to fetch student financial summary: ${error.message}`);
     }
   }
 

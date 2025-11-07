@@ -94,3 +94,20 @@ For questions about this documentation or the project, refer to the main project
 now i want to build the frontend in the the new page tab in teh admin section how can we do that 
 
 to make this more intutive user friendly i want you to review the frontend and how can we make this really good one? i want to 
+
+
+analyze the whole codebase and figureout what are API we have where we need to intregrate the notification what are places/apis we use manula notificaiton and also the places wehre we use do the automatic notification also figureout who is sender and who is receiver
+
+
+clock in clock 
+time bound
+fixed times 
+
+checkout initallY
+DIGITAL BUSINESS INABILER
+
+WE ARE IN EXPREMENTATION PHASE
+
+PROMPT TAG --> FIGURE OUT WHAT CATEGORY IS THIS PROMPT
+
+time bound

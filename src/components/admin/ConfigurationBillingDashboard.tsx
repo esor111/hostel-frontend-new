@@ -219,167 +219,135 @@ export const ConfigurationBillingDashboard = () => {
         </div>
       )}
 
-      {/* Billing Timeline */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Timeline View */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-[#1295D0]" />
-              Billing Timeline
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {timeline ? (
-              <div className="space-y-4">
-                {/* Upcoming Events */}
-                {timeline.upcoming && timeline.upcoming.length > 0 && (
-                  <div>
-                    <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Upcoming</div>
-                    <div className="space-y-2">
-                      {timeline.upcoming.map((event: any) => (
-                        <div key={event.id} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="mt-1">
-                            <div className="w-3 h-3 rounded-full border-2 border-blue-500 bg-white"></div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium text-blue-900">{event.title}</div>
-                            <div className="text-sm text-blue-700">{event.description}</div>
-                            
-                            {/* Show student names if available */}
-                            {event.metadata?.students && event.metadata.students.length > 0 && (
-                              <div className="mt-2 space-y-1">
-                                {event.metadata.students.map((student: any) => (
-                                  <div key={student.id} className="flex items-center gap-2 text-sm">
-                                    <span className="text-blue-600">→</span>
-                                    <span className="font-medium text-blue-800">{student.name}</span>
+      {/* Billing Timeline - Full Width */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-[#1295D0]/5 to-[#07A64F]/5 border-b">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Calendar className="h-6 w-6 text-[#1295D0]" />
+            Upcoming Billing Events
+          </CardTitle>
+          <p className="text-sm text-gray-600 mt-1">Track upcoming billing periods and invoice generation schedules</p>
+        </CardHeader>
+        <CardContent className="p-6">
+          {timeline ? (
+            <div className="space-y-6">
+              {/* Upcoming Events - Grid Layout */}
+              {timeline.upcoming && timeline.upcoming.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {timeline.upcoming.map((event: any) => (
+                    <div 
+                      key={event.id} 
+                      className="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-300 hover:shadow-lg"
+                    >
+                      {/* Event Card */}
+                      <div className="p-5">
+                        {/* Date Badge */}
+                        <div className="flex items-center justify-between mb-3">
+                          <Badge className="bg-blue-500 text-white px-3 py-1">
+                            {new Date(event.date).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            })}
+                          </Badge>
+                          <div className="w-3 h-3 rounded-full border-2 border-blue-500 bg-white shadow-sm"></div>
+                        </div>
+
+                        {/* Event Title */}
+                        <h3 className="font-bold text-blue-900 text-lg mb-2 group-hover:text-blue-700 transition-colors">
+                          {event.title}
+                        </h3>
+
+                        {/* Event Description */}
+                        <p className="text-sm text-blue-700 mb-3">
+                          {event.description}
+                        </p>
+
+                        {/* Student List */}
+                        {event.metadata?.students && event.metadata.students.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-blue-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Users className="h-4 w-4 text-blue-600" />
+                              <span className="text-xs font-semibold text-blue-800 uppercase">
+                                Students ({event.metadata.students.length})
+                              </span>
+                            </div>
+                            <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                              {event.metadata.students.map((student: any, idx: number) => (
+                                <div 
+                                  key={student.id} 
+                                  className="flex items-center gap-2 text-sm bg-white/60 rounded-lg p-2 hover:bg-white transition-colors"
+                                >
+                                  <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">
+                                    {idx + 1}
                                   </div>
-                                ))}
-                              </div>
-                            )}
-                            
-                            <div className="text-xs text-blue-600 mt-1">
-                              {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  <span className="font-medium text-blue-900 truncate">
+                                    {student.name}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )}
+                      </div>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                /* Empty State */
+                <div className="text-center py-16">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-4">
+                    <Calendar className="h-10 w-10 text-gray-400" />
                   </div>
-                )}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Upcoming Events</h3>
+                  <p className="text-gray-600">There are no scheduled billing events at the moment</p>
+                </div>
+              )}
 
-                {/* Today Events */}
-                {timeline.today && timeline.today.length > 0 && (
-                  <div>
-                    <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Today</div>
-                    <div className="space-y-2">
-                      {timeline.today.map((event: any) => (
-                        <div key={event.id} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                          <div className="mt-1">
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium text-green-900">{event.title}</div>
-                            <div className="text-sm text-green-700">{event.description}</div>
-                          </div>
+              {/* Today's Events */}
+              {timeline.today && timeline.today.length > 0 && (
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></span>
+                    Today's Events
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {timeline.today.map((event: any) => (
+                      <div key={event.id} className="flex items-start gap-3 p-4 bg-green-50 rounded-xl border-2 border-green-200 hover:border-green-400 transition-all">
+                        <div className="mt-1">
+                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Past Events */}
-                {timeline.past && timeline.past.length > 0 && (
-                  <div>
-                    <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Recent Activity</div>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {timeline.past.map((event: any) => (
-                        <div key={event.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg">
-                          <div className="mt-1">
-                            <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900 text-sm">{event.title}</div>
-                            <div className="text-xs text-gray-600">{event.description}</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </div>
-                          </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-green-900 mb-1">{event.title}</div>
+                          <div className="text-sm text-green-700">{event.description}</div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Empty State */}
-                {(!timeline.past || timeline.past.length === 0) && 
-                 (!timeline.today || timeline.today.length === 0) && 
-                 (!timeline.upcoming || timeline.upcoming.length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                    <p>No billing events yet</p>
-                  </div>
-                )}
-
-                {/* Pagination Controls */}
-                {timelinePagination && timelinePagination.totalPages > 1 && (
-                  <div className="flex justify-center pt-4 mt-4 border-t border-gray-200">
-                    <Pagination
-                      currentPage={timelinePagination.page}
-                      totalPages={timelinePagination.totalPages}
-                      onPageChange={handleTimelinePageChange}
-                      hasNext={timelinePagination.hasNext}
-                      hasPrev={timelinePagination.hasPrev}
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400 animate-pulse" />
-                <p>Loading timeline...</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* System Status */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-[#1295D0]" />
-              System Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-800">Backend API Status</span>
-              </div>
-              <div className="text-sm text-green-700 space-y-1">
-                <p>✅ Checkout endpoints operational</p>
-                <p>✅ Settlement calculation working</p>
-                <p>✅ Advance balance tracking active</p>
-                <p>✅ Configuration-based billing ready</p>
-              </div>
+              {/* Pagination Controls */}
+              {timelinePagination && timelinePagination.totalPages > 1 && (
+                <div className="flex justify-center pt-6 mt-6 border-t border-gray-200">
+                  <Pagination
+                    currentPage={timelinePagination.page}
+                    totalPages={timelinePagination.totalPages}
+                    onPageChange={handleTimelinePageChange}
+                    hasNext={timelinePagination.hasNext}
+                    hasPrev={timelinePagination.hasPrev}
+                  />
+                </div>
+              )}
             </div>
-
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-2 mb-2">
-                <Settings className="h-5 w-5 text-blue-600" />
-                <span className="font-medium text-blue-800">Integration Status</span>
-              </div>
-              <div className="text-sm text-blue-700 space-y-1">
-                <p>🔗 API service integration complete</p>
-                <p>📊 Dashboard data loading functional</p>
-                <p>🎯 Error handling implemented</p>
-                <p>🔄 Real-time data refresh available</p>
-              </div>
+          ) : (
+            <div className="text-center py-16">
+              <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-400 animate-pulse" />
+              <p className="text-gray-600 font-medium">Loading timeline data...</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
     </div>
   );

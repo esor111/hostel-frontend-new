@@ -13,6 +13,7 @@ import { Student as ApiStudent, LedgerEntry } from "@/types/api";
 import { useLocation } from "react-router-dom";
 import { LedgerFilters, LedgerFilterOptions } from "@/components/ledger/LedgerFilters";
 import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { ledgerApiService } from "@/services/ledgerApiService";
 
 // LedgerEntry interface is now imported from @/types/api
 
@@ -40,6 +41,10 @@ export const StudentLedgerView = () => {
     getBalanceTypeColor,
     getEntryTypeIcon
   } = useLedger();
+
+  // ✅ NEW: State for financial summary (includes initial advance)
+  const [financialSummary, setFinancialSummary] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   
   const location = useLocation();
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -124,6 +129,20 @@ export const StudentLedgerView = () => {
     if (selectedStudent) {
       fetchStudentLedger(selectedStudent);
       fetchStudentBalance(selectedStudent);
+      
+      // ✅ NEW: Fetch financial summary (includes initial advance)
+      const fetchSummary = async () => {
+        try {
+          setSummaryLoading(true);
+          const summary = await ledgerApiService.getStudentFinancialSummary(selectedStudent);
+          setFinancialSummary(summary);
+        } catch (error) {
+          console.error('Error fetching financial summary:', error);
+        } finally {
+          setSummaryLoading(false);
+        }
+      };
+      fetchSummary();
     }
   }, [selectedStudent, fetchStudentLedger, fetchStudentBalance]);
 
@@ -457,6 +476,40 @@ export const StudentLedgerView = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* ✅ NEW: Initial Advance Card (Security Deposit) */}
+          {financialSummary?.initialAdvance?.amount > 0 && (
+            <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl">🔒</span>
+                      <h3 className="text-sm font-semibold text-blue-900">Initial Advance (Security Deposit)</h3>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-2xl font-bold text-blue-600">
+                        NPR {financialSummary.initialAdvance.amount.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        Paid on {new Date(financialSummary.initialAdvance.paymentDate).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </p>
+                      <p className="text-xs text-blue-600 font-medium mt-2">
+                        {financialSummary.initialAdvance.note}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                    Locked
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Compact Ledger Table */}
           <Card>

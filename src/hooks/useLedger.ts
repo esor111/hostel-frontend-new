@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ledgerApiService, LedgerFilters, StudentBalance, CreateAdjustmentDto, ReverseEntryDto } from '@/services/ledgerApiService';
+import { ledgerApiService, LedgerFilters, StudentBalance, StudentFinancialSummary, CreateAdjustmentDto, ReverseEntryDto } from '@/services/ledgerApiService';
 import { LedgerEntry } from '@/types/api';
 
 interface UseLedgerState {
