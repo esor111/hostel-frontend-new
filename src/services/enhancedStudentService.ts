@@ -69,15 +69,16 @@ export const enhancedStudentService = {
             gender: matchingGuest.gender,
             idProofType: matchingGuest.idProofType,
             idProofNumber: matchingGuest.idProofNumber,
-            // Override other fields if available in booking guest
+            // Override optional fields only if student doesn't have them
             guardianName: matchingGuest.guardianName || student.guardianName,
             guardianPhone: matchingGuest.guardianPhone || student.guardianPhone,
             course: matchingGuest.course || student.course,
             institution: matchingGuest.institution || student.institution,
             address: matchingGuest.address || student.address,
-            phone: matchingGuest.phone || student.phone,
-            email: matchingGuest.email || student.email,
             emergencyContact: matchingGuest.emergencyContact || student.emergencyContact,
+            // NEVER override core identity fields - always use student's real data
+            phone: student.phone,  // Don't use booking guest's generated phone
+            email: student.email,  // Don't use booking guest's generated email
           };
         }
 
