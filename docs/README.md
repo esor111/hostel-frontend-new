@@ -111,3 +111,71 @@ WE ARE IN EXPREMENTATION PHASE
 PROMPT TAG --> FIGURE OUT WHAT CATEGORY IS THIS PROMPT
 
 time bound
+
+
+
+lets do the booking request 
+{
+  "data": {
+    "contactPerson": {
+      "name": "John Doe",
+      "phone": "+9779876543210",
+      "email": "john.doe@example.com"
+    },
+    "guests": [
+      {
+        "bedId": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Alice Smith",
+        "age": 22,
+        "gender": "Female"
+      },
+      {
+        "bedId": "550e8400-e29b-41d4-a716-446655440001",
+        "name": "Bob Johnson",
+        "age": 24,
+        "gender": "Male"
+      }
+    ],
+    "checkInDate": "2024-02-01",
+    "duration": "6 months",
+    "notes": "Group booking for university students",
+    "emergencyContact": "+9779876543211",
+    "source": "mobile_app",
+    "hostelId": "hostel-123"
+  }
+}
+
+add a relateable name guest will one one each api
+for this use the macp server for bedid and the hostelid
+there alredy creatential 
+Curl
+
+curl -X 'POST' \
+  'https://dev.kaha.com.np/main/api/v3/auth/login' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "contactNumber": "9813870231",
+  "password": "ishwor19944"
+}'
+Request URL
+https://dev.kaha.com.np/main/api/v3/auth/login
+Server response
+Code	Details
+201	
+Response body
+Download
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFmYzcwZGIzLTZmNDMtNDg4Mi05MmZkLTQ3MTVmMjVmZmM5NSIsImthaGFJZCI6IlUtOEM2OTVFIiwiaWF0IjoxNzYyNzU0NDkyfQ.oK2JSOCKYHQNeYUljAR4aUXvloGQ3h5ZFB7RgbXawKo",
+  "role": "admin"
+}
+Response headers
+ access-control-allow-origin: ht
+ use this creaditnal hardcode and take an accesstoken and pass it into hearder
+
+
+ i want you to cehk the only recently first created hostel and take
+
+
+ iam going to test this functionality seprately so i will make sure it is working as expected
+

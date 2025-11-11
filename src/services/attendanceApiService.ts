@@ -25,13 +25,21 @@ export class AttendanceApiService {
 
   /**
    * Get current status - who's checked in right now
-   * GET /attendance/current-status?hostelId={hostelId}
+   * GET /attendance/current-status?page={page}&limit={limit}&search={search}
    */
-  async getCurrentStatus(hostelId: string): Promise<CurrentStatusResponse> {
+  async getCurrentStatus(
+    hostelId: string,
+    page: number = 1,
+    limit: number = 20,
+    search?: string
+  ): Promise<CurrentStatusResponse> {
     try {
+      const params: any = { hostelId, page, limit };
+      if (search) params.search = search;
+      
       const response = await apiService.get<CurrentStatusResponse>(
         '/attendance/current-status',
-        { hostelId }
+        params
       );
       return response;
     } catch (error) {
@@ -42,13 +50,22 @@ export class AttendanceApiService {
 
   /**
    * Get daily attendance report
-   * GET /attendance/reports/daily?hostelId={hostelId}&date={date}
+   * GET /attendance/reports/daily?date={date}&page={page}&limit={limit}&search={search}
    */
-  async getDailyReport(hostelId: string, date: string): Promise<DailyReportResponse> {
+  async getDailyReport(
+    hostelId: string,
+    date: string,
+    page: number = 1,
+    limit: number = 20,
+    search?: string
+  ): Promise<DailyReportResponse> {
     try {
+      const params: any = { hostelId, date, page, limit };
+      if (search) params.search = search;
+      
       const response = await apiService.get<DailyReportResponse>(
         '/attendance/reports/daily',
-        { hostelId, date }
+        params
       );
       return response;
     } catch (error) {
