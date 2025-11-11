@@ -53,6 +53,12 @@ export const enhancedStudentService = {
         }
 
         if (matchingGuest) {
+          console.log(`🔄 Matching student "${student.name}" with guest "${matchingGuest.guestName}"`);
+          
+          // CRITICAL: Always preserve the student's real identity
+          if (matchingGuest.guestName !== student.name) {
+            console.warn(`⚠️ Name mismatch: Student "${student.name}" matched with guest "${matchingGuest.guestName}"`);
+          }
           return {
             ...student,
             // Override with booking guest data
@@ -77,6 +83,7 @@ export const enhancedStudentService = {
             address: matchingGuest.address || student.address,
             emergencyContact: matchingGuest.emergencyContact || student.emergencyContact,
             // NEVER override core identity fields - always use student's real data
+            name: student.name,    // Don't use booking guest's name - preserve student's real name
             phone: student.phone,  // Don't use booking guest's generated phone
             email: student.email,  // Don't use booking guest's generated email
           };

@@ -21,7 +21,7 @@ export const PaymentRecording = () => {
   const { toast } = useToast();
 
   // Hooks for API data
-  const { students, loading: studentsLoading, error: studentsError } = useStudents();
+  const { students, loading: studentsLoading, error: studentsError, refreshData: refreshStudents } = useStudents();
   const {
     payments,
     loading: paymentsLoading,
@@ -162,7 +162,10 @@ export const PaymentRecording = () => {
 
 
       // Refresh data after successful payment
-      await loadPayments();
+      await Promise.all([
+        loadPayments(),
+        refreshStudents() // Refresh student balance data to show updated outstanding amounts
+      ]);
 
       toast({
         title: "Payment Recorded Successfully",
@@ -244,7 +247,12 @@ export const PaymentRecording = () => {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => loadPayments()}
+              onClick={async () => {
+                await Promise.all([
+                  loadPayments(),
+                  refreshStudents()
+                ]);
+              }}
               disabled={isLoading}
               size="sm"
               className="h-9 px-4"
@@ -275,9 +283,16 @@ export const PaymentRecording = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  loadPayments();
-                  window.location.reload(); // Fallback for persistent errors
+                onClick={async () => {
+                  try {
+                    await Promise.all([
+                      loadPayments(),
+                      refreshStudents()
+                    ]);
+                  } catch (error) {
+                    // Fallback for persistent errors
+                    window.location.reload();
+                  }
                 }}
                 className="mt-2"
               >
