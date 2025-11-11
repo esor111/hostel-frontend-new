@@ -47,8 +47,6 @@ export interface Student {
   emergencyContact?: string;
   currentBalance?: number;
   advanceBalance?: number;
-  configurationAdvance?: number; // Initial configuration advance
-  totalAdvance?: number;         // Total advance (config + regular)
   bookingRequestId?: string;
   updatedAt?: string;
   createdAt?: string;
