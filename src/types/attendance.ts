@@ -10,6 +10,7 @@ export interface CurrentStatusResponse {
   timestamp: string;
   currentlyCheckedIn: number;
   students: CurrentStudent[];
+  pagination?: PaginationInfo;
 }
 
 export interface CurrentStudent {
@@ -32,6 +33,7 @@ export interface DailyReportResponse {
   };
   presentStudents: PresentStudent[];
   absentStudents?: AbsentStudent[];
+  pagination?: PaginationInfo;
 }
 
 export interface PresentStudent {
@@ -145,6 +147,7 @@ export interface AttendanceFilters {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'ASC' | 'DESC';
+  search?: string;
 }
 
 export interface PaginationInfo {
@@ -152,6 +155,8 @@ export interface PaginationInfo {
   limit: number;
   total: number;
   totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 }
 
 // ============================================================================

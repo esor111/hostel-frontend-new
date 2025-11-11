@@ -53,16 +53,20 @@ const useHostelId = (): string | null => {
  * Hook for current status data with auto-refresh
  * Updates every 30 seconds to show real-time data
  */
-export const useCurrentStatus = (): UseQueryResult<CurrentStatusResponse, Error> => {
+export const useCurrentStatus = (
+  page: number = 1,
+  limit: number = 20,
+  search?: string
+): UseQueryResult<CurrentStatusResponse, Error> => {
   const hostelId = useHostelId();
 
   return useQuery({
-    queryKey: ['attendance', 'current-status', hostelId],
+    queryKey: ['attendance', 'current-status', hostelId, page, limit, search],
     queryFn: () => {
       if (!hostelId) {
         throw new Error('Hostel ID not available');
       }
-      return attendanceApiService.getCurrentStatus(hostelId);
+      return attendanceApiService.getCurrentStatus(hostelId, page, limit, search);
     },
     enabled: !!hostelId,
     refetchInterval: 30000, // Auto-refresh every 30 seconds
@@ -77,11 +81,16 @@ export const useCurrentStatus = (): UseQueryResult<CurrentStatusResponse, Error>
 /**
  * Hook for daily attendance report
  */
-export const useDailyReport = (date: string): UseQueryResult<DailyReportResponse, Error> => {
+export const useDailyReport = (
+  date: string,
+  page: number = 1,
+  limit: number = 20,
+  search?: string
+): UseQueryResult<DailyReportResponse, Error> => {
   const hostelId = useHostelId();
 
   return useQuery({
-    queryKey: ['attendance', 'daily-report', hostelId, date],
+    queryKey: ['attendance', 'daily-report', hostelId, date, page, limit, search],
     queryFn: () => {
       if (!hostelId) {
         throw new Error('Hostel ID not available');
@@ -89,7 +98,7 @@ export const useDailyReport = (date: string): UseQueryResult<DailyReportResponse
       if (!date) {
         throw new Error('Date is required for daily report');
       }
-      return attendanceApiService.getDailyReport(hostelId, date);
+      return attendanceApiService.getDailyReport(hostelId, date, page, limit, search);
     },
     enabled: !!hostelId && !!date,
     staleTime: 2 * 60 * 1000, // Consider stale after 2 minutes
