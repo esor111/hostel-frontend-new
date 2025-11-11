@@ -12,7 +12,8 @@ import { useLocation } from "react-router-dom";
 import { usePayments } from "@/hooks/usePayments";
 import { useStudents } from "@/hooks/useStudents";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, AlertCircle, CheckCircle, DollarSign } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, CheckCircle, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
+import Pagination from "@/components/ui/pagination";
 import { CreatePaymentDto, Payment } from "@/services/paymentsApiService";
 
 export const PaymentRecording = () => {
@@ -211,49 +212,51 @@ export const PaymentRecording = () => {
 
   return (
     <div className="h-full flex flex-col space-y-6 w-full">
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border border-green-200">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-white" />
+      {/* Compact Header */}
+      <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold kaha-text-brand">💰 Payment Recording</h1>
-                <p className="text-gray-600 font-medium">Record and track student payments</p>
+                <h1 className="text-2xl font-bold kaha-text-brand">💰 Payment Recording</h1>
+                <p className="text-sm text-gray-600">Record and track student payments</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50 px-3 py-1 font-semibold">
-                <CheckCircle className="h-4 w-4 mr-2" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50 px-2 py-0.5 text-xs">
+                <CheckCircle className="h-3 w-3 mr-1" />
                 {studentsWithDues.filter(s => s.outstandingDue === 0).length} Paid Up
               </Badge>
-              <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50 px-3 py-1 font-semibold">
-                <AlertCircle className="h-4 w-4 mr-2" />
+              <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50 px-2 py-0.5 text-xs">
+                <AlertCircle className="h-3 w-3 mr-1" />
                 {studentsWithDues.filter(s => s.outstandingDue > 0).length} Outstanding
               </Badge>
-              <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50 px-3 py-1 font-semibold">
-                {(payments || []).length} Total Payments
+              <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50 px-2 py-0.5 text-xs">
+                {(payments || []).length} Payments
               </Badge>
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={() => loadPayments()}
               disabled={isLoading}
-              className="h-12 px-6 border-2 font-semibold hover:scale-105 transition-all duration-200"
+              size="sm"
+              className="h-9 px-4"
             >
-              <RefreshCw className={`h-5 w-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             <Button
               onClick={() => setShowPaymentForm(true)}
               disabled={isLoading}
-              className="kaha-button-primary h-12 px-8 text-base font-bold"
+              size="sm"
+              className="kaha-button-primary h-9 px-4"
             >
               ➕ Record Payment
             </Button>
@@ -296,43 +299,44 @@ export const PaymentRecording = () => {
         </Card>
       )}
 
-      {/* Enhanced Outstanding Dues */}
+      {/* Compact Outstanding Dues */}
       {!isLoading && studentsWithDues.filter(s => s.outstandingDue > 0).length > 0 && (
-        <Card className="border-2 border-red-200 bg-red-50/30">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-2xl font-bold flex items-center gap-3 text-red-700">
+        <Card className="border border-red-200 bg-red-50/20">
+          <CardHeader className="pb-3 pt-4 px-4">
+            <CardTitle className="text-lg font-bold flex items-center gap-2 text-red-700">
               🚨 Outstanding Dues
-              <Badge className="bg-red-600 text-white text-base px-3 py-1">
+              <Badge className="bg-red-600 text-white text-xs px-2 py-0.5">
                 {studentsWithDues.filter(s => s.outstandingDue > 0).length}
               </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <CardContent className="px-4 pb-4">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {studentsWithDues.filter(s => s.outstandingDue > 0).map((student) => (
-                <div key={student.id} className="bg-white rounded-xl p-4 border-2 border-red-200 hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
-                  <div className="space-y-3">
+                <div key={student.id} className="bg-white rounded-lg p-3 border border-red-200 hover:shadow-md transition-all duration-150">
+                  <div className="space-y-2">
                     <div>
-                      <div className="font-bold text-lg text-gray-900">{student.name}</div>
-                      <div className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-lg inline-block">
+                      <div className="font-semibold text-sm text-gray-900">{student.name}</div>
+                      <div className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded inline-block mt-1">
                         Room: {student.room}
                       </div>
                     </div>
-                    <div className="text-center">
-                      <div className="font-bold text-2xl text-red-600">
+                    <div className="text-center py-1">
+                      <div className="font-bold text-lg text-red-600">
                         ₹{student.outstandingDue.toLocaleString()}
                       </div>
-                      <div className="text-sm text-gray-500 font-medium">Outstanding Amount</div>
+                      <div className="text-xs text-gray-500">Outstanding</div>
                     </div>
                     <Button
-                      className="w-full kaha-button-primary h-10 font-bold"
+                      size="sm"
+                      className="w-full kaha-button-primary h-8 text-xs"
                       onClick={() => {
                         setSelectedStudent(student.id);
                         setPaymentAmount(student.outstandingDue.toString());
                         setShowPaymentForm(true);
                       }}
                     >
-                      💰 Record Payment
+                      💰 Pay Now
                     </Button>
                   </div>
                 </div>
@@ -342,26 +346,27 @@ export const PaymentRecording = () => {
         </Card>
       )}
 
-      {/* Enhanced Recent Payments */}
+      {/* Compact Recent Payments */}
       {!isLoading && (
-        <Card className="flex-1 border-2 border-gray-200">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-2xl font-bold flex items-center gap-3 text-gray-900">
+        <Card className="flex-1 border border-gray-200">
+          <CardHeader className="pb-3 pt-4 px-4">
+            <CardTitle className="text-lg font-bold flex items-center gap-2 text-gray-900">
               📋 Recent Payments
-              <Badge className="bg-blue-600 text-white text-base px-3 py-1">
-                {(payments || []).length}
+              <Badge className="bg-blue-600 text-white text-xs px-2 py-0.5">
+                {pagination?.total || (payments || []).length}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {(payments || []).length === 0 ? (
-              <div className="text-center py-16 text-gray-500">
-                <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl mx-auto mb-6 flex items-center justify-center">
-                  <DollarSign className="h-12 w-12 text-gray-400" />
+              <div className="text-center py-12 text-gray-500 px-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                  <DollarSign className="h-8 w-8 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Payments Yet</h3>
-                <p className="text-gray-500 mb-6">Start recording payments to see them here</p>
+                <h3 className="text-lg font-semibold text-gray-700 mb-1">No Payments Yet</h3>
+                <p className="text-sm text-gray-500 mb-4">Start recording payments to see them here</p>
                 <Button
+                  size="sm"
                   onClick={() => setShowPaymentForm(true)}
                   className="kaha-button-primary"
                 >
@@ -374,11 +379,11 @@ export const PaymentRecording = () => {
                   <Table>
                     <TableHeader className="bg-gray-50">
                       <TableRow>
-                        <TableHead className="py-4 px-6 font-bold text-gray-900">Student Details</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-gray-900">Amount</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-gray-900">Method</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-gray-900">Date</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-gray-900">Status</TableHead>
+                        <TableHead className="py-2 px-4 font-semibold text-gray-900 text-sm">Student</TableHead>
+                        <TableHead className="py-2 px-4 font-semibold text-gray-900 text-sm">Amount</TableHead>
+                        <TableHead className="py-2 px-4 font-semibold text-gray-900 text-sm">Method</TableHead>
+                        <TableHead className="py-2 px-4 font-semibold text-gray-900 text-sm">Date</TableHead>
+                        <TableHead className="py-2 px-4 font-semibold text-gray-900 text-sm">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -387,58 +392,57 @@ export const PaymentRecording = () => {
                         return (
                           <TableRow
                             key={payment.id}
-                            className="hover:bg-green-50 transition-colors duration-200 border-b border-gray-100"
-                            style={{ animationDelay: `${index * 0.05}s` }}
+                            className="hover:bg-green-50 transition-colors duration-150 border-b border-gray-100"
                           >
-                            <TableCell className="py-4 px-6">
-                              <div className="space-y-1">
-                                <div className="font-semibold text-base text-gray-900">
+                            <TableCell className="py-2 px-4">
+                              <div className="space-y-0.5">
+                                <div className="font-medium text-sm text-gray-900">
                                   {payment.studentName || student?.name || 'Unknown Student'}
                                 </div>
-                                <div className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-lg inline-block">
+                                <div className="text-xs text-gray-600">
                                   Room: {student?.roomNumber || 'N/A'}
                                 </div>
                                 {payment.reference && (
-                                  <div className="text-sm text-blue-600 font-medium">
+                                  <div className="text-xs text-blue-600">
                                     Ref: {payment.reference}
                                   </div>
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="py-4 px-6">
-                              <div className="font-bold text-xl text-green-600">
+                            <TableCell className="py-2 px-4">
+                              <div className="font-bold text-base text-green-600">
                                 ₹{payment.amount.toLocaleString()}
                               </div>
                             </TableCell>
-                            <TableCell className="py-4 px-6">
+                            <TableCell className="py-2 px-4">
                               <Badge
                                 variant="outline"
-                                className="text-sm px-3 py-1 font-semibold border-2"
+                                className="text-xs px-2 py-0.5"
                               >
                                 {payment.paymentMethod}
                               </Badge>
                             </TableCell>
-                            <TableCell className="py-4 px-6">
-                              <div className="text-base font-medium text-gray-700">
+                            <TableCell className="py-2 px-4">
+                              <div className="text-sm text-gray-700">
                                 {new Date(payment.paymentDate).toLocaleDateString('en-US', {
                                   month: 'short',
                                   day: 'numeric',
                                   year: 'numeric'
                                 })}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-xs text-gray-500">
                                 {new Date(payment.paymentDate).toLocaleTimeString('en-US', {
                                   hour: '2-digit',
                                   minute: '2-digit'
                                 })}
                               </div>
                             </TableCell>
-                            <TableCell className="py-4 px-6">
+                            <TableCell className="py-2 px-4">
                               <Badge
                                 variant={payment.status === 'Completed' ? 'default' :
                                   payment.status === 'Pending' ? 'secondary' :
                                     payment.status === 'Failed' ? 'destructive' : 'outline'}
-                                className="text-sm px-3 py-1 font-semibold"
+                                className="text-xs px-2 py-0.5"
                               >
                                 {payment.status}
                               </Badge>
@@ -450,36 +454,19 @@ export const PaymentRecording = () => {
                   </Table>
                 </div>
 
-                {pagination && pagination.total > (payments || []).length && (
-                  <div className="p-4 bg-gray-50 text-center border-t">
-                    <p className="text-gray-600 font-medium">
-                      Showing {(payments || []).length} of {pagination.total} payments
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="mt-2"
-                      onClick={() => loadMorePayments()}
-                      disabled={paymentsLoading || !hasMorePages}
-                    >
-                      {paymentsLoading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Loading...
-                        </>
-                      ) : hasMorePages ? (
-                        'Load More Payments'
-                      ) : (
-                        'All Payments Loaded'
-                      )}
-                    </Button>
-                  </div>
-                )}
-
-                {pagination && pagination.total === (payments || []).length && pagination.total > 15 && (
-                  <div className="p-4 bg-green-50 text-center border-t border-green-200">
-                    <p className="text-green-700 font-medium">
-                      ✅ All {pagination.total} payments loaded
-                    </p>
+                {/* Pagination Controls */}
+                {pagination && pagination.totalPages > 1 && (
+                  <div className="p-3 bg-gray-50 border-t flex items-center justify-between">
+                    <div className="text-xs text-gray-600">
+                      Showing {((currentPage - 1) * (pagination.limit || 15)) + 1} - {Math.min(currentPage * (pagination.limit || 15), pagination.total)} of {pagination.total} payments
+                    </div>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={pagination.totalPages}
+                      onPageChange={(page) => loadPayments({ page, limit: pagination.limit || 15 }, false)}
+                      hasNext={hasMorePages}
+                      hasPrev={currentPage > 1}
+                    />
                   </div>
                 )}
               </div>
