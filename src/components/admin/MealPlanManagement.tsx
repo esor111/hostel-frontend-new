@@ -51,6 +51,7 @@ export const MealPlanManagement = () => {
     try {
       setIsLoading(true);
       const plans = await mealPlanApiService.getWeeklyMealPlan();
+      console.log('📋 Loaded meal plans:', plans);
       setMealPlans(plans);
 
       // Initialize form data with existing plans
@@ -104,15 +105,17 @@ export const MealPlanManagement = () => {
       const data = formData[day];
       const existingPlan = mealPlans.find(p => p.day === day);
 
-      if (existingPlan) {
+      if (existingPlan && existingPlan.id) {
         // Update existing plan
+        console.log('Updating meal plan:', existingPlan.id, data);
         await mealPlanApiService.updateMealPlan(existingPlan.id, data);
         toast({
           title: 'Success',
           description: `${day}'s meal plan updated successfully`
         });
       } else {
-        // Create new plan
+        // Create new plan (either no existing plan or missing ID)
+        console.log('Creating new meal plan for', day, data);
         await mealPlanApiService.createMealPlan(data);
         toast({
           title: 'Success',
@@ -186,20 +189,20 @@ export const MealPlanManagement = () => {
     const value = formData[day]?.[mealType] || '';
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-gray-500" />
-          <Label className="text-sm font-medium text-gray-700">{label}</Label>
+          <Icon className="h-3 w-3 text-gray-500" />
+          <Label className="text-xs font-medium text-gray-700">{label}</Label>
         </div>
         {isEditing ? (
           <Input
             value={value}
             onChange={(e) => handleInputChange(day, mealType, e.target.value)}
             placeholder={`Enter ${label.toLowerCase()} menu`}
-            className="text-sm"
+            className="text-xs h-8"
           />
         ) : (
-          <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded border">
+          <p className="text-xs text-gray-600 bg-gray-50 p-1.5 rounded border min-h-[28px] flex items-center">
             {value || <span className="text-gray-400 italic">Not set</span>}
           </p>
         )}
@@ -266,8 +269,8 @@ export const MealPlanManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Weekly Meal Plan Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Weekly Meal Plan Grid - More Compact Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {DAYS_OF_WEEK.map((day) => {
           const existingPlan = mealPlans.find(p => p.day === day);
           const isEditing = editingDay === day;
@@ -275,11 +278,11 @@ export const MealPlanManagement = () => {
 
           return (
             <Card key={day} className={`transition-all ${isEditing ? 'ring-2 ring-orange-500 shadow-lg' : ''}`}>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-orange-500" />
-                    <CardTitle className="text-xl">{day}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-orange-500" />
+                    <CardTitle className="text-lg">{day}</CardTitle>
                     {existingPlan && (
                       <Badge variant={existingPlan.isActive ? 'default' : 'secondary'} className="text-xs">
                         {existingPlan.isActive ? 'Active' : 'Inactive'}
@@ -337,28 +340,30 @@ export const MealPlanManagement = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 {renderMealField(day, 'breakfast', 'Breakfast')}
                 {renderMealField(day, 'lunch', 'Lunch')}
                 {renderMealField(day, 'snacks', 'Snacks')}
                 {renderMealField(day, 'dinner', 'Dinner')}
 
-                {/* Notes */}
-                <div className="space-y-2 pt-2 border-t">
-                  <Label className="text-sm font-medium text-gray-700">Notes (Optional)</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={dayData?.notes || ''}
-                      onChange={(e) => handleInputChange(day, 'notes', e.target.value)}
-                      placeholder="Add any special notes or dietary information"
-                      className="text-sm min-h-[60px]"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded border min-h-[60px]">
-                      {dayData?.notes || <span className="text-gray-400 italic">No notes</span>}
-                    </p>
-                  )}
-                </div>
+                {/* Notes - Only show if editing or has content */}
+                {(isEditing || dayData?.notes) && (
+                  <div className="space-y-1 pt-2 border-t">
+                    <Label className="text-xs font-medium text-gray-700">Notes</Label>
+                    {isEditing ? (
+                      <Textarea
+                        value={dayData?.notes || ''}
+                        onChange={(e) => handleInputChange(day, 'notes', e.target.value)}
+                        placeholder="Add special notes or dietary info"
+                        className="text-xs min-h-[40px] h-10"
+                      />
+                    ) : (
+                      <p className="text-xs text-gray-600 bg-gray-50 p-1.5 rounded border">
+                        {dayData?.notes}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Active Toggle */}
                 {isEditing && (
