@@ -154,9 +154,9 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
   };
 
   const calculateTotalMonthlyFee = () => {
-    const baseTotal = baseCharges.baseMonthlyFee + baseCharges.laundryFee + baseCharges.foodFee +
-      baseCharges.wifiFee + baseCharges.maintenanceFee;
-    const additionalTotal = additionalCharges.reduce((sum, charge) => sum + (charge.amount || 0), 0);
+    const baseTotal = Number(baseCharges.baseMonthlyFee || 0) + Number(baseCharges.laundryFee || 0) + Number(baseCharges.foodFee || 0) +
+      Number(baseCharges.wifiFee || 0) + Number(baseCharges.maintenanceFee || 0);
+    const additionalTotal = additionalCharges.reduce((sum, charge) => sum + Number(charge.amount || 0), 0);
     return baseTotal + additionalTotal;
   };
 
@@ -180,7 +180,11 @@ const ChargeConfigurationForm = ({ student, onComplete, onCancel }: ChargeConfig
     );
 
     const chargeData = {
-      ...baseCharges,
+      baseMonthlyFee: Number(baseCharges.baseMonthlyFee || 0),
+      laundryFee: Number(baseCharges.laundryFee || 0),
+      foodFee: Number(baseCharges.foodFee || 0),
+      wifiFee: Number(baseCharges.wifiFee || 0),
+      maintenanceFee: Number(baseCharges.maintenanceFee || 0),
       additionalCharges: validAdditionalCharges,
       totalMonthlyFee,
       guardian: {
