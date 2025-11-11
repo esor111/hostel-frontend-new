@@ -34,15 +34,17 @@ export const ConfigurationBillingDashboard = () => {
     loadDashboardData();
   }, []);
 
-  // Reload timeline when page changes
+  // Reload timeline when page changes (skip initial load)
   useEffect(() => {
-    if (timelinePage > 1) {
+    // Skip the initial load (handled by first useEffect)
+    if (timeline !== null) {
       loadDashboardData();
     }
   }, [timelinePage]);
 
   // Handle timeline page change
   const handleTimelinePageChange = (page: number) => {
+    console.log(`📄 Timeline page changing from ${timelinePage} to ${page}`);
     setTimelinePage(page);
   };
 
@@ -51,7 +53,7 @@ export const ConfigurationBillingDashboard = () => {
       setLoading(true);
       setError(null);
 
-      console.log('📊 Loading configuration billing dashboard data...');
+      console.log(`📊 Loading configuration billing dashboard data... (page: ${timelinePage}, limit: ${timelineLimit})`);
 
       // Load stats and timeline in parallel
       const [billingStats, billingTimeline] = await Promise.all([
