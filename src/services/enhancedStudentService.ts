@@ -89,8 +89,13 @@ export const enhancedStudentService = {
         totalStudents: students.length,
         totalGuests: bookingGuests.length,
         enhancedWithRoomInfo: enhancedStudents.filter(s => s.assignedRoomNumber).length,
+        pendingConfig: enhancedStudents.filter(s => (s.status as string).includes('Pending') || !s.isConfigured).length,
+        unconfigured: enhancedStudents.filter(s => !s.isConfigured).length,
+        timestamp: new Date().toISOString(),
         sampleEnhanced: enhancedStudents.slice(0, 3).map(s => ({
           name: s.name,
+          status: s.status,
+          isConfigured: s.isConfigured,
           originalRoom: students.find(orig => orig.id === s.id)?.roomNumber,
           enhancedRoom: s.roomNumber,
           assignedRoom: s.assignedRoomNumber,

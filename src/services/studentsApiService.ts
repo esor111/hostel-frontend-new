@@ -27,6 +27,7 @@ export class StudentsApiService {
     console.log('🔍 StudentsApiService.getStudents called with filters:', filters);
     console.log('🔍 Query params:', queryParams);
     console.log('🔍 API endpoint:', API_ENDPOINTS.STUDENTS.BASE);
+    console.log('🔍 Timestamp:', new Date().toISOString());
 
     const result = await this.apiService.get<any>(
       API_ENDPOINTS.STUDENTS.BASE, 

@@ -23,7 +23,7 @@ const RoomManagement = lazy(() => import("./pages/RoomManagement"));
 const AddRoom = lazy(() => import("./pages/AddRoom"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Attendance = lazy(() => import("./pages/Attendance"));
-const StudentCheckIn = lazy(() => import("./pages/StudentCheckIn"));
+// Removed StudentCheckIn import
 const Notifications = lazy(() => import("./pages/Notifications"));
 const MealPlans = lazy(() => import("./pages/MealPlans"));
 
@@ -236,16 +236,7 @@ const App = () => {
                         </AuthGuard>
                       }
                     />
-                    <Route
-                      path="/student-checkin"
-                      element={
-                        <AuthGuard>
-                          <Suspense fallback={<LoadingFallback componentName="Student Check-In" />}>
-                            <StudentCheckIn />
-                          </Suspense>
-                        </AuthGuard>
-                      }
-                    />
+                    {/* Removed Student Check-In route */}
                     <Route
                       path="/notifications"
                       element={

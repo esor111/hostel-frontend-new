@@ -1,14 +1,13 @@
 
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, DollarSign, Calendar, BarChart3, UserPlus } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { DollarSign, Calendar, BarChart3, UserPlus, Users } from "lucide-react";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
 export const Analytics = () => {
   const {
     monthlyData,
-    guestTypeData,
     currentOccupancy,
     loading,
     error,
@@ -62,8 +61,6 @@ export const Analytics = () => {
   }
 
   const currentMonth = monthlyData[monthlyData.length - 1] || { bookings: 0, occupancy: 0 };
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   return (
     <div className="space-y-6">
@@ -177,65 +174,7 @@ export const Analytics = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-gray-600" />
-              Student Status Distribution
-            </CardTitle>
-            <p className="text-sm text-gray-500">Breakdown of students by their current status in the hostel</p>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={guestTypeData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {guestTypeData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name) => [`${value} students`, name]} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-gray-600" />
-              Occupancy Rate Trend
-            </CardTitle>
-            <p className="text-sm text-gray-500">Track how occupancy rates change over different months</p>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`${value}%`, 'Occupancy Rate']} />
-                <Line 
-                  type="monotone" 
-                  dataKey="occupancy" 
-                  stroke="#07A64F" 
-                  strokeWidth={3}
-                  dot={{ fill: '#07A64F', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Removed Student Status Distribution and Occupancy Rate Trend sections */}
     </div>
   );
 };
