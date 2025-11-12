@@ -18,6 +18,13 @@ export interface RoomData {
   monthlyRate: number;
   status: string;
   gender?: string;
+  images?: string[];
+  description?: string;
+  amenities?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+  }>;
 }
 
 export interface BedData {

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { manualStudentApiService } from '@/services/manualStudentApiService';
 import { 
@@ -24,6 +25,7 @@ const initialState: ManualStudentCreationState = {
 
 export const useManualStudentCreation = (): ManualStudentCreationState & ManualStudentCreationActions => {
   const [state, setState] = useState<ManualStudentCreationState>(initialState);
+  const navigate = useNavigate();
 
   const setLoading = useCallback((loading: boolean) => {
     setState(prev => ({ ...prev, loading }));
@@ -141,20 +143,22 @@ export const useManualStudentCreation = (): ManualStudentCreationState & ManualS
       console.log('👤 Creating manual student:', studentData);
       const result = await manualStudentApiService.createManualStudent(studentData);
       
-      toast.success('Student created successfully! They will appear in the pending configuration list.');
-      
-      // Reset to initial state and reload floors
-      setState(initialState);
-      await loadFloors();
+      toast.success('Student created successfully! Redirecting to Student Management for configuration.');
       
       console.log('✅ Student created successfully:', result);
+      
+      // Redirect to Student Management page after successful creation
+      setTimeout(() => {
+        navigate('/student-management');
+      }, 1500); // Small delay to show the success message
+      
     } catch (error) {
       console.error('❌ Error creating student:', error);
       setError('Failed to create student. Please try again.');
       toast.error('Failed to create student. Please try again.');
       setLoading(false);
     }
-  }, [loadFloors]);
+  }, [navigate]);
 
   const goBack = useCallback(() => {
     setState(prev => {

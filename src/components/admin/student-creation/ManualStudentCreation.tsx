@@ -137,7 +137,7 @@ export const ManualStudentCreation: React.FC = () => {
   console.log('🏢 currentStep:', currentStep);
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="w-full">
       {/* Step indicator */}
       <StepIndicator 
         currentStep={currentStep}
@@ -147,7 +147,7 @@ export const ManualStudentCreation: React.FC = () => {
       />
 
       {/* Step content */}
-      <div className="min-h-[600px]">
+      <div className="mt-4">
         {currentStep === 1 && (
           <FloorSelection
             floors={floors}
