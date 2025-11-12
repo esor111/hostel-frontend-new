@@ -31,6 +31,7 @@ type StudentFormData = z.infer<typeof studentFormSchema>;
 interface StudentFormProps {
   selectedBed: BedData;
   loading: boolean;
+  error?: string | null;
   onSubmit: (data: StudentFormData) => void;
   onBack: () => void;
 }
@@ -38,6 +39,7 @@ interface StudentFormProps {
 export const StudentForm: React.FC<StudentFormProps> = ({
   selectedBed,
   loading,
+  error,
   onSubmit,
   onBack
 }) => {
@@ -291,6 +293,21 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             </div>
           </CardContent>
         </Card>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs">!</span>
+              </div>
+              <div>
+                <h4 className="text-red-800 font-semibold text-sm">Error Creating Student</h4>
+                <p className="text-red-700 text-sm mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Submit button */}
         <div className="flex justify-end space-x-4">

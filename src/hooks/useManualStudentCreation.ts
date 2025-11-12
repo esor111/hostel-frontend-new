@@ -143,19 +143,32 @@ export const useManualStudentCreation = (): ManualStudentCreationState & ManualS
       console.log('👤 Creating manual student:', studentData);
       const result = await manualStudentApiService.createManualStudent(studentData);
       
-      toast.success('Student created successfully! Redirecting to Student Management for configuration.');
+      toast.success('Student created successfully! Redirecting to Student Configuration...');
       
       console.log('✅ Student created successfully:', result);
+      console.log('📋 Student ID for configuration:', result?.id);
       
-      // Redirect to Student Management page after successful creation
+      // Redirect to Student Configuration in Ledger after successful creation
       setTimeout(() => {
-        navigate('/student-management');
+        navigate('/ledger/students');
       }, 1500); // Small delay to show the success message
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error creating student:', error);
-      setError('Failed to create student. Please try again.');
-      toast.error('Failed to create student. Please try again.');
+      
+      // Extract the specific error message from the server response
+      let errorMessage = 'Failed to create student. Please try again.';
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      console.log('📝 Extracted error message:', errorMessage);
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
       setLoading(false);
     }
   }, [navigate]);

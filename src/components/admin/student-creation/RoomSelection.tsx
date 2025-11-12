@@ -14,7 +14,7 @@ interface RoomSelectionProps {
 }
 
 // Helper function to get amenity icons
-const getAmenityIcon = (amenityName: string) => {
+const getAmenityIcon = (amenityName: string) => { 
   const name = amenityName.toLowerCase();
   if (name.includes('wifi') || name.includes('internet')) return Wifi;
   if (name.includes('parking') || name.includes('car')) return Car;

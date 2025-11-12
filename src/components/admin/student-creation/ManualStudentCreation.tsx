@@ -180,6 +180,7 @@ export const ManualStudentCreation: React.FC = () => {
           <StudentForm
             selectedBed={selectedBed}
             loading={loading}
+            error={error}
             onSubmit={createStudent}
             onBack={goBack}
           />
