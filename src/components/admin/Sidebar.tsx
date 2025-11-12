@@ -11,7 +11,8 @@ import {
   Calculator,
   CreditCard,
   UserCheck,
-  Utensils
+  Utensils,
+  Users
 } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { KahaLogo } from "@/components/ui/KahaLogo";
@@ -28,6 +29,7 @@ export const Sidebar = ({ activeTab, onTabChange, collapsed = false }: SidebarPr
   const mainMenuItems = [
     { id: "dashboard", label: translations.dashboard, icon: LayoutDashboard },
     { id: "bookings", label: translations.bookings, icon: CalendarCheck },
+    { id: "students", label: "Students", icon: Users },
     { id: "rooms", label: translations.rooms, icon: Bed },
     { id: "analytics", label: translations.analytics, icon: BarChart3 },
     { id: "attendance", label: "Attendance", icon: UserCheck },
