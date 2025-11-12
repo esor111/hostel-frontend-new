@@ -48,6 +48,7 @@ interface LedgerEntry {
     balance?: number;
     balanceType?: string;
     remark?: string;
+    notes?: string;
 }
 
 interface CheckoutSettings {
@@ -106,8 +107,8 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
             // Use real balance from API
             const currentBalance = studentBalance?.currentBalance || 0;
 
-            // Total due = existing balance + current month's partial amount
-            const totalDue = currentBalance + currentMonthProration.amount;
+            // Total due = existing balance (Nepalese billing system)
+            const totalDue = currentBalance;
             setTotalDueAmount(Math.max(0, totalDue));
             setPaymentAmount(Math.max(0, totalDue).toString());
 
@@ -141,13 +142,13 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
             await fetchStudentLedger(student.id);
             await fetchStudentBalance(student.id);
 
-            // 🏨 NEW: Nepalese billing - use actual balance only
+            // NEW: Nepalese billing - use actual balance only
             // Accurate settlement will be calculated by backend
             const updatedBalance = studentBalance?.currentBalance || 0;
             setTotalDueAmount(Math.max(0, updatedBalance));
 
             // Clear payment form
-            setPaymentAmount(Math.max(0, newTotalDue).toString());
+            setPaymentAmount(Math.max(0, updatedBalance).toString());
             setPaymentRemark("");
 
             toast.success(`Payment of NPR ${amount.toLocaleString()} booked successfully and added to ledger`);
@@ -320,8 +321,8 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                                                         <span className="ml-2">📄 Ref: {entry.referenceId}</span>
                                                     )}
                                                 </p>
-                                                {entry.remark && (
-                                                    <p className="text-xs text-gray-500 mt-1 italic">💬 {entry.remark}</p>
+                                                {entry.notes && (
+                                                    <p className="text-xs text-gray-500 mt-1 italic">💬 {entry.notes}</p>
                                                 )}
                                             </div>
                                             <div className="text-right ml-4">
@@ -361,148 +362,6 @@ const CheckoutDialog = ({ student, isOpen, onClose, onCheckoutComplete }: Checko
                                 <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                                 <p className="text-gray-500 font-medium">No ledger entries found</p>
                                 <p className="text-sm text-gray-400">This student has no transaction history</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* 🏨 NEW: Nepalese Billing Information */}
-                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-                    <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
-                            <CheckCircle className="h-5 w-5" />
-                            Nepalese Billing System
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-blue-700">
-                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                                    Advance Payment System
-                                </Badge>
-                            </div>
-                            <div className="text-sm text-blue-600 space-y-2">
-                                <p>✅ <strong>Accurate Settlement:</strong> Backend calculates exact usage vs payments</p>
-                                <p>✅ <strong>Advance Payment Handling:</strong> Considers all advance payments made</p>
-                                <p>✅ <strong>No Prorated Billing:</strong> Uses actual days stayed for fair calculation</p>
-                            </div>
-                            <div className="bg-blue-100 p-3 rounded-lg">
-                                <p className="text-sm text-blue-800">
-                                    <strong>Note:</strong> Final settlement will be calculated automatically based on actual usage and advance payments made by the student.
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Current Month's Partial Billing */}
-                {currentMonthBilling && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <DollarSign className="h-5 w-5" />
-                                Current Month's Billing (Till Today)
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="bg-orange-50 p-4 rounded-lg">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <span>Period:</span>
-                                        <span className="font-medium">{currentMonthBilling.period}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Days Charged:</span>
-                                        <span className="font-medium">{currentMonthBilling.daysCharged} of {currentMonthBilling.daysInMonth} days</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Daily Rate:</span>
-                                        <span className="font-medium">NPR {currentMonthBilling.dailyRate.toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between border-t pt-2">
-                                        <span className="font-bold">Partial Amount:</span>
-                                        <span className="font-bold text-orange-600">NPR {currentMonthBilling.amount.toLocaleString()}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Total Due Amount */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <CheckCircle className="h-5 w-5" />
-                            Total Due Amount
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                            <div className="flex justify-between items-center">
-                                <span className="text-red-800 font-medium">Total Amount Due:</span>
-                                <span className="text-3xl font-bold text-red-900">
-                                    NPR {totalDueAmount.toLocaleString()}
-                                </span>
-                            </div>
-                            <p className="text-sm text-red-600 mt-2">
-                                Current Ledger Balance (Nepalese Billing System)
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Checkout Settings */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Checkout Settings</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div>
-                                <Label className="text-base font-medium">Allow Checkout Without Payment</Label>
-                                <p className="text-sm text-gray-500">
-                                    If enabled, student can checkout with dues (will be added to ledger)
-                                </p>
-                            </div>
-                            <Switch
-                                checked={allowCheckoutWithoutPayment}
-                                onCheckedChange={setAllowCheckoutWithoutPayment}
-                            />
-                        </div>
-
-                        {/* Book Payment Section */}
-                        {totalDueAmount > 0 && !allowCheckoutWithoutPayment && (
-                            <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                                <h4 className="font-medium text-green-900">Book Payment</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="paymentAmount">Payment Amount (NPR)</Label>
-                                        <Input
-                                            id="paymentAmount"
-                                            type="number"
-                                            value={paymentAmount}
-                                            onChange={(e) => setPaymentAmount(e.target.value)}
-                                            placeholder="Enter payment amount"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="paymentRemark">Payment Remark (Optional)</Label>
-                                        <Input
-                                            id="paymentRemark"
-                                            value={paymentRemark}
-                                            onChange={(e) => setPaymentRemark(e.target.value)}
-                                            placeholder="Payment remark"
-                                        />
-                                    </div>
-                                </div>
-                                <Button
-                                    onClick={bookPayment}
-                                    className="w-full bg-[#07A64F] hover:bg-[#07A64F]/90"
-                                >
-                                    <CreditCard className="h-4 w-4 mr-2" />
-                                    Book Payment
-                                </Button>
                             </div>
                         )}
                     </CardContent>
