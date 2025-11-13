@@ -219,9 +219,6 @@ export const RoomLayoutViewer = ({ layout, roomName, roomId, onRefresh }: RoomLa
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">{roomName}</h3>
-          <p className="text-sm text-gray-600">
-            {formatDimensionsAsFeet(layout.dimensions.length, layout.dimensions.width)} × {formatMetersAsFeet(layout.dimensions.height)}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -306,8 +303,7 @@ export const RoomLayoutViewer = ({ layout, roomName, roomId, onRefresh }: RoomLa
             <div className="flex-1">
               <h4 className="text-sm font-medium text-blue-800 mb-1">Empty Room Layout</h4>
               <p className="text-sm text-blue-700">
-                This room has dimensions ({formatDimensionsAsFeet(layout.dimensions.length, layout.dimensions.width)} × {formatMetersAsFeet(layout.dimensions.height)}) 
-                but no furniture or beds have been placed yet. Use the Layout Designer to add elements to this room.
+                This room has no furniture or beds placed yet. Use the Layout Designer to add elements to this room.
               </p>
             </div>
           </div>
