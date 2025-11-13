@@ -190,15 +190,41 @@ const Notifications = () => {
     };
 
     const handleSendNotification = async () => {
+        // Enhanced validation
         if (!title.trim() || !newMessage.trim()) {
             toast.error('Please fill in both title and message');
             return;
         }
 
+        if (selectedRecipients.length === 0) {
+            toast.error('Please select at least one student to send notification to');
+            return;
+        }
+
         try {
             setIsSending(true);
-            await notificationApiService.sendPushNotification(title, newMessage);
-            toast.success('Notification sent successfully!');
+            
+            // 🔔 NEW: Use unified backend API with selected students
+            const result = await notificationApiService.sendToStudents(
+                selectedRecipients, 
+                title, 
+                newMessage
+            );
+            
+            // Enhanced success feedback
+            if (result.success) {
+                toast.success(`Notification sent to ${result.sent} students successfully!`);
+                
+                if (result.failed > 0) {
+                    toast.warning(`${result.failed} notifications failed to send`);
+                }
+                
+                if (result.skipped > 0) {
+                    toast.info(`${result.skipped} students were skipped (no contact info)`);
+                }
+            } else {
+                toast.success('Notification sent successfully!');
+            }
             
             // Reset form
             setTitle('');
@@ -206,7 +232,7 @@ const Notifications = () => {
             setSelectedRecipients([]);
         } catch (error) {
             console.error('Error sending notification:', error);
-            toast.error('Failed to send notification');
+            toast.error('Failed to send notification. Please try again.');
         } finally {
             setIsSending(false);
         }
@@ -320,7 +346,7 @@ const Notifications = () => {
                                     <Button
                                         onClick={handleSendNotification}
                                         className="bg-gradient-to-r from-[#07A64F] to-[#1295D0] hover:from-[#06954A] hover:to-[#1185C0]"
-                                        disabled={isSending || !title.trim() || !newMessage.trim()}
+                                        disabled={isSending || !title.trim() || !newMessage.trim() || selectedRecipients.length === 0}
                                     >
                                         {isSending ? (
                                             <>

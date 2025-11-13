@@ -70,7 +70,7 @@ export const usePayments = (options: UsePaymentsOptions = {}) => {
       const result = await paymentsApiService.getPayments({
         ...filters,
         page: pageToLoad,
-        limit: filters.limit || 15
+        limit: filters.limit || 10
       });
 
       setState(prev => ({

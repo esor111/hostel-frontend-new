@@ -37,6 +37,7 @@ export const PaymentRecording = () => {
 
   // Form state
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedStudent, setSelectedStudent] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMode, setPaymentMode] = useState<CreatePaymentDto['paymentMethod']>("Cash");
@@ -470,18 +471,44 @@ export const PaymentRecording = () => {
                 </div>
 
                 {/* Pagination Controls */}
-                {pagination && pagination.totalPages > 1 && (
-                  <div className="p-3 bg-gray-50 border-t flex items-center justify-between">
-                    <div className="text-xs text-gray-600">
-                      Showing {((currentPage - 1) * (pagination.limit || 15)) + 1} - {Math.min(currentPage * (pagination.limit || 15), pagination.total)} of {pagination.total} payments
+                {pagination && (
+                  <div className="p-3 bg-gray-50 border-t">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="text-xs text-gray-600">
+                          Showing {((currentPage - 1) * (pagination.limit || 10)) + 1} - {Math.min(currentPage * (pagination.limit || 10), pagination.total)} of {pagination.total} payments
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600">Show:</span>
+                          <Select 
+                            value={pageSize.toString()} 
+                            onValueChange={(value) => {
+                              const newPageSize = parseInt(value);
+                              setPageSize(newPageSize);
+                              loadPayments({ page: 1, limit: newPageSize }, true);
+                            }}
+                          >
+                            <SelectTrigger className="w-16 h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5</SelectItem>
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="15">15</SelectItem>
+                              <SelectItem value="25">25</SelectItem>
+                              <SelectItem value="50">50</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={pagination.totalPages}
+                        onPageChange={(page) => loadPayments({ page, limit: pageSize }, false)}
+                        hasNext={hasMorePages}
+                        hasPrev={currentPage > 1}
+                      />
                     </div>
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={pagination.totalPages}
-                      onPageChange={(page) => loadPayments({ page, limit: pagination.limit || 15 }, false)}
-                      hasNext={hasMorePages}
-                      hasPrev={currentPage > 1}
-                    />
                   </div>
                 )}
               </div>
