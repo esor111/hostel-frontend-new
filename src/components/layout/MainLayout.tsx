@@ -5,7 +5,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { KahaLogo } from "@/components/ui/KahaLogo";
-import { Menu, GripVertical } from "lucide-react";
+import { Menu, GripVertical, UserPlus } from "lucide-react";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -128,30 +128,52 @@ export const MainLayout = ({ children, activeTab }: MainLayoutProps) => {
           }}
         />
 
-        {/* Draggable Resize Handle */}
-        <div
-          ref={dragRef}
-          onMouseDown={handleMouseDown}
-          onDoubleClick={toggleSidebar}
-          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize group hover:w-2 transition-all duration-200 z-10 ${isDragging ? 'bg-blue-500 w-2' : 'bg-gray-300 hover:bg-blue-400'
-            }`}
-          title="Drag to resize • Double-click to toggle"
-        >
-          {/* Visual Drag Indicator */}
-          <div className={`absolute top-1/2 -translate-y-1/2 -right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isDragging ? 'opacity-100' : ''
+        {/* Enhanced Draggable Resize Handle with Toggle */}
+        <div className="absolute top-0 right-0 h-full group z-10">
+          {/* Drag Handle */}
+          <div
+            ref={dragRef}
+            onMouseDown={handleMouseDown}
+            onDoubleClick={toggleSidebar}
+            className={`w-1 h-full cursor-col-resize hover:w-2 transition-all duration-200 ${isDragging ? 'bg-gradient-to-b from-[#1295D0] to-[#07A64F] w-2' : 'bg-gray-300 hover:bg-gradient-to-b hover:from-[#1295D0]/70 hover:to-[#07A64F]/70'
+              }`}
+            title="Drag to resize • Double-click to toggle"
+          />
+
+          {/* Enhanced Visual Drag Indicator */}
+          <div className={`absolute top-1/2 -translate-y-1/2 -right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isDragging ? 'opacity-100' : ''
             }`}>
-            <div className="bg-white shadow-lg rounded-md p-1 border border-gray-200 flex items-center gap-1">
+            <div className="bg-white shadow-xl rounded-lg p-2 border border-gray-200 flex items-center gap-2">
               <GripVertical className="h-4 w-4 text-gray-600" />
-              <span className="text-xs text-gray-600 font-medium">{sidebarWidth}px</span>
+              <div className="text-xs text-gray-600 font-medium">
+                <div>{sidebarWidth}px</div>
+                <div className="text-[10px] text-gray-400">Double-click to toggle</div>
+              </div>
             </div>
           </div>
 
-          {/* Drag Line Indicator */}
-          <div className={`absolute inset-0 bg-gradient-to-b from-transparent via-blue-400 to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-200 ${isDragging ? 'opacity-70' : ''
-            }`} />
+          {/* Separate Toggle Button - No Event Conflicts */}
+          <div className={`absolute top-6 -right-6 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isDragging ? 'opacity-0' : ''
+            }`}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                toggleSidebar();
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+              className="bg-white hover:bg-gray-50 shadow-lg rounded-full p-2 border border-gray-200 transition-all duration-200 hover:scale-110 cursor-pointer"
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              <Menu className="h-3 w-3 text-gray-600" />
+            </button>
+          </div>
 
-          {/* Hover Area for Better UX */}
-          <div className="absolute top-0 -right-2 w-4 h-full" />
+          {/* Enhanced Drag Line Indicator */}
+          <div className={`absolute inset-0 bg-gradient-to-b from-transparent via-[#1295D0]/50 to-transparent opacity-0 group-hover:opacity-70 transition-opacity duration-200 pointer-events-none ${isDragging ? 'opacity-90' : ''
+            }`} />
         </div>
 
         {/* Width Indicator (shows during drag) */}
@@ -167,40 +189,34 @@ export const MainLayout = ({ children, activeTab }: MainLayoutProps) => {
         {/* Enhanced Modern Header */}
         <div className="bg-white shadow-lg border-b border-gray-100 px-6 py-4 flex-shrink-0">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-6">
-              {/* Sidebar Toggle Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleSidebar}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-              >
-                <Menu className="h-5 w-5 text-gray-600" />
-              </Button>
-
-              {/* Kaha Logo and Branding */}
-              <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              {/* Kaha Logo Only */}
+              <div className="flex items-center">
                 <KahaLogo size="lg" />
-                <div className="border-l border-gray-300 pl-4">
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-[#07A64F] via-[#1295D0] to-[#07A64F] bg-clip-text text-transparent">
-                    Kaha Control Center
-                  </h1>
-                  <p className="text-sm text-gray-600 mt-1">Hostel Management System</p>
-                </div>
-              </div>
-
-              {/* Enhanced Status Indicator */}
-              <div className="hidden lg:flex items-center space-x-3 bg-[#07A64F]/10 px-4 py-2 rounded-full border border-[#07A64F]/30">
-                <div className="relative">
-                  <div className="h-3 w-3 bg-[#07A64F] rounded-full animate-pulse"></div>
-                  <div className="absolute inset-0 h-3 w-3 bg-[#07A64F]/70 rounded-full animate-ping opacity-75"></div>
-                </div>
-                <span className="text-sm text-[#07A64F] font-semibold">Kaha Ready</span>
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
+              {/* Enhanced Add Student Button */}
+              <Button
+                onClick={() => navigate('/students')}
+                className="bg-gradient-to-r from-[#1295D0] via-[#07A64F] to-[#1295D0] hover:from-[#1295D0]/90 hover:via-[#07A64F]/90 hover:to-[#1295D0]/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                size="lg"
+              >
+                <span className="flex items-center space-x-3">
+                  <div className="p-1 bg-white/20 rounded-md">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold text-sm">Add Student</div>
+                    <div className="text-xs text-white/80">Student Management</div>
+                  </div>
+                  <div className="bg-white/30 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold">
+                    NEW
+                  </div>
+                </span>
+              </Button>
+
               {/* Enhanced Ledger Button */}
               <Button
                 onClick={() => navigate('/ledger')}
