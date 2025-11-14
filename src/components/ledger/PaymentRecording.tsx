@@ -519,23 +519,22 @@ export const PaymentRecording = () => {
 
       {/* Enhanced Payment Form Modal */}
       {showPaymentForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl border-2 border-green-200">
-            <CardHeader className="pb-6 bg-gradient-to-r from-green-50 to-blue-50 border-b-2 border-green-200">
-              <CardTitle className="text-2xl font-bold flex items-center gap-3 kaha-text-brand">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-white" />
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl border-2 border-green-200">
+            <CardHeader className="pb-3 pt-3 bg-gradient-to-r from-green-50 to-blue-50 border-b border-green-200 flex-shrink-0">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 kaha-text-brand">
+                <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-blue-500 rounded flex items-center justify-center">
+                  <DollarSign className="h-3 w-3 text-white" />
                 </div>
                 💰 Record Payment
               </CardTitle>
-              <p className="text-gray-600 font-medium">Enter payment details to update student ledger</p>
             </CardHeader>
-            <CardContent className="space-y-6 p-8">
-              <div className="grid md:grid-cols-2 gap-6">
+            <CardContent className="flex-1 overflow-y-auto p-3 space-y-3">
+              <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="student" className="text-base font-semibold">Select Student *</Label>
+                  <Label htmlFor="student" className="text-sm font-semibold">Select Student *</Label>
                   <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                    <SelectTrigger className={`h-12 text-base ${!selectedStudent ? 'border-red-300 border-2' : 'border-2'}`}>
+                    <SelectTrigger className={`h-10 text-sm ${!selectedStudent ? 'border-red-300' : ''}`}>
                       <SelectValue placeholder="Choose student" />
                     </SelectTrigger>
                     <SelectContent>
@@ -563,7 +562,7 @@ export const PaymentRecording = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="amount" className="text-base font-semibold">Payment Amount (₹) *</Label>
+                  <Label htmlFor="amount" className="text-sm font-semibold">Payment Amount (₹) *</Label>
                   <Input
                     id="amount"
                     type="number"
@@ -573,7 +572,7 @@ export const PaymentRecording = () => {
                     placeholder="Enter amount"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
-                    className={`h-12 text-base font-semibold ${!paymentAmount || parseFloat(paymentAmount) <= 0 ? 'border-red-300 border-2' : 'border-2'}`}
+                    className={`h-10 text-sm font-semibold ${!paymentAmount || parseFloat(paymentAmount) <= 0 ? 'border-red-300' : ''}`}
                   />
                   {selectedStudent && studentsWithDues.find(s => s.id === selectedStudent)?.outstandingDue > 0 && (
                     <p className="text-sm text-blue-600 font-semibold bg-blue-50 p-2 rounded-lg">
@@ -586,11 +585,10 @@ export const PaymentRecording = () => {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="type" className="text-base font-semibold">Payment Type *</Label>
+                  <Label htmlFor="type" className="text-sm font-semibold">Payment Type *</Label>
                   <Select value={paymentType} onValueChange={(value) => setPaymentType(value as 'REGULAR' | 'MONTHLY' | 'ADVANCE')}>
-                    <SelectTrigger className="h-12 text-base border-2">
+                    <SelectTrigger className="h-10 text-sm">
                       <SelectValue placeholder="Select payment type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -604,9 +602,9 @@ export const PaymentRecording = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="mode" className="text-base font-semibold">Payment Method *</Label>
+                  <Label htmlFor="mode" className="text-sm font-semibold">Payment Method *</Label>
                   <Select value={paymentMode} onValueChange={(value) => setPaymentMode(value as CreatePaymentDto['paymentMethod'])}>
-                    <SelectTrigger className="h-12 text-base border-2">
+                    <SelectTrigger className="h-10 text-sm">
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
                     <SelectContent>
@@ -618,13 +616,12 @@ export const PaymentRecording = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
               {needsReference && (
                 <div className="space-y-2">
-                  <Label htmlFor="reference" className="text-base font-semibold">
+                  <Label htmlFor="reference" className="text-sm font-semibold">
                     Reference ID *
-                    <span className="text-sm text-gray-500 ml-2 font-normal">
+                    <span className="text-xs text-gray-500 ml-2 font-normal">
                       {paymentMode === "Online" && "(Transaction ID)"}
                       {paymentMode === "Bank Transfer" && "(Bank Reference)"}
                       {paymentMode === "Mobile Wallet" && "(Wallet ID)"}
@@ -636,73 +633,58 @@ export const PaymentRecording = () => {
                     placeholder="Enter reference ID"
                     value={referenceId}
                     onChange={(e) => setReferenceId(e.target.value)}
-                    className="h-12 text-base border-2"
+                    className="h-10 text-sm"
                   />
                 </div>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="notes" className="text-base font-semibold">Notes (Optional)</Label>
+                <Label htmlFor="notes" className="text-sm font-semibold">Notes (Optional)</Label>
                 <Input
                   id="notes"
                   placeholder="Additional notes or comments"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="h-12 text-base border-2"
+                  className="h-10 text-sm"
                 />
               </div>
 
-              <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-xl border-2 border-blue-200">
-                <h4 className="font-bold text-blue-800 mb-3 text-base flex items-center gap-2">
-                  💡 Payment Processing Rules
-                </h4>
-                <ul className="text-sm text-blue-700 space-y-2 font-medium">
-                  <li className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    Applied to oldest outstanding dues first
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    Excess amount becomes advance balance
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    Auto-applies to future invoices
-                  </li>
-                </ul>
-              </div>
-
-              <div className="flex justify-end space-x-4 pt-6 border-t-2 border-gray-200">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPaymentForm(false)}
-                  disabled={submitting}
-                  className="h-12 px-8 text-base font-semibold border-2"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handlePaymentSubmit}
-                  disabled={
-                    submitting ||
-                    !selectedStudent ||
-                    !paymentAmount ||
-                    !paymentMode ||
-                    (needsReference && !referenceId)
-                  }
-                  className="kaha-button-primary h-12 px-8 text-base font-bold"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      Recording Payment...
-                    </>
-                  ) : (
-                    <>💾 Record Payment</>
-                  )}
-                </Button>
+              <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                <p className="text-xs text-blue-700">
+                  💡 Payment applied to oldest dues first, excess becomes advance balance
+                </p>
               </div>
             </CardContent>
+            <div className="flex justify-end space-x-3 p-3 border-t border-gray-200 flex-shrink-0 bg-gray-50">
+              <Button
+                variant="outline"
+                onClick={() => setShowPaymentForm(false)}
+                disabled={submitting}
+                className="h-10 px-6 text-sm font-semibold"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePaymentSubmit}
+                disabled={
+                  submitting ||
+                  !selectedStudent ||
+                  !paymentAmount ||
+                  !paymentMode ||
+                  (needsReference && !referenceId)
+                }
+                className="kaha-button-primary h-10 px-6 text-sm font-bold"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Recording Payment...
+                  </>
+                ) : (
+                  <>💾 Record Payment</>
+                )}
+              </Button>
+            </div>
           </Card>
         </div>
       )}

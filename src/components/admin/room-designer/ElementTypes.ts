@@ -40,7 +40,7 @@ export const elementTypes: ElementType[] = [
     emoji: '🛏️',
     label: 'Single Bed',
     color: '#3B82F6',
-    defaultSize: { width: 1.3, height: 3.1 },
+    defaultSize: { width: 0.5, height: 1.3 },
     description: 'Standard single bed',
     category: 'beds',
     tags: ['sleep', 'bedroom', 'single'],
@@ -53,7 +53,7 @@ export const elementTypes: ElementType[] = [
     emoji: '🛏️',
     label: 'Bunk Bed',
     color: '#1E40AF',
-    defaultSize: { width: 2.6, height: 2.2 },
+    defaultSize: { width: 0.8, height: 1.6 },
     description: 'Multi-level bunk bed with 2 or 3 levels - assign students to each level',
     category: 'beds',
     tags: ['sleep', 'bedroom', 'bunk', 'space-saving', 'multi-level'],
@@ -75,7 +75,7 @@ export const elementTypes: ElementType[] = [
     emoji: '🚪',
     label: 'Door',
     color: '#8B5CF6',
-    defaultSize: { width: 0.9, height: 1.8 }, // Standard door size - 0.9m wide x 2.1m tall
+    defaultSize: { width: 0.3, height: 0.75 }, // Compact door size - half of single bed
     description: 'Room entrance with left/right hinge options',
     category: 'openings',
     tags: ['entrance', 'access', 'door'],
@@ -88,7 +88,7 @@ export const elementTypes: ElementType[] = [
     emoji: '🪟',
     label: 'Window',
     color: '#043c2aff',
-    defaultSize: { width: 0.4, height: 0.9 }, // Standard window size - 1.2m wide x 1.0m tall
+    defaultSize: { width: 0.15, height: 0.375 }, // Small window size - half of door
     description: 'Natural light source with frame, glass panels, and reflection effects',
     category: 'openings',
     tags: ['light', 'view', 'window', 'ventilation', 'glass', 'frame'],

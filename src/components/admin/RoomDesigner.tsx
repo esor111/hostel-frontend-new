@@ -602,10 +602,10 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
 
     // For bunk beds, adjust size based on levels (default is 2-level)
     if (type === 'bunk-bed') {
-      // 2-level: 2.6m × 2.2m (default)
-      // 3-level: 3.0m × 2.7m
-      bedWidth = 2.6; // Default 2-level width
-      bedHeight = 2.2; // Default 2-level height
+      // 2-level: 0.8m × 1.6m (default) - compact size
+      // 3-level: 0.9m × 1.8m
+      bedWidth = 0.8; // Default 2-level width
+      bedHeight = 1.6; // Default 2-level height
     }
 
     const newElement: RoomElement = {
@@ -676,11 +676,11 @@ export const RoomDesigner = ({ onSave, onClose, roomData, isViewMode = false }: 
 
           // Update dimensions based on levels
           if (newLevels === 2) {
-            updatedElement.width = 2.6;
-            updatedElement.height = 2.2;
+            updatedElement.width = 0.8;
+            updatedElement.height = 1.6;
           } else if (newLevels === 3) {
-            updatedElement.width = 3.0;
-            updatedElement.height = 2.7;
+            updatedElement.width = 0.9;
+            updatedElement.height = 1.8;
           }
 
           // Generate new levels array

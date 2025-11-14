@@ -200,8 +200,8 @@ export const RoomCanvas = ({
   warnings
 }: RoomCanvasProps) => {
   
-  // 🔧 ZOOM-PROOF COORDINATE TRANSFORMATION SYSTEM 🔧
-  // This fixes the drag & drop issue at 100% browser zoom by properly accounting for:
+  // 🔧 IMPROVED COORDINATE TRANSFORMATION SYSTEM 🔧
+  // This fixes the drag & drop issue by properly accounting for:
   // 1. Browser zoom level (80%, 90%, 100%, 110%, etc.)
   // 2. CSS scaling and transforms
   // 3. Device pixel ratio (high-DPI displays)
@@ -215,13 +215,12 @@ export const RoomCanvas = ({
       return { x: 0, y: 0 };
     }
     
-    // Calculate the scale factor between actual canvas size and displayed size
-    // This is the key fix - it accounts for ALL zoom and scaling factors
+    // Since we're now using explicit width/height instead of maxWidth/maxHeight,
+    // the canvas should maintain its aspect ratio properly
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     
-    // Convert mouse coordinates to canvas coordinates with proper zoom handling
-    // The magic formula: (mousePos - canvasOffset) * displayScale / internalScale
+    // Convert mouse coordinates to room coordinates (meters)
     const x = ((e.clientX - rect.left) * scaleX) / canvasScale;
     const y = ((e.clientY - rect.top) * scaleY) / canvasScale;
     
@@ -249,8 +248,8 @@ export const RoomCanvas = ({
   // 🔧 SAFEGUARD: Store the original clicked element to ensure only it moves
   const originalClickedElementRef = useRef<string | null>(null);
 
-  // Reasonable scale for better visibility without being too large
-  const canvasScale = Math.max(scale * 2, 60);
+  // Improved scale calculation for better visibility
+  const canvasScale = Math.max(scale * 3, 80);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
@@ -1117,9 +1116,9 @@ export const RoomCanvas = ({
         </div>
       )}
 
-      {/* Canvas Container - FIXED SIZING */}
+      {/* Canvas Container - IMPROVED SIZING */}
       <div className="flex-1 flex flex-col bg-white rounded-lg shadow-sm border overflow-hidden">
-        {/* Canvas Wrapper - Proper scrolling */}
+        {/* Canvas Wrapper - Proper scrolling with better sizing */}
         <div className="flex-1 overflow-auto p-4">
           <div className="flex items-center justify-center min-h-full">
             <canvas
@@ -1139,8 +1138,10 @@ export const RoomCanvas = ({
                 perspective: '1000px',
                 transform: 'translateZ(0)',
                 transition: isDragging ? 'none' : 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                maxWidth: '100%',
-                maxHeight: '100%'
+                width: `${dimensions.length * canvasScale}px`,
+                height: `${dimensions.width * canvasScale}px`,
+                minWidth: '600px',
+                minHeight: '500px'
               }}
             />
           </div>
