@@ -439,26 +439,6 @@ export const RoomConfiguration = () => {
                       <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
                         <div className="text-sm text-purple-700 font-medium mb-1">Room Layout</div>
                         <div className="text-sm text-gray-600">
-                          {/* Check if dimensions are configured (not default 10x8 values) */}
-                          {room.layout.dimensions?.length && room.layout.dimensions?.width ? (
-                            // Check if these are the old default values
-                            (room.layout.dimensions.length === 10 && room.layout.dimensions.width === 8) ? (
-                              <>
-                                <span className="text-amber-600">Default dimensions (click Layout to customize)</span>
-                                <br />
-                              </>
-                            ) : (
-                              <>
-                                {formatDimensionsAsFeet(room.layout.dimensions.length, room.layout.dimensions.width)}
-                                <br />
-                              </>
-                            )
-                          ) : (
-                            <>
-                              <span className="text-gray-500">Dimensions not set</span>
-                              <br />
-                            </>
-                          )}
                           {room.layout.elements?.length || 0} elements configured
                         </div>
                       </div>

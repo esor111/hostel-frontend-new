@@ -39,8 +39,8 @@ export const RoomSetupWizard = ({ onComplete, initialData }: RoomSetupWizardProp
         height: Math.round(metersToFeet(initialData.dimensions.height) * 10) / 10
       };
     }
-    // Default values in feet
-    return { length: 32.8, width: 32.8, height: 32.8 }; // ~10m converted to feet
+    // Default values in feet - reasonable room dimensions
+    return { length: 16.4, width: 13.1, height: 9.8 }; // ~5m x 4m x 3m converted to feet
   });
 
   const defaultTheme: RoomTheme = {
